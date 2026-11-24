@@ -1,0 +1,48 @@
+/*
+ * 견적서 만들기(/admin/quote-desk/builder) — 입력형 틀(폭 960, 아래 고정 막대 adm-ui-form-bar)과 우리 관리자 부품이 모양을 정한다.
+ * 이 파일은 단계 카드 사이 간격·세 칸 격자·코스 고르기 격자·옵션 줄·추가 줄·총액 글자 배치만 둔다. 값은 --adm-* 변수만 쓴다.
+ */
+.qbd-page { display: flex; flex-direction: column; gap: var(--adm-space-4); }
+.qbd-steps { overflow-x: auto; }
+.qbd-fieldset { display: flex; flex-direction: column; gap: var(--adm-space-4); min-width: 0; margin: 0; padding: 0; border: 0; }
+.qbd-grid-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.qbd-label { color: var(--adm-text-2); font-size: var(--adm-fs-small); font-weight: var(--adm-fw-bold); }
+.qbd-muted { color: var(--adm-text-3); font-size: var(--adm-fs-caption); }
+.qbd-intensity { display: flex; flex-wrap: wrap; align-items: center; gap: var(--adm-space-2) var(--adm-space-3); margin-top: var(--adm-space-4); }
+
+.qbd-courses, .qbd-clone-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(calc(var(--adm-space-8) * 6), 1fr)); gap: var(--adm-space-2); }
+.qbd-clone-list { grid-template-columns: minmax(0, 1fr); max-height: calc(var(--adm-space-8) * 14); overflow-y: auto; }
+.qbd-course-name { color: var(--adm-ink); font-size: var(--adm-fs-body); font-weight: var(--adm-fw-bold); overflow-wrap: anywhere; }
+
+.qbd-check { margin: 0 0 var(--adm-space-3); font-size: var(--adm-fs-small); }
+.qbd-check.is-ok { color: var(--adm-success-strong); }
+.qbd-check.is-warn { color: var(--adm-warn-strong); font-weight: var(--adm-fw-bold); }
+
+.qbd-row { display: flex; flex-wrap: wrap; align-items: flex-end; gap: var(--adm-space-4) var(--adm-space-6); }
+.qbd-row > .adm-ui-field { width: calc(var(--adm-space-8) * 6); }
+.qbd-seg { display: flex; flex-direction: column; gap: var(--adm-space-2); }
+
+.qbd-options { display: flex; flex-direction: column; margin: 0; padding: 0; list-style: none; }
+.qbd-options li { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) auto; align-items: center; gap: var(--adm-space-3); padding: var(--adm-space-2) 0; border-bottom: var(--adm-border-width) solid var(--adm-line-subtle); }
+.qbd-options b { color: var(--adm-ink); font-size: var(--adm-fs-small); }
+.qbd-add { display: grid; grid-template-columns: repeat(auto-fit, minmax(calc(var(--adm-space-8) * 4), 1fr)); gap: var(--adm-space-2); margin-top: var(--adm-space-3); }
+
+/* 아래 고정 막대: 왼쪽 예상 총액 */
+.qbd-total { display: flex; flex-direction: column; gap: calc(var(--adm-space-1) / 2); }
+.qbd-total small { color: var(--adm-text-3); font-size: var(--adm-fs-caption); }
+.qbd-total b { color: var(--adm-ink); font-size: var(--adm-fs-lead); font-weight: var(--adm-fw-bold); font-variant-numeric: tabular-nums; }
+.qbd-total b span { color: var(--adm-text-3); font-size: var(--adm-fs-caption); font-weight: var(--adm-fw-regular); }
+
+.qbd-link { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: var(--adm-space-2); }
+.qbd-link-actions { display: flex; gap: var(--adm-space-4); margin-top: var(--adm-space-3); }
+
+@media (max-width: 760px) {
+  .qbd-grid-3 { grid-template-columns: minmax(0, 1fr); }
+  .qbd-row > .adm-ui-field { width: 100%; }
+  .qbd-options li { grid-template-columns: minmax(0, 1fr) auto; }
+  .qbd-options li .qbd-muted { grid-column: 1; }
+  /* 아래 막대: 총액 한 줄 위, 버튼은 그 아래 */
+  .qbd-bar { flex-wrap: wrap; }
+  .qbd-total { flex: 1 1 100%; flex-direction: row; flex-wrap: wrap; align-items: baseline; justify-content: space-between; }
+  .qbd-total b { font-size: var(--adm-fs-body); white-space: nowrap; }
+}

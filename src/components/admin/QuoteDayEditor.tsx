@@ -19,7 +19,9 @@ interface Props {
     onReorder: (from: number, to: number) => void;
     onAdd: () => void;
     onNotice: (message: string) => void;
-    renderDetails: (index: number) => ReactNode;
+    /** 일차마다 아래에 붙는 추가 칸(사진·상세). 견적서 만들기처럼 없으면 false */
+    extras?: boolean;
+    renderDetails?: (index: number) => ReactNode;
 }
 interface WidgetOptions extends Omit<Props, 'renderDetails'> {
     extras: boolean;
@@ -64,7 +66,7 @@ export function QuoteDayEditor(p: Props) {
     const [attempt, setAttempt] = useState(0);
     const options = (): WidgetOptions => ({
         ...latest.current,
-        extras: true,
+        extras: latest.current.extras ?? true,
         forceValues: latest.current.syncKey !== syncedKey.current,
         onField: (...args) => latest.current.onField(...args),
         onSnippet: (...args) => latest.current.onSnippet(...args),
@@ -104,6 +106,6 @@ export function QuoteDayEditor(p: Props) {
         {!ready && !error && <AdminLoading inline label="견적서의 일자별 일정 편집기를 불러오고 있습니다." />}
         {error && <AdminError title="일정 편집기를 불러오지 못했습니다" reason={error} onRetry={() => setAttempt(value => value + 1)} />}
         <div ref={host} className="quote-day-editor" aria-label="견적서 일자별 일정 편집" />
-        {slots.map((slot, index) => createPortal(p.renderDetails(index), slot, String(index)))}
+        {p.renderDetails && slots.map((slot, index) => createPortal(p.renderDetails!(index), slot, String(index)))}
     </>;
 }

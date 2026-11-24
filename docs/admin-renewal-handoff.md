@@ -239,6 +239,13 @@ Montage를 화면에서 직접 쓰게 강제하면 단점이 있다:
 > - 옛 도구와 달라진 점(보존·안전 쪽으로만): 결제 상태는 저장 직전에 그 예약을 서버에서 다시 읽어 바꾼다(목록을 연 뒤 다른 화면에서 고친 일정·배정을 덮지 않는다). 예약금을 처음 입금완료로 바꾸면 서버가 계약서 서명 요청을 기록하고 알림톡을 보낼 수 있어 확인 창을 거친다. 견적서가 든 예약을 복제하면 서버가 새 견적 발행으로 보고 같은 연락처로 견적 안내를 보낼 수 있어(옛 도구도 같았음, `functions/api/requests.js`의 `quoteCreated`) 복제 확인 창에 그 건수를 알린다. 50건씩 페이지, 목록 상태(거르기·검색·출발월·정렬·페이지)를 주소에 둔다. 요약 칸의 작은 그래프와 머리의 새로고침·‘N분 전 업데이트’는 넣지 않았다. 일정표·계약서도 관리자 화면을 벗어나지 않도록 새 탭으로 연다.
 > - 계산은 `components/admin/quoteBookingList.ts`, 테스트 `tests/quote-booking-list.test.mjs`가 `예약목록.html`의 `rows`·`rowNumbers`·`customerTimeline`·`cloneRecord`를 꺼내 같은 자료로 비교한다(거르기 4 × 정렬 8 × 방향 2 + 검색·출발월).
 
+> **견적서 만들기 완료(2026-11-24, `feature/quote-tool-builder`)** — `/admin/quote-desk/builder`(대시보드·견적 문의의 ‘견적 작성’, 코스 관리의 ‘공유 견적’, 데스크톱에서 옛 `/견적만들기?id=`를 단독으로 열 때)가 React 화면 `pages/AdminQuoteBuilder.tsx`를 연다(라우트가 `:tool?`보다 앞). **고객 통합 작업 화면 안의 견적 편집(iframe `/견적만들기?id=`)은 아직 옛 문서**이고, 예약관리 전환 때 함께 바꾼다.
+> - 입력형 기준: 머리(초기화·지도 미리보기·견적서 미리보기·저장하기·링크 공유하기) → 단계 탭 5개(기본정보·코스 / 일자별 일정 / 요금 / 대표 명소 / 혜택·비고) → 아래 고정 막대(예상 총액·이전/다음, 마지막 단계에 저장하기·링크 공유하기). 일자별 일정·대표 명소는 옛 도구와 같은 공용 부품(`QuoteDayEditor`에 `extras={false}` 추가, `QuoteSpotSelector`).
+> - **같은 견적 문서·같은 저장**: `components/admin/quoteBuilder.ts`가 옛 `buildQuote`·`restoreFromQuote`·`importQuoteContent`·`loadCourse`·`matchCourse`와 저장 내용(요청에서 열었으면 `PATCH { quote, notifyQuote|silentQuote, 인원 구성·일정·여행지·연락처·이메일 }`, 아니면 `POST`(walkin/course-share))을 옮겼다. 기본값은 `public/data.js`의 QUOTE(`quoteLibrary.loadQuoteBase`). 고객 링크는 알림톡 템플릿과 같은 `내견적.html?t=`. 미리보기는 옛 도구와 같이 `localStorage.leaders_quote`에 넣고 `/견적서`·`/일정지도`를 연다.
+> - **초안**: `components/admin/quoteDraftStore.ts`가 `quote-editor-state.js`의 키·형식·정리 규칙(`clean`·`fingerprint`·`validQuote`·`read`·`write`)을 그대로 옮겨, 옛 편집기와 React가 서로의 초안을 복원한다(옛 형식 `leaders_quote_draft`도 읽음). 원본과 다른 초안이 있으면 복원/버리기를 고를 때까지 편집을 잠근다. 저장에 성공하면 초안을 지우고 새 견적은 그 ID 자리로 옮긴다.
+> - 옛 도구와 달라진 점: 숙소 이름만 고칠 때 그 숙소의 다른 칸(사진·설명)을 지우지 않는다. 확인 창·알림은 관리자 공통 부품. 링크 공유는 옛 도구처럼 알림톡 확인 창을 거친다.
+> - 테스트 `tests/quote-builder.test.mjs`: 옛 문서의 함수를 꺼내 견적 문서·코스 불러오기·되돌리기·복제가 같은지, 초안이 옛 파일과 서로 읽히는지 비교. 로컬(8804)에서 새 견적 저장(POST·초안 정리) 뒤 **같은 견적을 옛 견적만들기에서 열어 만든 문서와 저장된 문서가 발행일 빼고 같음**을 확인했고, 고객 문의에서 시작한 견적도 같았다. 링크 공유(확인 창·서버 알림 시도·링크 형식), 초안 복원, 미리보기(견적서에 고객명·기간), 일정 편집(“ / ” → `<br>`, 이동 거리 나누기), 다른 견적 복제, 390 폭(가로 넘침 0)을 확인.
+
 ## 7. 반드시 지킬 것 (요약 — 정본은 CLAUDE.md)
 
 - 고객 링크 주소·파일명 변경 금지(3.1). 견적 페이지의 id·class·함수·API·`?t=`·`?adminId=`·`?adminPrint=1`·`leaders_*` 키 변경 금지(3.3) — React 전환 전까지.
