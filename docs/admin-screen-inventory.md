@@ -45,7 +45,7 @@
 
 | 메뉴 | 화면 | 주소 | 파일(`public/`) | 유형 | 화면 안의 팝업 |
 |---|---|---|---|---|---|
-| 견적 관리 | 견적 문의 | `/admin/quote-desk/inbox` | **목록은 React로 전환(2026-11-24)**: `src/pages/AdminQuoteInbox.tsx`(+ `.css`). 줄을 누르면 고객 통합 작업 화면. `견적관리.html`은 고객 화면 안의 문의 상세(`?workspace=1`)로 계속 쓴다 | 목록형 | 없음(목록). 고객 화면 안 문의 상세: 삭제·상태 확인 |
+| 견적 관리 | 견적 문의 | `/admin/quote-desk/inbox` | **목록은 React로 전환(2026-11-24)**: `src/pages/AdminQuoteInbox.tsx`(+ `.css`). 줄을 누르면 고객 통합 작업 화면. 고객 화면 안의 문의 상세도 React `components/admin/QuoteInquiryPanel.tsx`(2026-11-24, 옛 `견적관리.html?workspace=1`은 비교용) | 목록형 | 없음(목록). 고객 화면 안 문의 상세: 예약 진행 기록·고객 링크 재발급·삭제 확인 창(`adminConfirm`) |
 | 견적 관리 | 견적 예약 목록 | `/admin/quote-desk/bookings` | **React로 전환(2026-11-24)**: `src/pages/AdminQuoteBookings.tsx`(+ `.css`). 옛 `예약목록.html`은 비교용으로만 남음 | 목록형 | 고객 진행 기록 창(`AdminDialog`), 입금완료·복제·영구 삭제 확인 창(`adminConfirm`) |
 | (목록에서 진입) | 견적 예약 편집 | 고객 통합 작업 화면 안 | `예약관리.html` | 상세형 | 확인 창(`#confirmLayer`), 더보기 메뉴, 확정일정표 알림 창 |
 | 견적 관리 | 견적서 만들기 | `/admin/quote-desk/builder` | **React로 전환(2026-11-24)**: `src/pages/AdminQuoteBuilder.tsx`(+ `.css`). 고객 통합 작업 화면 안의 견적 편집은 아직 `견적만들기.html`(iframe) | 입력형(5단계) | 다른 견적에서 복제 창·고객 링크 창(`AdminDialog`), 링크 공유·초기화·복제 확인 창(`adminConfirm`), 초안 복원 안내(`AdminMessage`) |
