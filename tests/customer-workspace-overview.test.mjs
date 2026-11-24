@@ -278,15 +278,13 @@ test('서류 카드의 견적서 수정 버튼은 견적 작성기 액션을 보
     assert.equal(byLabel(view({ model }).tree, '계약서 수정'), undefined);
 });
 
-test('고객 통합 작업에서는 가이드·차량·숙소를 배정하지 않고 결과(없으면 미배정)와 전용 메뉴 바로가기만 보여 준다', () => {
+test('고객 통합 작업에서는 가이드·차량·숙소를 배정하지 않고 결과(없으면 미배정)만 보여 준다', () => {
     const calls = [], scrolled = [];
     const source = { id: 'res-1', type: 'product', status: 'confirmed', startDate: '2026-10-24', endDate: '2026-10-26', totalAmount: 0, depositStatus: 'paid' };
     const { tree } = view({ model, links: { source, userId: 'admin' }, onAction: (...args) => calls.push(args) });
     const markup = renderToStaticMarkup(tree);
     for (const gone of ['박별 관리', '일자별 숙소', '현지 운영에 수배 요청', '가이드 선택', '차량 선택', '숙소 선택']) assert.ok(!markup.includes(gone), gone);
-    for (const shown of ['가이드 미배정', '차량 미배정', '가이드·차량 배정', '숙소 배정']) assert.ok(markup.includes(shown), shown);
-    assert.ok(markup.includes('href="/admin/quote-desk/resources?view=schedule"'));
-    assert.ok(markup.includes('href="/admin/accommodation-ops?open=res-1&amp;source=product"'));
+    for (const shown of ['가이드 미배정', '차량 미배정']) assert.ok(markup.includes(shown), shown);
     assert.equal(markup.match(/id="sec-asg"/g).length, 1, 'one assignment card');
     // ‘배정하기’ 같은 배정 업무 버튼은 업무 창을 열지 않고 배정 카드로 이동한다
     const root = { querySelector: sel => sel === '#sec-asg' ? sectionStub(sel, () => scrolled.push(sel)) : null };

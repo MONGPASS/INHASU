@@ -35,7 +35,6 @@ export interface ReservationDetailV7Links {
 }
 
 /** 이 화면에서 열지 않는 배정 업무. 배정은 ‘숙소 배정’·‘가이드·숙소·차량’ 메뉴에서만 한다(2026-11-24). */
-const GUIDE_SCHEDULE_HREF = '/admin/quote-desk/resources?view=schedule';
 const ASSIGN_ACTIONS = new Set(['assignments', 'assign', 'guide', 'vehicle', 'stay']);
 /** 바로가기 6개(디자인 v7): 같은 화면 안의 해당 카드로 이동한다. 업무 화면은 각 카드의 버튼이 연다. */
 const NAV: Array<{ label: string; icon: DashboardIconName; sid: string }> = [
@@ -284,7 +283,6 @@ export function reservationDetailView({ model: m, onAction, busy = false, noteCo
     const guidePhone = row?.guide?.phone ? maskFact('연락처', row.guide.phone, maskOn) : m.assignments.find(a => a.id === 'guide')?.detail || '';
     const vehicleSub = [item?.assignment.vehicle?.driver && `기사 ${item.assignment.vehicle.driver}`, row?.vehicle?.phone && maskFact('연락처', row.vehicle.phone, maskOn)].filter(Boolean).join(' · ')
         || m.assignments.find(a => a.id === 'vehicle')?.detail || '';
-    const lodgeHref = source && source.type !== 'quote' ? `/admin/accommodation-ops?open=${encodeURIComponent(source.id)}&source=${source.type === 'quote_booking' ? 'quote_booking' : 'product'}` : '/admin/accommodation-ops';
     const asgCard = <section key="sec-asg" id="sec-asg" className="rdc-card" aria-label="배정">
         {rdcHead(IconPersons, '배정', asgLocked ? cardBadge(null, '예약 전', true) : cardBadge(asgLeft))}
         <div className="rdc-body">
@@ -305,10 +303,7 @@ export function reservationDetailView({ model: m, onAction, busy = false, noteCo
                         {n.hotel && <span className="rdc-stay-status">{bookingStatusMeta(n.bookingStatus).label}</span>}
                     </li>)}
                 </ul>}
-                {asgLocked ? lockedNote : <div className="rdc-asg-links">
-                    <AdminButton size="sm" variant="secondary" fullWidth to={GUIDE_SCHEDULE_HREF} trailing={<Ico name="lc-arrow-right" size={14} />}>가이드·차량 배정</AdminButton>
-                    <AdminButton size="sm" variant="primary" fullWidth to={lodgeHref} trailing={<Ico name="lc-arrow-right" size={14} />}>숙소 배정</AdminButton>
-                </div>}
+                {asgLocked && lockedNote}
             </div>
         </div>
     </section>;
