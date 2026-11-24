@@ -1,14 +1,17 @@
 import React, { useRef, useEffect, useState } from 'react';
 import { AdminLayout } from '../components/admin/AdminLayout';
-import { Icon, MaterialIcon } from '../components/admin/console/Icon';
-import { IconApps, IconArrowDown, IconChevronLeft, IconMegaphone, IconUpload } from '../components/admin/ui/AdminIcons';
-import { DashboardIcon } from '../components/admin/dashboard/DashboardIcon';
+// 관리자가 고른 바로가기·이벤트 아이콘은 고객 화면과 같은 Material 글꼴로 보여 준다(CLAUDE.md 5.0 예외).
+import { MaterialIcon } from '../components/admin/console/Icon';
+import {
+    AdminBadge, AdminButton, AdminChip, AdminEmpty, AdminField, AdminFileButton, AdminIconButton, AdminMessage, AdminPickCard, AdminSegmented, AdminSelect, AdminTextArea, AdminTextButton, AdminTextInput,
+    IconApps, IconArrowDown, IconArrowUp, IconChevronDown, IconChevronLeft, IconChevronRight, IconImage, IconMegaphone, IconPlus, IconTrash, IconUpload,
+} from '../components/admin/ui';
 import { api } from '../lib/api';
 import { uploadImage } from '../utils/upload';
 import { useAdminContentGuard } from '../hooks/useAdminContentGuard';
 import { createAdminContentTask, withUploadedImage, moveAdminRow } from '../utils/adminContentWorkflow';
 import './AdminBannerManage.css';
-import { adminConfirm } from '../components/admin/ui/adminFeedback';
+import { adminConfirm, adminNotify } from '../components/admin/ui/adminFeedback';
 
 interface Banner {
     id: string;
@@ -96,7 +99,7 @@ const DEFAULT_LINKS: QuickLink[] = [
 const DEFAULT_EVENT_BANNERS: EventBanner[] = [
     {
         id: 'event-1',
-        backgroundColor: '#0F766E', // teal-700
+        backgroundColor: '#0F766E', // teal-700 (고객 화면 기본 이벤트 색)
         tag: 'EVENT',
         title: '친구와 함께하면\n10만원 할인!',
         icon: 'redeem',
@@ -129,27 +132,20 @@ const DEFAULT_CATEGORY_TABS: CategoryTab[] = [
     },
 ];
 
-/* 이 화면 아이콘 → 당근 Seed(2026-11-24). 휴대폰·PC 미리보기 전환 두 개만 Seed 모양이 저장소에 없어 예전 Lucide 선(ISC)으로 둔다.
-   `lc-` 키는 Material 아이콘 검사(scripts/check-icon-subset.mjs)에 걸리지 않게 하려는 것이다. */
-const HM_SEED = {
-    'lc-arrow-down': IconArrowDown, 'lc-arrow-left': IconChevronLeft, 'lc-upload': IconUpload, 'lc-megaphone': IconMegaphone, 'lc-layout-grid': IconApps,
-} as const;
+/* 휴대폰·PC 표시 두 개만 Seed 모양이 저장소에 없어 예전 Lucide 선(ISC)으로 그린다. `lc-` 키는 Material 아이콘 검사에 걸리지 않게 하려는 것이다. */
 const HM_LINE = {
     'lc-smartphone': <><rect width="14" height="20" x="5" y="2" rx="2" ry="2" /><path d="M12 18h.01" /></>,
     'lc-monitor': <><rect width="20" height="14" x="2" y="3" rx="2" /><line x1="8" x2="16" y1="21" y2="21" /><line x1="12" x2="12" y1="17" y2="21" /></>,
 } as const;
-const hmGlyphStyle: React.CSSProperties = { flex: 'none', display: 'block' };
-const HmIcon = ({ name, size = 16 }: { name: keyof typeof HM_SEED | keyof typeof HM_LINE; size?: number }) => {
-    if (name in HM_SEED) { const Glyph = HM_SEED[name as keyof typeof HM_SEED]; return <Glyph width={size} height={size} focusable="false" style={hmGlyphStyle} />; }
-    return <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" focusable="false" style={hmGlyphStyle}>{HM_LINE[name as keyof typeof HM_LINE]}</svg>;
-};
+const HmIcon = ({ name, size = 16 }: { name: keyof typeof HM_LINE; size?: number }) => (
+    <svg className="hm-line-icon" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" focusable="false">{HM_LINE[name]}</svg>
+);
 
 const EVENT_COLORS = ['#0F766E', '#12b28c', '#6D28D9', '#E11D48', '#1A1B1E'];
 const EVENT_PLACES: { value: NonNullable<EventBanner['location']>; label: string; summary: string }[] = [
     { value: 'all', label: '전체 (홈 + 상품)', summary: '홈 + 여행상품' }, { value: 'home', label: '홈만', summary: '홈 화면만' }, { value: 'products', label: '여행상품만', summary: '여행상품 페이지만' },
 ];
 const isHex = (value: string) => /^#[0-9a-f]{6}$/i.test(value || '');
-const coverStyle = (url?: string): React.CSSProperties => url ? { backgroundImage: `url('${url}')`, backgroundSize: 'cover', backgroundPosition: 'center' } : {};
 const nowLabel = () => { const d = new Date(); return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`; };
 
 export const AdminBannerManage: React.FC = () => {
@@ -162,13 +158,6 @@ export const AdminBannerManage: React.FC = () => {
 
     // UI state
     const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
-    const [showToast, setShowToast] = useState(false);
-    const bannerFileInputRef = useRef<HTMLInputElement>(null);
-    const pcBannerFileInputRef = useRef<HTMLInputElement>(null);
-    const iconFileInputRef = useRef<HTMLInputElement>(null);
-    const eventFileInputRef = useRef<HTMLInputElement>(null);
-    const categoryFileInputRef = useRef<HTMLInputElement>(null);
-    const [selectedId, setSelectedId] = useState<string | null>(null);
     const task = useRef(createAdminContentTask());
     const mounted = useRef(true), dirty = useRef(false);
     const [busy, setBusy] = useState<'upload' | 'save' | null>(null);
@@ -228,6 +217,8 @@ export const AdminBannerManage: React.FC = () => {
 
     // Change Detection
     const markUnsaved = () => { dirty.current = true; setHasUnsavedChanges(true); setNotice(''); };
+
+    const locked = !!busy || isLoading || !!loadError;
 
     // CRUD - Banners
     const addBanner = () => {
@@ -290,7 +281,7 @@ export const AdminBannerManage: React.FC = () => {
     const addEventBanner = () => {
         const newId = `event-${Date.now()}`;
         setEventBanners(previous => [...previous, {
-            id: newId, backgroundColor: '#0F766E', tag: 'NEW', title: '새로운 이벤트', icon: 'campaign', link: '#', location: 'all'
+            id: newId, backgroundColor: EVENT_COLORS[0], tag: 'NEW', title: '새로운 이벤트', icon: 'campaign', link: '#', location: 'all'
         }]);
         setCollapsed(previous => ({ ...previous, ...Object.fromEntries(eventBanners.map(e => [e.id, true])), [newId]: false }));
         markUnsaved();
@@ -323,8 +314,8 @@ export const AdminBannerManage: React.FC = () => {
         setBanners(previous => moveAdminRow(previous, index, step)); markUnsaved();
     };
     // Capture the target once and apply only its image to the latest form state.
-    const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>, type: 'banner' | 'pcBanner' | 'icon' | 'event' | 'category') => {
-        const input = e.target, file = input.files?.[0], id = selectedId;
+    type UploadType = 'banner' | 'pcBanner' | 'icon' | 'event' | 'category';
+    const handleUpload = async (file: File | undefined, type: UploadType, id: string) => {
         if (!file || !id || isLoading || loadError) return;
         const release = task.current.begin('upload'); if (!release) return;
         setBusy('upload'); setNotice('');
@@ -338,7 +329,7 @@ export const AdminBannerManage: React.FC = () => {
             if (type === 'category') setCategoryTabs(previous => withUploadedImage(previous, id, 'bannerImage', url));
             markUnsaved();
         } catch (error: any) { if (mounted.current) setNotice(error?.message || '이미지를 업로드하지 못했습니다. 입력한 내용은 유지됩니다. 다시 선택해 주세요.'); }
-        finally { input.value = ''; release(); if (mounted.current) setBusy(null); }
+        finally { release(); if (mounted.current) setBusy(null); }
     };
 
     const clearPcImage = (id: string) => {
@@ -361,8 +352,7 @@ export const AdminBannerManage: React.FC = () => {
             await api.banners.save(snapshot);
             if (!mounted.current) return;
             savedRef.current = snapshot; setSavedAt(nowLabel());
-            dirty.current = false; setHasUnsavedChanges(false); setShowToast(true);
-            setTimeout(() => { if (mounted.current) setShowToast(false); }, 3000);
+            dirty.current = false; setHasUnsavedChanges(false); adminNotify('저장되었습니다!', 'success');
         } catch (error: any) { if (mounted.current) setNotice('저장하지 못했습니다. 입력한 내용은 유지됩니다. ' + (error?.message || '다시 시도해 주세요.')); }
         finally { release(); if (mounted.current) setBusy(null); }
     };
@@ -387,7 +377,6 @@ export const AdminBannerManage: React.FC = () => {
         window.scrollTo({ top: target.getBoundingClientRect().top + window.scrollY - barBottom - 16, behavior: 'smooth' });
     };
 
-    const locked = !!busy || isLoading || !!loadError;
     const canSave = hasUnsavedChanges && !locked;
     const statusText = isLoading ? '홈 화면 자료를 불러오는 중…'
         : loadError ? '자료를 불러오지 못했어요'
@@ -407,12 +396,14 @@ export const AdminBannerManage: React.FC = () => {
     const sectionHead = (id: string, title: string, count: number, description: string, add?: { label: string; onClick: () => void }) => (
         <div id={id} className="hm-sec-head">
             <div className="hm-sec-text">
-                <div className="hm-sec-title"><h3>{title}</h3><span className="hm-count">{count}</span></div>
+                <div className="hm-sec-title"><h3>{title}</h3><AdminBadge>{count}</AdminBadge></div>
                 <p>{description}</p>
             </div>
-            {add && <button type="button" className="hm-add" onClick={add.onClick}><DashboardIcon name="lc-plus" size={16} />{add.label}</button>}
+            {add && <AdminButton variant="secondary" leading={<IconPlus />} onClick={add.onClick}>{add.label}</AdminButton>}
         </div>
     );
+
+    const preview = (url: string | undefined, className: string) => url ? <img className={className} src={url} alt="" loading="lazy" /> : null;
 
     const renderBanner = (banner: Banner, index: number) => {
         const open = isOpen(banner.id), pcTextUsed = !!(banner.pcTag || banner.pcTitle || banner.pcSubtitle), pcShown = !!pcOpen[banner.id];
@@ -421,19 +412,19 @@ export const AdminBannerManage: React.FC = () => {
         return (
             <section className="hm-card" key={banner.id}>
                 <div className="hm-card-head">
-                    <button type="button" className="hm-card-toggle" aria-expanded={open} aria-label={`메인 배너 #${index + 1} ${open ? '접기' : '펼치기'}`} onClick={() => toggleOpen(banner.id)}>
-                        <span className={`hm-chev${open ? ' is-open' : ''}`}><DashboardIcon name="lc-chevron-down" size={18} /></span>
-                        <span className="hm-thumb" style={coverStyle(banner.image)} />
-                        <span className="hm-num">#{index + 1}</span>
+                    <AdminPickCard className="hm-card-toggle" expanded={open} aria-label={`메인 배너 #${index + 1} ${open ? '접기' : '펼치기'}`} onClick={() => toggleOpen(banner.id)}>
+                        <span className={`hm-chev${open ? ' is-open' : ''}`}><IconChevronDown /></span>
+                        <span className="hm-thumb">{preview(banner.image, 'hm-cover')}</span>
+                        <AdminBadge>#{index + 1}</AdminBadge>
                         <span className="hm-head-text">
                             <span className={`hm-name${name ? '' : ' is-empty'}`}>{name || '제목 없음'}</span>
                             <span className="hm-summary">{summary}</span>
                         </span>
-                    </button>
+                    </AdminPickCard>
                     <span className="hm-tools">
-                        <button type="button" className="hm-tool" aria-label="메인 배너 위로" title="위로" onClick={() => moveBanner(index, -1)} disabled={index === 0}><DashboardIcon name="lc-arrow-up" size={16} /></button>
-                        <button type="button" className="hm-tool" aria-label="메인 배너 아래로" title="아래로" onClick={() => moveBanner(index, 1)} disabled={index === banners.length - 1}><HmIcon name="lc-arrow-down" /></button>
-                        <button type="button" className="hm-tool danger" aria-label="메인 배너 삭제" title="삭제" onClick={() => deleteBanner(banner.id)}><DashboardIcon name="lc-trash" size={16} /></button>
+                        <AdminIconButton size="sm" variant="outlined" label="메인 배너 위로" disabled={index === 0} onClick={() => moveBanner(index, -1)}><IconArrowUp /></AdminIconButton>
+                        <AdminIconButton size="sm" variant="outlined" label="메인 배너 아래로" disabled={index === banners.length - 1} onClick={() => moveBanner(index, 1)}><IconArrowDown /></AdminIconButton>
+                        <AdminIconButton size="sm" variant="outlined" label="메인 배너 삭제" onClick={() => void deleteBanner(banner.id)}><IconTrash /></AdminIconButton>
                     </span>
                 </div>
                 {open && (
@@ -441,61 +432,48 @@ export const AdminBannerManage: React.FC = () => {
                         <div className="hm-media">
                             <div className="hm-media-item">
                                 <span className="hm-media-label"><HmIcon name="lc-smartphone" size={14} />모바일 · 16:10<em>필수</em></span>
-                                <button type="button" className={`hm-mbox${banner.image ? ' has-image' : ''}`} style={coverStyle(banner.image)} title="모바일 이미지 변경"
-                                    onClick={() => { setSelectedId(banner.id); bannerFileInputRef.current?.click(); }}>
+                                <div className={`hm-mbox${banner.image ? ' has-image' : ''}`}>
+                                    {preview(banner.image, 'hm-cover')}
                                     <span className="hm-mov">
                                         {banner.tag && <span className="hm-mov-tag">{banner.tag}</span>}
                                         <span className="hm-mov-title">{banner.title || '제목을 입력하세요'}</span>
                                         {banner.subtitle && <span className="hm-mov-sub">{banner.subtitle}</span>}
                                     </span>
-                                    <span className="hm-upload-pill"><HmIcon name="lc-upload" size={12} />{banner.image ? '이미지 바꾸기' : '이미지 올리기'}</span>
-                                </button>
+                                    <AdminFileButton size="sm" accept="image/*" className="hm-upload-btn" aria-label="모바일 이미지 변경" leading={<IconUpload />} onFiles={(files) => handleUpload(files[0], 'banner', banner.id)}>{banner.image ? '이미지 바꾸기' : '이미지 올리기'}</AdminFileButton>
+                                </div>
                             </div>
                             <div className="hm-media-item">
                                 <span className="hm-media-label"><HmIcon name="lc-monitor" size={14} />PC · 21:9<em>선택</em></span>
-                                <button type="button" className={`hm-pbox${banner.pcImage ? ' has-image' : ''}`} style={coverStyle(banner.pcImage)} title="PC 와이드 이미지 변경"
-                                    onClick={() => { setSelectedId(banner.id); pcBannerFileInputRef.current?.click(); }}>
-                                    {!banner.pcImage && <span className="hm-pbox-empty"><DashboardIcon name="lc-image-plus" size={16} /><span>없으면 모바일 이미지 사용</span></span>}
-                                </button>
-                                {banner.pcImage && <button type="button" className="hm-btn-sm" onClick={() => clearPcImage(banner.id)}>PC 이미지 제거</button>}
+                                <div className={`hm-pbox${banner.pcImage ? ' has-image' : ''}`}>
+                                    {preview(banner.pcImage, 'hm-cover')}
+                                    {!banner.pcImage && <span className="hm-pbox-empty"><IconImage aria-hidden="true" /><span>없으면 모바일 이미지 사용</span></span>}
+                                    <AdminFileButton size="sm" accept="image/*" className="hm-upload-btn" aria-label="PC 와이드 이미지 변경" leading={<IconUpload />} onFiles={(files) => handleUpload(files[0], 'pcBanner', banner.id)}>{banner.pcImage ? '바꾸기' : 'PC 이미지 올리기'}</AdminFileButton>
+                                </div>
+                                {banner.pcImage && <AdminTextButton size="sm" tone="assistive" onClick={() => clearPcImage(banner.id)}>PC 이미지 제거</AdminTextButton>}
                             </div>
                         </div>
                         <div className="hm-fields">
                             <div className="hm-basic">
                                 <span className="hm-box-title"><HmIcon name="lc-smartphone" />기본 문구<small>모바일과 PC에 함께 쓰여요</small></span>
                                 <div className="hm-grid">
-                                    <label className="hm-field"><span>태그</span>
-                                        <input type="text" className="hm-inp" value={banner.tag} placeholder="예: Premium Trip" onChange={(e) => handleBannerChange(banner.id, 'tag', e.target.value)} />
-                                    </label>
-                                    <label className="hm-field"><span>링크</span>
-                                        <input type="text" className="hm-inp" value={banner.link || ''} placeholder="/products/..." onChange={(e) => handleBannerChange(banner.id, 'link', e.target.value)} />
-                                    </label>
+                                    <AdminField id={`hm-${banner.id}-tag`} label="태그"><AdminTextInput id={`hm-${banner.id}-tag`} value={banner.tag} placeholder="예: Premium Trip" onChange={(e) => handleBannerChange(banner.id, 'tag', e.target.value)} /></AdminField>
+                                    <AdminField id={`hm-${banner.id}-link`} label="링크"><AdminTextInput id={`hm-${banner.id}-link`} value={banner.link || ''} placeholder="/products/..." onChange={(e) => handleBannerChange(banner.id, 'link', e.target.value)} /></AdminField>
                                 </div>
-                                <label className="hm-field"><span>제목 <small>· 줄바꿈은 Enter</small></span>
-                                    <textarea className="hm-inp hm-textarea" value={banner.title} placeholder="예: 은하수 아래 게르에서 보내는 3박 4일" onChange={(e) => handleBannerChange(banner.id, 'title', e.target.value)} />
-                                </label>
-                                <label className="hm-field"><span>부제목</span>
-                                    <input type="text" className="hm-inp" value={banner.subtitle} placeholder="예: 소규모 단독 투어 · 한국어 가이드" onChange={(e) => handleBannerChange(banner.id, 'subtitle', e.target.value)} />
-                                </label>
+                                <AdminField id={`hm-${banner.id}-title`} label="제목" aside="줄바꿈은 Enter"><AdminTextArea id={`hm-${banner.id}-title`} minRows={2} value={banner.title} placeholder="예: 은하수 아래 게르에서 보내는 3박 4일" onChange={(e) => handleBannerChange(banner.id, 'title', e.target.value)} /></AdminField>
+                                <AdminField id={`hm-${banner.id}-subtitle`} label="부제목"><AdminTextInput id={`hm-${banner.id}-subtitle`} value={banner.subtitle} placeholder="예: 소규모 단독 투어 · 한국어 가이드" onChange={(e) => handleBannerChange(banner.id, 'subtitle', e.target.value)} /></AdminField>
                             </div>
                             <div className="hm-pc">
-                                <button type="button" className="hm-pc-toggle" aria-expanded={pcShown} onClick={() => setPcOpen(previous => ({ ...previous, [banner.id]: !previous[banner.id] }))}>
+                                <AdminPickCard className="hm-pc-toggle" expanded={pcShown} onClick={() => setPcOpen(previous => ({ ...previous, [banner.id]: !previous[banner.id] }))}>
                                     <HmIcon name="lc-monitor" /><b>PC 전용 문구</b>
-                                    <span className={`hm-badge${pcTextUsed ? ' is-on' : ''}`}>{pcTextUsed ? '사용 중' : '기본 문구 사용'}</span>
+                                    <AdminBadge tone={pcTextUsed ? 'info' : 'neutral'}>{pcTextUsed ? '사용 중' : '기본 문구 사용'}</AdminBadge>
                                     <span className="hm-pc-hint">비워 두면 기본 문구를 써요</span>
-                                    <span className={`hm-chev${pcShown ? ' is-open' : ''}`}><DashboardIcon name="lc-chevron-down" size={16} /></span>
-                                </button>
+                                    <span className={`hm-chev${pcShown ? ' is-open' : ''}`}><IconChevronDown /></span>
+                                </AdminPickCard>
                                 {pcShown && (
                                     <div className="hm-pc-body">
-                                        <label className="hm-field"><span>PC 태그</span>
-                                            <input type="text" className="hm-inp" value={banner.pcTag || ''} placeholder={banner.tag || '(기본 태그 사용)'} onChange={(e) => handleBannerChange(banner.id, 'pcTag', e.target.value)} />
-                                        </label>
-                                        <label className="hm-field"><span>PC 제목 <small>· 줄바꿈은 Enter</small></span>
-                                            <textarea className="hm-inp hm-textarea" value={banner.pcTitle || ''} placeholder={banner.title || '(기본 제목 사용)'} onChange={(e) => handleBannerChange(banner.id, 'pcTitle', e.target.value)} />
-                                        </label>
-                                        <label className="hm-field"><span>PC 부제목</span>
-                                            <input type="text" className="hm-inp" value={banner.pcSubtitle || ''} placeholder={banner.subtitle || '(기본 부제목 사용)'} onChange={(e) => handleBannerChange(banner.id, 'pcSubtitle', e.target.value)} />
-                                        </label>
+                                        <AdminField label="PC 태그">{(fid) => <AdminTextInput id={fid} value={banner.pcTag || ''} placeholder={banner.tag || '(기본 태그 사용)'} onChange={(e) => handleBannerChange(banner.id, 'pcTag', e.target.value)} />}</AdminField>
+                                        <AdminField label="PC 제목" aside="줄바꿈은 Enter">{(fid) => <AdminTextArea id={fid} minRows={2} value={banner.pcTitle || ''} placeholder={banner.title || '(기본 제목 사용)'} onChange={(e) => handleBannerChange(banner.id, 'pcTitle', e.target.value)} />}</AdminField>
+                                        <AdminField label="PC 부제목">{(fid) => <AdminTextInput id={fid} value={banner.pcSubtitle || ''} placeholder={banner.subtitle || '(기본 부제목 사용)'} onChange={(e) => handleBannerChange(banner.id, 'pcSubtitle', e.target.value)} />}</AdminField>
                                     </div>
                                 )}
                             </div>
@@ -509,100 +487,89 @@ export const AdminBannerManage: React.FC = () => {
     const renderLink = (link: QuickLink, index: number) => (
         <div className="hm-icon-card" key={link.id}>
             <div className="hm-icon-top">
-                <button type="button" className={`hm-icon-img${link.image ? ' has-image' : ''}`} title="이미지 변경" aria-label={`바로가기 #${index + 1} 이미지 변경`}
-                    onClick={() => { setSelectedId(link.id); iconFileInputRef.current?.click(); }}>
-                    {link.image ? <img src={link.image} alt="" /> : <MaterialIcon name={link.icon} />}
-                </button>
+                <span className={`hm-icon-img${link.image ? ' has-image' : ''}`}>{link.image ? <img src={link.image} alt="" /> : <MaterialIcon name={link.icon} />}</span>
                 <span className="hm-icon-meta"><span className="hm-icon-num">#{index + 1}</span><span className={`hm-name${link.label ? '' : ' is-empty'}`}>{link.label || '이름 없음'}</span></span>
+                <AdminFileButton size="sm" accept="image/*" aria-label={`바로가기 #${index + 1} 이미지 변경`} leading={<IconUpload />} onFiles={(files) => handleUpload(files[0], 'icon', link.id)}>이미지</AdminFileButton>
             </div>
-            <input type="text" className="hm-inp" aria-label="라벨" value={link.label} placeholder="이름 (예: 여행상품)" onChange={(e) => handleLinkChange(link.id, 'label', e.target.value)} />
-            <input type="text" className="hm-inp" aria-label="링크" value={link.path} placeholder="링크 (예: /products)" onChange={(e) => handleLinkChange(link.id, 'path', e.target.value)} />
+            <AdminTextInput aria-label="라벨" value={link.label} placeholder="이름 (예: 여행상품)" onChange={(e) => handleLinkChange(link.id, 'label', e.target.value)} />
+            <AdminTextInput aria-label="링크" value={link.path} placeholder="링크 (예: /products)" onChange={(e) => handleLinkChange(link.id, 'path', e.target.value)} />
             <div className="hm-icon-tools">
-                <button type="button" className="hm-tool" title="앞으로" aria-label="바로가기 앞으로" onClick={() => moveLink(index, 'left')} disabled={index === 0}><HmIcon name="lc-arrow-left" /></button>
-                <button type="button" className="hm-tool" title="뒤로" aria-label="바로가기 뒤로" onClick={() => moveLink(index, 'right')} disabled={index === links.length - 1}><DashboardIcon name="lc-arrow-right" size={16} /></button>
-                <button type="button" className="hm-tool danger" title="삭제" aria-label="바로가기 삭제" onClick={() => deleteLink(link.id)}><DashboardIcon name="lc-trash" size={16} /></button>
+                <AdminIconButton size="sm" variant="outlined" label="바로가기 앞으로" disabled={index === 0} onClick={() => moveLink(index, 'left')}><IconChevronLeft /></AdminIconButton>
+                <AdminIconButton size="sm" variant="outlined" label="바로가기 뒤로" disabled={index === links.length - 1} onClick={() => moveLink(index, 'right')}><IconChevronRight /></AdminIconButton>
+                <AdminIconButton size="sm" variant="outlined" className="hm-push" label="바로가기 삭제" onClick={() => void deleteLink(link.id)}><IconTrash /></AdminIconButton>
             </div>
         </div>
     );
 
     const renderEvent = (banner: EventBanner, index: number) => {
-        const open = isOpen(banner.id), color = isHex(banner.backgroundColor) ? banner.backgroundColor : '#0F766E';
+        const open = isOpen(banner.id), color = isHex(banner.backgroundColor) ? banner.backgroundColor : EVENT_COLORS[0];
         const place = EVENT_PLACES.find(p => p.value === (banner.location || 'all')) || EVENT_PLACES[0];
         const summary = [banner.tag || '태그 없음', place.summary, banner.link || '링크 없음'].join(' · ');
         const name = (banner.title || '').split('\n')[0];
         return (
             <section className="hm-card" key={banner.id}>
                 <div className="hm-card-head">
-                    <button type="button" className="hm-card-toggle" aria-expanded={open} aria-label={`이벤트 배너 #${index + 1} ${open ? '접기' : '펼치기'}`} onClick={() => toggleOpen(banner.id)}>
-                        <span className={`hm-chev${open ? ' is-open' : ''}`}><DashboardIcon name="lc-chevron-down" size={18} /></span>
-                        <span className="hm-thumb hm-thumb-event" style={{ background: color, ...coverStyle(banner.image) }}>{!banner.image && <HmIcon name="lc-megaphone" size={14} />}</span>
-                        <span className="hm-num">#{index + 1}</span>
+                    <AdminPickCard className="hm-card-toggle" expanded={open} aria-label={`이벤트 배너 #${index + 1} ${open ? '접기' : '펼치기'}`} onClick={() => toggleOpen(banner.id)}>
+                        <span className={`hm-chev${open ? ' is-open' : ''}`}><IconChevronDown /></span>
+                        {/* 배경색은 고객 화면에 그대로 쓰이는 값이라 칠해서 보여 준다(디자인 문서 7절 예외) */}
+                        <span className="hm-thumb hm-thumb-event" style={{ background: color }}>{banner.image ? preview(banner.image, 'hm-cover') : <IconMegaphone aria-hidden="true" />}</span>
+                        <AdminBadge>#{index + 1}</AdminBadge>
                         <span className="hm-head-text">
                             <span className={`hm-name${name ? '' : ' is-empty'}`}>{name || '제목 없음'}</span>
                             <span className="hm-summary">{summary}</span>
                         </span>
-                    </button>
+                    </AdminPickCard>
                     <span className="hm-tools">
-                        <button type="button" className="hm-tool" title="위로" aria-label="이벤트 배너 위로" onClick={() => moveEventBanner(index, 'left')} disabled={index === 0}><DashboardIcon name="lc-arrow-up" size={16} /></button>
-                        <button type="button" className="hm-tool" title="아래로" aria-label="이벤트 배너 아래로" onClick={() => moveEventBanner(index, 'right')} disabled={index === eventBanners.length - 1}><HmIcon name="lc-arrow-down" /></button>
-                        <button type="button" className="hm-tool danger" title="삭제" aria-label="이벤트 배너 삭제" onClick={() => deleteEventBanner(banner.id)}><DashboardIcon name="lc-trash" size={16} /></button>
+                        <AdminIconButton size="sm" variant="outlined" label="이벤트 배너 위로" disabled={index === 0} onClick={() => moveEventBanner(index, 'left')}><IconArrowUp /></AdminIconButton>
+                        <AdminIconButton size="sm" variant="outlined" label="이벤트 배너 아래로" disabled={index === eventBanners.length - 1} onClick={() => moveEventBanner(index, 'right')}><IconArrowDown /></AdminIconButton>
+                        <AdminIconButton size="sm" variant="outlined" label="이벤트 배너 삭제" onClick={() => void deleteEventBanner(banner.id)}><IconTrash /></AdminIconButton>
                     </span>
                 </div>
                 {open && (
                     <div className="hm-card-body">
                         <div className="hm-media">
-                            <button type="button" className={`hm-ev-pv${banner.image ? ' has-image' : ''}`} style={{ background: color, ...coverStyle(banner.image) }} title="이벤트 이미지 변경"
-                                onClick={() => { setSelectedId(banner.id); eventFileInputRef.current?.click(); }}>
+                            <div className={`hm-ev-pv${banner.image ? ' has-image' : ''}`} style={{ background: color }}>
+                                {preview(banner.image, 'hm-cover')}
                                 <span className="hm-ev-text">
                                     <span className="hm-mov-tag">{banner.tag}</span>
                                     <span className="hm-mov-title">{banner.title}</span>
                                 </span>
                                 {!banner.image && banner.icon && <MaterialIcon name={banner.icon} />}
-                                <span className="hm-upload-pill"><HmIcon name="lc-upload" size={12} />{banner.image ? '이미지 바꾸기' : '이미지 올리기 (선택)'}</span>
-                            </button>
-                            {banner.image && <button type="button" className="hm-btn-sm" onClick={() => clearEventImage(banner.id)}>이미지 제거 · 배경색 사용</button>}
+                                <AdminFileButton size="sm" accept="image/*" className="hm-upload-btn" aria-label="이벤트 이미지 변경" leading={<IconUpload />} onFiles={(files) => handleUpload(files[0], 'event', banner.id)}>{banner.image ? '이미지 바꾸기' : '이미지 (선택)'}</AdminFileButton>
+                            </div>
+                            {banner.image && <AdminTextButton size="sm" tone="assistive" onClick={() => clearEventImage(banner.id)}>이미지 제거 · 배경색 사용</AdminTextButton>}
                         </div>
                         <div className="hm-fields">
                             <div className="hm-grid hm-grid-wide">
-                                <div className="hm-field"><span>배경색 <small>· 이미지가 없을 때</small></span>
-                                    <div className="hm-color-row">
-                                        <label className="hm-swatch" style={{ background: color }} title="색 고르기">
-                                            <input type="color" value={color} onChange={(e) => handleEventChange(banner.id, 'backgroundColor', e.target.value)} />
-                                        </label>
-                                        <input type="text" className="hm-inp hm-mono" aria-label="배경색 코드" value={banner.backgroundColor} onChange={(e) => handleEventChange(banner.id, 'backgroundColor', e.target.value)} />
-                                    </div>
-                                    <div className="hm-presets">
-                                        {EVENT_COLORS.map(c => (
-                                            <button type="button" key={c} title={c} aria-label={`배경색 ${c}`} className={`hm-preset${color.toLowerCase() === c.toLowerCase() ? ' is-on' : ''}`} style={{ background: c }} onClick={() => handleEventChange(banner.id, 'backgroundColor', c)} />
-                                        ))}
-                                    </div>
-                                </div>
-                                <div className="hm-field"><span>노출 위치</span>
-                                    <div className="hm-seg" role="group" aria-label="노출 위치">
-                                        {EVENT_PLACES.map(p => (
-                                            <button type="button" key={p.value} aria-pressed={place.value === p.value} className={place.value === p.value ? 'is-on' : ''} onClick={() => handleEventChange(banner.id, 'location', p.value)}>{p.label}</button>
-                                        ))}
-                                    </div>
-                                </div>
-                                <label className="hm-field"><span>태그</span>
-                                    <input type="text" className="hm-inp" value={banner.tag} placeholder="예: NEW" onChange={(e) => handleEventChange(banner.id, 'tag', e.target.value)} />
-                                </label>
-                                <div className="hm-field"><span>링크</span>
-                                    <div className="hm-link-row">
-                                        <select className="hm-inp hm-select" aria-label="링크 빠른 선택"
-                                            onChange={(e) => { if (e.target.value) handleEventChange(banner.id, 'link', e.target.value); }}
-                                            value={PREDEFINED_LINKS.some(l => l.value === banner.link) ? banner.link : ''}>
-                                            {PREDEFINED_LINKS.map(l => (
-                                                <option key={l.label} value={l.value}>{l.label}</option>
+                                <AdminField label="배경색" aside="이미지가 없을 때">
+                                    {(fid) => <span className="hm-color">
+                                        <span className="hm-color-row">
+                                            <AdminTextInput aria-label="배경색 고르기" type="color" className="hm-color-pick" value={color} onChange={(e) => handleEventChange(banner.id, 'backgroundColor', e.target.value)} />
+                                            <AdminTextInput id={fid} className="hm-mono" value={banner.backgroundColor} onChange={(e) => handleEventChange(banner.id, 'backgroundColor', e.target.value)} />
+                                        </span>
+                                        <span className="hm-presets" role="group" aria-label="자주 쓰는 배경색">
+                                            {EVENT_COLORS.map(c => (
+                                                <AdminChip key={c} active={color.toLowerCase() === c.toLowerCase()} aria-label={`배경색 ${c}`} onClick={() => handleEventChange(banner.id, 'backgroundColor', c)}
+                                                    leading={<span className="hm-preset-dot" style={{ background: c }} />}>{c}</AdminChip>
                                             ))}
-                                        </select>
-                                        <input type="text" className="hm-inp" aria-label="링크 주소" value={banner.link} onChange={(e) => handleEventChange(banner.id, 'link', e.target.value)} placeholder="https:// 또는 #" />
-                                    </div>
-                                </div>
+                                        </span>
+                                    </span>}
+                                </AdminField>
+                                <AdminField label="노출 위치">
+                                    <AdminSegmented label="노출 위치" value={place.value} onChange={(value) => handleEventChange(banner.id, 'location', value)}
+                                        items={EVENT_PLACES.map(p => ({ value: p.value, label: p.label }))} />
+                                </AdminField>
+                                <AdminField label="태그">{(fid) => <AdminTextInput id={fid} value={banner.tag} placeholder="예: NEW" onChange={(e) => handleEventChange(banner.id, 'tag', e.target.value)} />}</AdminField>
+                                <AdminField label="링크">
+                                    {(fid) => <span className="hm-link-row">
+                                        <AdminSelect aria-label="링크 빠른 선택" className="hm-select" value={PREDEFINED_LINKS.some(l => l.value === banner.link) ? banner.link : ''}
+                                            onChange={(value) => { if (value) handleEventChange(banner.id, 'link', value); }}
+                                            options={PREDEFINED_LINKS.map(l => ({ value: l.value, label: l.label }))} />
+                                        <AdminTextInput id={fid} aria-label="링크 주소" value={banner.link} onChange={(e) => handleEventChange(banner.id, 'link', e.target.value)} placeholder="https:// 또는 #" />
+                                    </span>}
+                                </AdminField>
                             </div>
-                            <label className="hm-field"><span>제목 <small>· 줄바꿈은 Enter</small></span>
-                                <textarea className="hm-inp hm-textarea" value={banner.title} placeholder="예: 겨울 은하수 얼리버드" onChange={(e) => handleEventChange(banner.id, 'title', e.target.value)} />
-                            </label>
+                            <AdminField label="제목" aside="줄바꿈은 Enter">{(fid) => <AdminTextArea id={fid} minRows={2} value={banner.title} placeholder="예: 겨울 은하수 얼리버드" onChange={(e) => handleEventChange(banner.id, 'title', e.target.value)} />}</AdminField>
                         </div>
                     </div>
                 )}
@@ -615,63 +582,45 @@ export const AdminBannerManage: React.FC = () => {
             <div className="hm-page">
                 <div className="hm-bar" ref={barRef}>
                     <nav className="hm-tabs" aria-label="홈 화면 구역">
-                        {jumps.map(([label, id, count]) => (
-                            <button type="button" key={id} onClick={() => jumpTo(id)}>{label}<span>{count}</span></button>
-                        ))}
+                        {jumps.map(([label, id, count]) => <AdminChip key={id} count={count} onClick={() => jumpTo(id)}>{label}</AdminChip>)}
                     </nav>
                     <div className="hm-bar-end">
                         <span className={`hm-status ${statusTone}`} role="status" aria-live="polite"><span className="hm-dot" />{statusText}</span>
-                        {hasUnsavedChanges && <button type="button" className="hm-revert" onClick={revertAll} disabled={locked}>되돌리기</button>}
-                        <button type="button" className="hm-save" onClick={saveAll} disabled={!canSave}>{busy === 'save' ? '저장 중…' : '변경사항 저장'}</button>
+                        {hasUnsavedChanges && <AdminButton variant="secondary" disabled={locked} onClick={revertAll}>되돌리기</AdminButton>}
+                        <AdminButton variant="primary" loading={busy === 'save'} disabled={!canSave} onClick={saveAll}>{busy === 'save' ? '저장 중…' : '변경사항 저장'}</AdminButton>
                     </div>
                 </div>
 
-                {notice && <p role="alert" className="hm-alert adm-msg is-negative">{notice}</p>}
-                {loadError && <div role="alert" className="hm-alert adm-msg is-negative">{loadError}<button type="button" className="hm-btn-sm" onClick={() => setLoadAttempt(value => value + 1)}>다시 불러오기</button></div>}
+                {notice && <AdminMessage tone="negative" role="alert" className="hm-alert">{notice}</AdminMessage>}
+                {loadError && <AdminMessage tone="negative" role="alert" className="hm-alert"
+                    actions={<AdminButton size="sm" variant="secondary" onClick={() => setLoadAttempt(value => value + 1)}>다시 불러오기</AdminButton>}>{loadError}</AdminMessage>}
 
                 <fieldset className="hm-body" disabled={locked} inert={locked}>
-                    <input type="file" ref={bannerFileInputRef} hidden accept="image/*" onChange={(e) => handleUpload(e, 'banner')} />
-                    <input type="file" ref={pcBannerFileInputRef} hidden accept="image/*" onChange={(e) => handleUpload(e, 'pcBanner')} />
-                    <input type="file" ref={iconFileInputRef} hidden accept="image/*" onChange={(e) => handleUpload(e, 'icon')} />
-                    <input type="file" ref={eventFileInputRef} hidden accept="image/*" onChange={(e) => handleUpload(e, 'event')} />
-                    <input type="file" ref={categoryFileInputRef} hidden accept="image/*" onChange={(e) => handleUpload(e, 'category')} />
-
                     {/* ============ Main Banners ============ */}
                     {sectionHead('hm-banner', '메인 배너', banners.length, "홈 상단 슬라이드 배너예요. 이미지와 문구를 고친 뒤 '변경사항 저장'을 누르면 공개돼요.", { label: '배너 추가', onClick: addBanner })}
                     {banners.length > 1 && (
-                        <div className="hm-toggle-all"><button type="button" onClick={() => setAllOpen(banners.map(b => b.id), !anyBannerOpen)}>{anyBannerOpen ? '모두 접기' : '모두 펼치기'}</button></div>
+                        <div className="hm-toggle-all"><AdminTextButton size="sm" tone="assistive" onClick={() => setAllOpen(banners.map(b => b.id), !anyBannerOpen)}>{anyBannerOpen ? '모두 접기' : '모두 펼치기'}</AdminTextButton></div>
                     )}
                     {banners.map(renderBanner)}
-                    {banners.length === 0 && (
-                        <button type="button" className="hm-empty" onClick={addBanner}><DashboardIcon name="lc-image-plus" size={24} />배너가 없어요. 눌러서 첫 배너를 추가하세요.</button>
-                    )}
+                    {banners.length === 0 && <AdminEmpty icon={<IconImage />} title="배너가 없어요" action={<AdminButton size="sm" variant="secondary" leading={<IconPlus />} onClick={addBanner}>첫 배너 추가</AdminButton>} />}
 
                     {/* ============ Quick Icons ============ */}
                     {sectionHead('hm-icon', '바로가기 아이콘', links.length, '홈 화면 숏컷 줄이에요. 이미지나 아이콘과 이름, 링크로 구성해요.', { label: '아이콘 추가', onClick: () => addLink() })}
                     {links.length > 0 ? (
                         <div className="hm-icon-grid">{links.map(renderLink)}</div>
                     ) : (
-                        <div className="hm-empty is-static">
-                            <HmIcon name="lc-layout-grid" size={28} />
-                            <strong>등록된 아이콘이 없어요</strong>
-                            {linkSuggestions.length > 0 && (
-                                <div className="hm-suggest">
-                                    <span>자주 쓰는 바로가기</span>
-                                    {linkSuggestions.map(s => <button type="button" key={s.id} onClick={() => addLink(s)}>+ {s.label}</button>)}
-                                </div>
-                            )}
-                        </div>
+                        <AdminEmpty icon={<IconApps />} title="등록된 아이콘이 없어요"
+                            description={linkSuggestions.length > 0 ? '자주 쓰는 바로가기를 눌러 추가하세요.' : undefined}
+                            action={linkSuggestions.length > 0 ? <span className="hm-suggest">{linkSuggestions.map(s => <AdminChip key={s.id} leading={<IconPlus />} onClick={() => addLink(s)}>{s.label}</AdminChip>)}</span> : undefined} />
                     )}
 
                     {/* ============ Event Banners ============ */}
                     {sectionHead('hm-event', '이벤트 배너', eventBanners.length, '가로로 넘겨 보는 이벤트 배너예요. 노출 위치를 고를 수 있어요.', { label: '이벤트 추가', onClick: addEventBanner })}
                     {eventBanners.length > 1 && (
-                        <div className="hm-toggle-all"><button type="button" onClick={() => setAllOpen(eventBanners.map(e => e.id), !anyEventOpen)}>{anyEventOpen ? '모두 접기' : '모두 펼치기'}</button></div>
+                        <div className="hm-toggle-all"><AdminTextButton size="sm" tone="assistive" onClick={() => setAllOpen(eventBanners.map(e => e.id), !anyEventOpen)}>{anyEventOpen ? '모두 접기' : '모두 펼치기'}</AdminTextButton></div>
                     )}
                     {eventBanners.map(renderEvent)}
-                    {eventBanners.length === 0 && (
-                        <button type="button" className="hm-empty" onClick={addEventBanner}><HmIcon name="lc-megaphone" size={24} />이벤트 배너가 없어요. 눌러서 추가하세요.</button>
-                    )}
+                    {eventBanners.length === 0 && <AdminEmpty icon={<IconMegaphone />} title="이벤트 배너가 없어요" action={<AdminButton size="sm" variant="secondary" leading={<IconPlus />} onClick={addEventBanner}>이벤트 추가</AdminButton>} />}
 
                     {/* ============ Category Tabs ============ */}
                     {sectionHead('hm-theme', '여행지 테마 배너', categoryTabs.length, '홈 화면 여행지 탭마다 보이는 대표 이미지와 문구예요.')}
@@ -679,34 +628,21 @@ export const AdminBannerManage: React.FC = () => {
                         <div className="hm-theme-grid">
                             {categoryTabs.map((tab) => (
                                 <div className="hm-theme-card" key={tab.id}>
-                                    <button type="button" className="hm-theme-img" style={coverStyle(tab.bannerImage)} title="이미지 변경" aria-label={`${tab.name} 테마 이미지 변경`}
-                                        onClick={() => { setSelectedId(tab.id); categoryFileInputRef.current?.click(); }}>
+                                    <div className="hm-theme-img">
+                                        {preview(tab.bannerImage, 'hm-cover')}
                                         <span className="hm-theme-name">{tab.name}</span>
-                                        <span className="hm-upload-pill"><HmIcon name="lc-upload" size={12} />이미지 바꾸기</span>
-                                    </button>
+                                        <AdminFileButton size="sm" accept="image/*" className="hm-upload-btn" aria-label={`${tab.name} 테마 이미지 변경`} leading={<IconUpload />} onFiles={(files) => handleUpload(files[0], 'category', tab.id)}>이미지 바꾸기</AdminFileButton>
+                                    </div>
                                     <div className="hm-theme-fields">
-                                        <label className="hm-field"><span>제목</span>
-                                            <input type="text" className="hm-inp" value={tab.title} onChange={(e) => handleCategoryChange(tab.id, 'title', e.target.value)} />
-                                        </label>
-                                        <label className="hm-field"><span>부제목 <small>· 줄바꿈은 Enter</small></span>
-                                            <textarea className="hm-inp hm-textarea" value={tab.subtitle} onChange={(e) => handleCategoryChange(tab.id, 'subtitle', e.target.value)} />
-                                        </label>
+                                        <AdminField label="제목">{(fid) => <AdminTextInput id={fid} value={tab.title} onChange={(e) => handleCategoryChange(tab.id, 'title', e.target.value)} />}</AdminField>
+                                        <AdminField label="부제목" aside="줄바꿈은 Enter">{(fid) => <AdminTextArea id={fid} minRows={2} value={tab.subtitle} onChange={(e) => handleCategoryChange(tab.id, 'subtitle', e.target.value)} />}</AdminField>
                                     </div>
                                 </div>
                             ))}
                         </div>
-                    ) : (
-                        <div className="hm-empty is-static"><DashboardIcon name="lc-image-plus" size={24} /><strong>등록된 테마 배너가 없어요</strong></div>
-                    )}
+                    ) : <AdminEmpty icon={<IconImage />} title="등록된 테마 배너가 없어요" />}
                 </fieldset>
             </div>
-            {/* Toast Notification */}
-            {showToast && (
-                <div className="page-toast">
-                    <Icon name="check_circle" />
-                    <span>저장되었습니다!</span>
-                </div>
-            )}
         </AdminLayout>
     );
 };
