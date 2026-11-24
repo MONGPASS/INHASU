@@ -32,7 +32,6 @@ const LEGACY_IMPORTERS = new Set([
     'src/pages/AdminBannerManage.tsx',
     'src/pages/AdminCategoryManage.tsx',
     'src/pages/AdminDashboard.tsx',
-    'src/pages/AdminMagazineManage.tsx',
     'src/pages/AdminProductManage.tsx',
     'src/pages/AdminQuoteDesk.tsx',
     'src/pages/AdminQuoteManage.tsx',

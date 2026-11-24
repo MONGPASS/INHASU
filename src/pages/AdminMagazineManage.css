@@ -1,0 +1,52 @@
+/*
+ * 매거진 관리 — 카드 목록 모양은 AdminContentManage.css(mg-*·fq-cat-*), 입력·버튼·창은 우리 관리자 부품.
+ * 이 파일은 편집 화면 두 칸 배치, 글 편집기(Quill) 틀, 편집기 안의 이미지 슬라이더·위치 카드 미리보기 모양만 둔다. 값은 --adm-* 변수만 쓴다.
+ */
+.mg-msg-line { display: block; margin-top: var(--adm-space-1); }
+.mg-grow { flex: 1; min-width: 0; }
+.mg-chips { display: flex; flex-wrap: wrap; gap: var(--adm-space-1); }
+.mg-open { padding: 0; text-align: left; white-space: normal; }
+.mg-cover-icon { font-size: var(--adm-fs-title); color: var(--adm-text-3); }
+.mg-two { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--adm-space-4); }
+.mg-mono textarea { font-family: var(--adm-font-mono, monospace); font-size: var(--adm-fs-caption); }
+
+/* 편집 화면: 왼쪽 기본 설정, 오른쪽 제목 + 본문 */
+.mg-edit-grid { display: grid; grid-template-columns: calc(var(--adm-space-8) * 10.6) minmax(0, 1fr); align-items: start; gap: var(--adm-space-4); min-width: 0; margin: 0; padding: 0; border: 0; }
+.mg-side { display: flex; flex-direction: column; gap: var(--adm-space-3); min-width: 0; }
+.mg-fields { display: flex; flex-direction: column; gap: var(--adm-space-4); }
+.mg-row { display: flex; flex-wrap: wrap; align-items: center; gap: var(--adm-space-2); }
+.mg-row.is-split { flex-wrap: nowrap; }
+.mg-cover-edit { display: flex; flex-direction: column; gap: var(--adm-space-2); }
+.mg-cover-edit .mg-cover { border-radius: var(--adm-radius-md); }
+.mg-author { display: inline-flex; align-items: center; justify-content: center; flex: none; overflow: hidden; width: calc(var(--adm-space-8) * 2); height: calc(var(--adm-space-8) * 2);
+  border: var(--adm-border-width) solid var(--adm-line); border-radius: var(--adm-radius-pill); background: var(--adm-gray-50); color: var(--adm-text-3); font-size: var(--adm-fs-section); }
+.mg-author img { width: 100%; height: 100%; object-fit: cover; }
+
+.mg-editor { display: flex; flex-direction: column; overflow: hidden; }
+.mg-editor-title { padding: var(--adm-space-4) var(--adm-space-5); border-bottom: var(--adm-border-width) solid var(--adm-line-subtle); }
+.mg-editor-body { padding: var(--adm-space-4); }
+/* Quill: 도구줄 고정 + 본문만 스크롤 */
+.mg-quill { display: flex; flex-direction: column; overflow: hidden; }
+.mg-quill .ql-toolbar.ql-snow { flex-shrink: 0; border-color: var(--adm-line); border-radius: var(--adm-radius-md) var(--adm-radius-md) 0 0; background: var(--adm-surface); }
+.mg-quill .ql-container.ql-snow { display: flex; flex: 1; flex-direction: column; overflow: hidden; border-color: var(--adm-line); border-radius: 0 0 var(--adm-radius-md) var(--adm-radius-md); font-family: inherit; font-size: var(--adm-fs-body); }
+.mg-quill .ql-editor { flex: 1; min-height: calc(var(--adm-space-8) * 11.25); padding: var(--adm-space-6); overflow-y: auto; }
+
+/* 편집기 안 미리보기 블록(이미지 슬라이더·위치 카드) — 관리자에게만 보인다 */
+.mg-quill .mg-blot { position: relative; margin: var(--adm-space-4) 0; padding: var(--adm-space-4); border: calc(var(--adm-border-width) * 2) dashed var(--adm-line-strong); border-radius: var(--adm-radius-md); background: var(--adm-gray-50); }
+.mg-quill .mg-blot.is-slider { text-align: center; }
+.mg-quill .mg-blot.is-location { padding-inline: var(--adm-space-5); border-color: var(--adm-accent); background: var(--adm-accent-soft); }
+.mg-quill .mg-blot-remove { position: absolute; top: calc(var(--adm-space-2) * -1); right: calc(var(--adm-space-2) * -1); z-index: 1; display: flex; align-items: center; justify-content: center;
+  width: var(--adm-space-6); height: var(--adm-space-6); border-radius: var(--adm-radius-pill); background: var(--adm-danger); color: var(--adm-on-dark); box-shadow: var(--adm-shadow-sm); cursor: pointer; }
+.mg-quill .mg-blot-remove .material-symbols-outlined { font-size: var(--adm-fs-body); }
+.mg-quill .mg-blot-label { display: flex; align-items: center; justify-content: center; gap: var(--adm-space-2); margin-bottom: var(--adm-space-2); color: var(--adm-text-2); font-weight: var(--adm-fw-bold); }
+.mg-quill .mg-blot-thumbs { display: flex; justify-content: center; gap: var(--adm-space-2); padding-bottom: var(--adm-space-2); overflow-x: auto; }
+.mg-quill .mg-blot-thumbs img { width: calc(var(--adm-space-8) * 1.9); height: calc(var(--adm-space-8) * 1.9); object-fit: cover; border: var(--adm-border-width) solid var(--adm-line); border-radius: var(--adm-radius-sm); }
+.mg-quill .mg-blot-head { display: flex; align-items: center; gap: var(--adm-space-2); margin-bottom: var(--adm-space-2); color: var(--adm-accent-strong); }
+.mg-quill .mg-blot-title { font-size: var(--adm-fs-small); font-weight: var(--adm-fw-bold); }
+.mg-quill .mg-blot-body { color: var(--adm-text-2); font-size: var(--adm-fs-caption); line-height: var(--adm-lh); }
+.mg-quill .mg-blot-extra { margin-top: var(--adm-space-1); color: var(--adm-text-3); font-size: var(--adm-fs-caption); }
+
+@media (max-width: 900px) {
+  .mg-edit-grid { grid-template-columns: minmax(0, 1fr); }
+  .mg-two { grid-template-columns: minmax(0, 1fr); }
+}
