@@ -955,25 +955,22 @@ const AccommodationBoard: React.FC<{ userId: string }> = ({ userId }) => {
                                                                 </AdminIconButton>
                                                             </div>
                                                         ) : (
-                                                            // 일정 지역·다른 지역으로 묶어(optgroup) 보여 줘야 해서 AdminSelect(묶음 없음) 대신 생 select에 같은 칸 모양(adm-ui-select)을 준다.
-                                                            <span className={`adm-ui-select${resourcesLoading ? ' is-disabled' : ''}`}>
-                                                                <select className="adm-ui-select-el" aria-label="등록 숙소 선택" disabled={resourcesLoading} value={inMaster ? acc.id : nm ? '__current__' : ''}
-                                                                    onChange={e => {
-                                                                        const v = e.target.value;
-                                                                        if (v === '__manual__') { setManualHotels(prev => new Set(prev).add(mKey)); setListHotels(prev => { const next = new Set(prev); next.delete(mKey); return next; }); return; }
-                                                                        const lodge = lodgeById.get(v);
-                                                                        if (lodge) patchDay(r.id, idx, selectResourceLodge(d, lodge).accommodation);
-                                                                    }}>
-                                                                    <option value="">{resourcesLoading ? '등록 숙소 불러오는 중…' : '등록 숙소 선택…'}</option>
-                                                                    {!inMaster && nm && <option value="__current__">현재 배정: {nm}</option>}
-                                                                    {nightRegion ? <>
-                                                                        <optgroup label={`${nightRegion === scheduleRegion ? '일정 지역' : '선택 지역'}: ${nightRegion}`}>{regionLodges.map(lodge => <option key={lodge.id} value={lodge.id}>{lodge.name}</option>)}</optgroup>
-                                                                        <optgroup label="전체 다른 지역">{otherLodges.map(lodge => <option key={lodge.id} value={lodge.id}>{lodge.name}</option>)}</optgroup>
-                                                                    </> : resources.lodges.map(lodge => <option key={lodge.id} value={lodge.id}>{lodge.name}</option>)}
-                                                                    <option value="__manual__">직접 입력 (목록에 없는 숙소)</option>
-                                                                </select>
-                                                                <span className="adm-ui-select-caret" aria-hidden="true"><DashboardIcon name="lc-chevron-down" size={16} /></span>
-                                                            </span>
+                                                            // 일정 지역·다른 지역은 AdminSelect의 group(optgroup)으로 묶어 보인다.
+                                                            <AdminSelect aria-label="등록 숙소 선택" disabled={resourcesLoading} value={inMaster ? acc.id : nm ? '__current__' : ''}
+                                                                onChange={v => {
+                                                                    if (v === '__manual__') { setManualHotels(prev => new Set(prev).add(mKey)); setListHotels(prev => { const next = new Set(prev); next.delete(mKey); return next; }); return; }
+                                                                    const lodge = lodgeById.get(v);
+                                                                    if (lodge) patchDay(r.id, idx, selectResourceLodge(d, lodge).accommodation);
+                                                                }}
+                                                                options={[
+                                                                    { value: '', label: resourcesLoading ? '등록 숙소 불러오는 중…' : '등록 숙소 선택…' },
+                                                                    ...(!inMaster && nm ? [{ value: '__current__', label: `현재 배정: ${nm}` }] : []),
+                                                                    ...(nightRegion
+                                                                        ? [...regionLodges.map(lodge => ({ value: lodge.id, label: lodge.name, group: `${nightRegion === scheduleRegion ? '일정 지역' : '선택 지역'}: ${nightRegion}` })),
+                                                                            ...otherLodges.map(lodge => ({ value: lodge.id, label: lodge.name, group: '전체 다른 지역' }))]
+                                                                        : resources.lodges.map(lodge => ({ value: lodge.id, label: lodge.name }))),
+                                                                    { value: '__manual__', label: '직접 입력 (목록에 없는 숙소)' },
+                                                                ]} />
                                                         )}</div>
                                                         <div className="lo-field"><span>등급</span>
                                                             <AdminSelect aria-label="숙소 등급" value={acc.type || ''} onChange={v => patchDay(r.id, idx, { type: v || undefined })}

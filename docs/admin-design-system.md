@@ -104,7 +104,8 @@
 | `AdminIconButton` | 아이콘만 있는 버튼. `label`(화면 읽기·툴팁) 필수 | (아이콘 `<button>`) |
 | `AdminTextButton` | 글자 버튼(‘전체 보기’, ‘목록으로’). `tone` primary(민트 글자)·assistive(회색) | `TextButton` |
 | `AdminField` | 라벨(위, 13px 600) + 칸 + 칸 아래 보조 설명·오류. `required`면 `adm-req`(빨간 `*`), `error`면 빨간 테두리와 칸 아래 문구. 자식에 `(id) => 칸`을 넘기면 라벨과 칸이 이어진다 | — |
-| `AdminTextInput` · `AdminTextArea` · `AdminSelect` · `AdminCheckbox` | 입력칸(높이 40·휴대폰 48, 모서리 6, 글자 14·휴대폰 16) · 여러 줄(내용 따라 늘어남, `maxLength`면 글자 수) · 선택 상자(기본 `<select>`, `onChange(value)`) · 체크(`onChange(boolean)`, 일부 선택) | `TextField` · `MultilineTextField` · (`TextField` 모양) · `Checkbox` |
+| `AdminTextInput` · `AdminTextArea` · `AdminSelect` · `AdminCheckbox` | 입력칸(높이 40·휴대폰 48, 모서리 6, 글자 14·휴대폰 16) · 여러 줄(내용 따라 늘어남, `maxLength`면 글자 수) · 선택 상자(기본 `<select>`, `onChange(value)`, 선택지에 `group`을 주면 이어진 같은 group끼리 묶음 이름 아래에 — 2026-11-24) · 체크(`onChange(boolean)`, 일부 선택) | `TextField` · `MultilineTextField` · (`TextField` 모양) · `Checkbox` |
+| `AdminRadio` · `AdminSlider` | 하나만 고르는 동그라미(20·작게 18, 고르면 민트 채움 + 가운데 점, 같은 묶음은 같은 `name`, `onChange()`) · 값 끌어 고르기(막대 6 + 흰 손잡이 28, 고른 만큼 민트, `onChange(number)`, 값은 화면이 라벨에 적는다). 2026-11-24 추가 | `RadioGroup` 한 칸 · `Slider` |
 | `AdminSwitch` | 켜기·끄기 스위치(즉시 반영되는 노출·사용 여부). `label`·`description`을 주면 오른쪽에 이름과 설명, 표 칸 안처럼 이름 없이 쓰면 `aria-label`을 꼭 준다. `size` sm·md | `Switch` |
 | `AdminFileButton` | 파일 고르기 버튼. 모양은 `AdminButton` 그대로(`variant`·`size`·`leading`), 숨은 파일 칸을 열고 `onFiles(files)`로 넘긴다. `accept`·`multiple`. 같은 파일을 다시 고를 수 있게 칸은 바로 비운다. 예: 카테고리 아이콘·히어로 이미지 올리기 | (`BoxButton`) |
 | `AdminSearch` | 검색칸(돋보기 + 지우기). 검색 줄 맨 왼쪽, 최대 320px(`wide`면 넓게), Esc로 지움 | (`TextField` + 돋보기) |
@@ -219,6 +220,9 @@ PC와 같은 화면·같은 부품이 휴대폰 폭에서 앱 모양으로 바�
 | 전체 테스트를 한꺼번에 돌릴 때 `customer-notifications.test.mjs`의 ‘같은 자동 이벤트…한 번만 접수한다’가 가끔 실패 | 코드 문제 아님(기록만) | 그 파일만 돌리면 매번 통과하고 main에서도 같다. 동시 실행 검사가 부하에 따라 시간 차이를 보인다 |
 | `견적관리`·`예약목록`·`예약관리`·`견적만들기`의 일부 민트 고정값(`#06c4a0` 약 17곳, 반투명 민트 20곳) | 1단계에서는 그대로 | 스크립트가 만드는 문자열 안에 있어 5단계에서 화면을 보며 바꾼다 |
 | 나가기 보호의 `window.confirm` 5곳(예약 문서·매거진·상품 편집기와 견적 도구 새로고침·편집기 전환의 ‘초안을 보관하지 못했습니다’ 확인) | 브라우저 기본 확인창 유지 | 그 자리에서 참·거짓을 돌려줘야 하는 함수라 답을 기다리는 공통 확인 창으로 바꾸면 부르는 쪽 동작이 달라진다. 화면 이동 차단(`useBlocker`) 7곳은 `adminConfirmLeave`(`src/components/admin/ui/adminLeaveConfirm.ts`)로 바꿨다. 일반 문의의 문의 패널 닫기는 2026-11-24 Seed 전환 때 부르는 쪽(목록 고르기·필터·새로고침)을 기다리게 바꿔 공통 확인 창(`adminConfirm`)이 됐다 |
+| `public/quote-day-editor.css` 끝 ‘공통 모양(정본)’ 블록의 `!important` 137곳 | 그대로 둠 | 견적서 만들기 STEP 2(정적 HTML)·견적 예약 일정표·상품 예약 일정표가 같은 일차 카드로 보이게 하려고 일부러 가장 강하게 적은 정본이다(`CLAUDE.md` 5절, `tests/quote-day-editor-design.test.mjs`). 견적 도구를 React로 옮기면(5단계) 우리 부품으로 바꾸면서 함께 걷는다 |
+| `src/styles/admin-mobile.css`의 `!important` 87곳 | 그대로 둠 | 아직 우리 부품으로 바뀌지 않은 옛 화면(0% 화면·견적 도구 iframe 바깥 틀)의 휴대폰 크기를 덮는 규칙이다. 화면마다 휴대폰에서 확인하며 걷어야 해서, 해당 화면을 Seed로 바꿀 때 그 화면 규칙을 함께 지운다 |
+| 통합 예약 목록(`AdminReservationManage.tsx`)의 `<table>` 6개·직접 색 26곳 | 그대로 둠 | 숙소에 보내는 몽골어 예약 요청서·엑셀 표의 HTML 문자열과 이름표 캔버스다. 새 창·파일·캔버스는 관리자 변수를 읽지 못한다 |
 | 투어 캘린더의 월간 달력 칸·일정 막대·팀 카드(`AdminCalendar.tsx`·`AdminCalendar.css`), 일반 문의의 목록 줄·첫 글자 동그라미(`AdminInquiryManage.tsx`·`.css`) | 우리 부품이 아니라 화면 CSS가 `--adm-*` 변수로 그림(`adm-cal-*`·`adm-iq-*` 버튼) | Seed에 달력 칸·메일함 줄 부품이 없다. 요약·검색·칩·보기 전환·표·배지·알림·빈 화면은 우리 부품을 쓴다 |
 | TSX 인라인 `style`의 민트 고정값(`v7Ui.tsx` 제외) | 1단계에서는 그대로 | 엑셀·인쇄용 HTML, 저장되는 기본색, 캔버스 그림과 섞여 있어 부품 교체(2~3단계) 때 함께 바꾼다 |
 | 배너·카테고리의 기본색 `#0f766e` | 바꾸지 않음 | 화면 꾸밈이 아니라 DB에 저장되는 값이다 |

@@ -101,7 +101,7 @@ label.adm-ui-btn.de-upload { cursor: pointer; }
 .de-thumb.is-filled { border-style: solid; border-color: var(--adm-accent); }
 .de-thumb > img { width: 100%; height: 100%; object-fit: cover; }
 .de-item .adm-ui-input { height: var(--adm-control-h-sm); background: var(--adm-surface); }
-.de-item .adm-ui-input-el.de-spot-name { font-size: var(--adm-fs-small); font-weight: var(--adm-fw-bold); }
+.de-item .de-spot-name .adm-ui-input-el { font-size: var(--adm-fs-small); font-weight: var(--adm-fw-bold); }
 .de-stop-no { flex: none; display: grid; place-items: center; width: var(--adm-space-5); height: var(--adm-space-5); border-radius: var(--adm-radius-pill); background: var(--adm-accent); color: var(--adm-on-primary); font-size: var(--adm-fs-micro); font-weight: var(--adm-fw-bold); }
 .de-stop-name { flex: 1 1 auto; min-width: 0; overflow: hidden; font-size: var(--adm-fs-small); font-weight: var(--adm-fw-bold); text-overflow: ellipsis; white-space: nowrap; }
 .de-stop-sub { margin-left: calc(var(--adm-space-1) * 1.5); color: var(--adm-text-3); font-weight: var(--adm-fw-regular); }

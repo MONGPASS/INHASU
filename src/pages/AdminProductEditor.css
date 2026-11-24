@@ -55,7 +55,6 @@
 .ape-w-badge { min-width: min(100%, 200px); }
 .ape-w-price { flex: 0 0 130px; }
 .ape-w-range { flex: 0 0 140px; }
-.ape-range { width: 100%; accent-color: var(--adm-accent); }
 .ape-file-input { width: 100%; padding: var(--adm-space-2) var(--adm-space-3); border: var(--adm-border-width) solid var(--adm-gray-400); border-radius: var(--adm-radius-sm); background: var(--adm-surface); color: var(--adm-text); font-family: var(--adm-font); font-size: var(--adm-fs-small); }
 .ape-file-input:focus-visible { outline: 0; box-shadow: var(--adm-ring); }
 
@@ -141,8 +140,7 @@
 /* 숙소 옵션 */
 .admin-app-wrapper .pa-stay-options .pa-stay-card { display: grid; gap: var(--adm-space-2); min-width: 0; }
 .admin-app-wrapper .pa-stay-head { display: flex; align-items: center; gap: var(--adm-space-3); font-size: var(--adm-fs-small); font-weight: var(--adm-fw-bold); }
-.admin-app-wrapper .pa-stay-default { margin-left: auto; display: inline-flex; align-items: center; gap: var(--adm-space-2); color: var(--adm-text); font-size: var(--adm-fs-caption); cursor: pointer; }
-.admin-app-wrapper .pa-stay-default input { width: var(--adm-space-4); aspect-ratio: 1; margin: 0; accent-color: var(--adm-accent); }
+.admin-app-wrapper .pa-stay-default { margin-left: auto; }
 .admin-app-wrapper .pa-stay-fields { display: grid; grid-template-columns: minmax(0, 1fr) minmax(110px, 26%); align-items: center; gap: var(--adm-space-2); }
 .admin-app-wrapper .pa-stay-add { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--adm-space-2); }
 .admin-app-wrapper .pa-stay-add .ape-add-line { padding-inline: var(--adm-space-1); }

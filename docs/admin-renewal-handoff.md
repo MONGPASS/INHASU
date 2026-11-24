@@ -161,6 +161,15 @@ Montage를 화면에서 직접 쓰게 강제하면 단점이 있다:
 > - 일반 문의: 현황 4칸 `AdminStat` · 검색 · 상태 `AdminChipGroup` · 답장·메모 `AdminTextArea`/`AdminField` · 버튼 `AdminButton`. 옛 화면 알림(page-toast)은 `adminNotify`로, 문의 패널 닫기의 `window.confirm`은 `adminConfirm`으로 바꿨다(부르는 쪽을 기다리게 바꿈, 확인 창이 떠 있는 동안 다른 이동은 무시). `.iq-*` 규칙은 `AdminContentManage.css`에서 빼고 `AdminInquiryManage.css`로 옮겼다. 생 부품 13→0 · 인라인 style 4→0 · 기본 확인창 1→0.
 > - 전체 전환율 80%→82%.
 
+> **거의 끝난 화면 마무리(2026-11-24, `feature/seed-leftovers`)** — 공통 틀·숙소 배정·상품 화면의 남은 생 부품을 우리 부품으로 바꿨다(세 묶음 모두 100%).
+> - 새 부품: `AdminRadio`(Seed RadioGroup 한 칸)·`AdminSlider`(Seed Slider), `AdminSelect` 선택지 `group`(optgroup). 새 Seed 아이콘 `IconMenu`·`IconBell`.
+> - 공통 틀: 휴대폰 메뉴·추가 작업 버튼은 `AdminIconButton`, 서랍 뒤 막은 초점 없는 덮개(`div`), 머리·본문의 인라인 style 3곳은 CSS로. 상단 바 도구(통합 검색·업무 알림)는 `AdminSearch`·`AdminIconButton`·`AdminTextButton`과 Seed 아이콘, `AdminToolbar.css`는 변수만(숫자 크기 40·직접 색 3 → 0). 검색 칸에서 Esc는 예전처럼 창만 닫고 검색어는 남긴다.
+> - 진한 채움 위 흰 글자는 새 변수 `--adm-on-dark`(Seed static white)로 — 공통 CSS의 직접 색 44곳 → 0. 인라인 style을 이기려고 적었던 `!important` 4곳(머리 설명·flush 본문)을 뺐다.
+> - 숙소 배정 ‘등록 숙소 선택’, 디자인 블록 여행지 이름·추가, 숙소·여행지 고르기 창 검색, 상품 구분선 높이·일정 간격(`AdminSlider`)·기본 숙소(`AdminRadio`), 일정 편집기·대표 명소 불러오기/오류.
+> - 남겨 둔 것(7절 예외): `quote-day-editor.css`의 `!important` 137(일차 카드 정본), `admin-mobile.css`의 `!important` 87(옛 화면 휴대폰 덮개), 통합 예약 목록의 인쇄·엑셀 문자열 표 6·색 26.
+> - 틀 CSS 읽는 순서 고정: 상단 바 도구가 `console/Icon`을 그만 쓰자 빌드가 `admin-console.css`(로그인과 함께 씀)를 따로 떼어 맨 뒤에 읽게 되어 화면 제목이 상단 바로 올라갔다. 틀 CSS 네 장을 `src/styles/adminShell.ts` 한 모듈로 묶어 AdminLayout·로그인이 함께 가져오게 했다(`tests/admin-design-tokens.test.mjs`가 순서를 검사).
+> - 전체 전환율 82%→83%.
+
 ### 단계 4. 상세형·입력형·대시보드형
 - 고객 예약 상세(`v7/ReservationDetailV7.tsx`, `CustomerWorkspaceOverview`, `Reservation*`) — 상세형 기준
 - 상품 추가·수정(`AdminProductManage.tsx`의 `ProductModal`, 디자인 블록 편집기는 기능 유지) — 입력형 기준

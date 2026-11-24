@@ -4,7 +4,8 @@ import type { TouristSpot } from '../../types/touristSpot';
 import { touristSpotRegionGroups, touristSpotRegionLabel } from '../../types/touristSpot';
 // 부품 묶음(./ui)이 아니라 파일을 하나씩 가져온다 — 테스트의 가짜 React로도 묶이는 것만(HotelPickerModal 창 틀 주석)
 import { AdminTable, AdminTbody, AdminTd, AdminTh, AdminThead, AdminTr } from './ui/AdminTable';
-import { IconClose, IconImage, IconSearch } from './ui/AdminIcons';
+import { IconClose, IconImage } from './ui/AdminIcons';
+import { AdminSearch } from './ui/AdminFields';
 import './CourseImportModal.css';
 
 interface TouristSpotPickerModalProps {
@@ -70,8 +71,8 @@ export const TouristSpotPickerModal: React.FC<TouristSpotPickerModalProps> = ({
 
     if (!open) return null;
 
-    // 창 틀·지역 탭·검색 칸·줄은 생 요소에 부품과 같은 클래스(adm-ui-*)를 단다 — tests/shared-travel-pickers.test.mjs가
-    // 가짜 React로 이 파일을 묶어 생 <button>(지역 탭)과 <tr onClick>(줄)을 찾는다(HotelPickerModal 창 틀 주석).
+    // 창 틀·지역 탭·줄은 생 요소에 부품과 같은 클래스(adm-ui-*)를 단다 — tests/shared-travel-pickers.test.mjs가
+    // 가짜 React로 이 파일을 묶어 지역 탭 버튼과 onClick 달린 표 줄을 찾는다(HotelPickerModal 창 틀 주석). 검색 칸은 AdminSearch.
     return (
         <div
             className="adm-ui-dialog-layer cim-picker-layer"
@@ -125,18 +126,7 @@ export const TouristSpotPickerModal: React.FC<TouristSpotPickerModalProps> = ({
                     </div>
 
                     <div className="cim-search">
-                        <div className="adm-ui-search is-md is-wide">
-                            <span className="adm-ui-search-icon" aria-hidden="true"><IconSearch /></span>
-                            <input
-                                type="text"
-                                value={q}
-                                onChange={(e) => setQ(e.target.value)}
-                                placeholder="여행지명으로 검색"
-                                aria-label="여행지명으로 검색"
-                                autoFocus
-                                className="adm-ui-search-el"
-                            />
-                        </div>
+                        <AdminSearch wide value={q} onChange={setQ} placeholder="여행지명으로 검색" aria-label="여행지명으로 검색" autoFocus />
                     </div>
 
                     <div className="cim-list">

@@ -31,6 +31,7 @@
   --adm-primary-bg-hover: var(--adm-accent-hover);
   /* Seed의 on-primary는 흰색이지만 #36D1A7 위 흰 글자는 읽히지 않아 관리자는 민트 가장 진한 단계를 쓴다. 흰 글자 금지 */
   --adm-on-primary: var(--seed-scale-color-carrot-950);          /* #032B25 */
+  --adm-on-dark: var(--seed-static-color-static-white);          /* 진한 채움(검정·빨강·초록) 위 글자·아이콘. 민트 채움 위에는 쓰지 않는다(--adm-on-primary) */
 
   /* ── 글자·무채색 (Seed ink · gray) ── */
   --adm-ink: var(--seed-semantic-color-ink-text);         /* #212124 제목·가장 진한 글자 */

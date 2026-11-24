@@ -62,6 +62,17 @@ const hasClass = (node, name) => String(node.props?.className || '').split(/\s+/
 const optionsOf = select => select.type === 'AdminSelect'
     ? select.props.options.map(o => ({ value: o.value, label: text(o.label), disabled: !!o.disabled }))
     : nodes(select).filter(n => n.type === 'option').map(n => ({ value: n.props.value, label: text(n), disabled: !!n.props.disabled }));
+/** 고르기 칸의 묶음(생 <optgroup>과 AdminSelect options의 group 모두): [{ label, values }] */
+const groupsOf = select => {
+    if (select.type !== 'AdminSelect') return nodes(select).filter(n => n.type === 'optgroup').map(g => ({ label: g.props.label, values: nodes(g).filter(n => n.type === 'option').map(n => n.props.value) }));
+    const groups = [];
+    for (const option of select.props.options) {
+        if (!option.group) continue;
+        const last = groups[groups.length - 1];
+        if (last && last.label === option.group) last.values.push(option.value); else groups.push({ label: option.group, values: [option.value] });
+    }
+    return groups;
+};
 /** 칸의 값을 바꾼다 — AdminSelect는 고른 값을 바로, 생 요소·AdminTextInput은 이벤트를 받는다 */
 const change = (node, value) => node.type === 'AdminSelect' ? node.props.onChange(value) : node.props.onChange({ target: { value } });
 const resourceFixture = () => ({
@@ -274,11 +285,11 @@ test('고객의 2박3일 일정과 출처를 보여 주고 빠진 숙박일만 �
     assert.deepEqual(dates, ['2026-11-01', '2026-11-02']);
     const select = nodes(h.tree).find(node => isSelect(node) && node.props['aria-label'] === '등록 숙소 선택');
     assert.ok(select, '추가한 두 번째 밤의 공통 숙소 선택');
-    const groups = nodes(select).filter(node => node.type === 'optgroup');
-    assert.equal(groups[0]?.props.label, '일정 지역: 고비사막');
-    assert.equal(groups[1]?.props.label, '전체 다른 지역');
-    assert.ok(nodes(groups[0]).some(node => node.type === 'option' && node.props.value === 'resource-lodge:고비 등록 숙소'));
-    assert.ok(nodes(groups[1]).some(node => node.type === 'option' && node.props.value === 'resource-lodge:등록 게르 / #?'));
+    const groups = groupsOf(select);
+    assert.equal(groups[0]?.label, '일정 지역: 고비사막');
+    assert.equal(groups[1]?.label, '전체 다른 지역');
+    assert.ok(groups[0].values.includes('resource-lodge:고비 등록 숙소'));
+    assert.ok(groups[1].values.includes('resource-lodge:등록 게르 / #?'));
     assert.equal(h.requests.filter(call => call.options.method === 'PATCH').length, 0);
     await h.button('배정 저장').props.onClick(); await h.settle();
     const patch = h.requests.find(call => call.options.method === 'PATCH');
@@ -366,7 +377,7 @@ test('지역은 일정 목적지로 미리 선택되고 비우면 비운 채 유
     const planRegions = planDays.map(day => text(nodes(day).find(node => String(node.props?.className).includes('lo-plan-region'))));
     assert.deepEqual(planRegions.slice(0, 2), ['고비사막', '톱아이막'], '전체 일정에도 같은 지역을 보여 준다');
     assert.deepEqual(nodes(planDays[0]).filter(node => node.type === 'li').map(text), ['공항 픽업 · 초원 산책']);
-    assert.equal(nodes(nodes(h.tree).filter(node => isSelect(node) && node.props['aria-label'] === '등록 숙소 선택')[0]).find(node => node.type === 'optgroup').props.label, '일정 지역: 고비사막');
+    assert.equal(groupsOf(nodes(h.tree).filter(node => isSelect(node) && node.props['aria-label'] === '등록 숙소 선택')[0])[0].label, '일정 지역: 고비사막');
     change(regions()[0], ''); h.render();
     assert.deepEqual(regions().map(select => select.props.value), ['', '톱아이막']);
     change(nodes(h.tree).filter(node => isSelect(node) && node.props['aria-label'] === '등록 숙소 선택')[1], '__manual__'); h.render();
@@ -399,7 +410,7 @@ test('저장된 숙소 배열이 비어 있어도 고객 일정대로 숙박 행
     change(regions()[1], '중앙몽골'); h.render();
     assert.equal(regions()[1].props.value, '중앙몽골');
     const lodgeSelect = nodes(h.tree).filter(node => isSelect(node) && node.props['aria-label'] === '등록 숙소 선택')[1];
-    assert.equal(nodes(lodgeSelect).find(node => node.type === 'optgroup').props.label, '선택 지역: 중앙몽골');
+    assert.equal(groupsOf(lodgeSelect)[0].label, '선택 지역: 중앙몽골');
 
     await h.button('배정 저장').props.onClick(); await h.settle();
     const saved = h.requests.find(call => call.options.method === 'PATCH').body.assignment.accommodations;

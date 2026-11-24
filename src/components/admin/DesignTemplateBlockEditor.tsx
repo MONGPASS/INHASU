@@ -20,9 +20,8 @@ import { useAnchorRect } from './designEditor/useAnchorRect';
 import { clampSectionAnchor, commitValue, fieldSelector, findDesignTarget, sectionSelector } from './designEditor/inlineEdit';
 import { adminConfirm, adminNotify } from './ui/adminFeedback';
 import { AdminButton, AdminIconButton } from './ui/AdminButton';
-import { AdminTextArea, AdminTextInput } from './ui/AdminFields';
+import { AdminSelect, AdminTextArea, AdminTextInput } from './ui/AdminFields';
 import { AdminBadge, AdminChip, AdminSegmented, type AdminChoiceItem } from './ui/AdminChoice';
-import { IconChevronDown } from './ui/AdminIcons';
 import { cx } from './ui/adminUiUtils';
 import './designEditor/design-editor.css';
 
@@ -95,14 +94,13 @@ function SpotCardsField({ value, onChange, onBusyChange }: { value: string; onCh
                             <input type="file" accept="image/*" className="de-file"
                                 onChange={(e) => { handleUpload(i, e.target.files?.[0]); e.target.value = ''; }} />
                         </label>
-                        <div className="adm-ui-input de-grow">
-                            <input
-                                className="adm-ui-input-el de-spot-name"
-                                value={title}
-                                placeholder="여행지 이름 (한국어 표기)"
-                                onChange={(e) => patch(i, { title: e.target.value })}
-                            />
-                        </div>
+                        <AdminTextInput
+                            className="de-grow de-spot-name"
+                            value={title}
+                            placeholder="여행지 이름 (한국어 표기)"
+                            aria-label="여행지 이름"
+                            onChange={(e) => patch(i, { title: e.target.value })}
+                        />
                         <button type="button" className="adm-ui-icon-btn is-normal is-sm" title="위로" onClick={() => move(i, -1)}><Icon name="arrow_upward" className="de-ico" /></button>
                         <button type="button" className="adm-ui-icon-btn is-normal is-sm" title="아래로" onClick={() => move(i, 1)}><Icon name="arrow_downward" className="de-ico" /></button>
                         <button type="button" className="adm-ui-icon-btn is-normal is-sm" title="카드 제거" onClick={() => setLines(lines.filter((_, j) => j !== i))}><Icon name="close" className="de-ico is-danger" /></button>
@@ -234,24 +232,16 @@ function MapStopsField({ value, onChange, onBusyChange }: { value: string; onCha
                     </div>
                 );
             })}
-            {/* 지역 묶음(optgroup)이 있는 목록이라 AdminSelect 대신 같은 모양 클래스의 생 select */}
-            <div className="adm-ui-select de-spot-select">
-                <select
-                    className="adm-ui-select-el"
-                    value=""
-                    onChange={(e) => { addDestination(e.target.value); e.target.value = ''; }}
-                >
-                    <option value="">＋ 여행지 추가…</option>
-                    {groups.map(g => (
-                        <optgroup key={g.name} label={g.name}>
-                            {g.items.map(d => (
-                                <option key={d.ko} value={d.ko}>{d.ja} — {d.en}</option>
-                            ))}
-                        </optgroup>
-                    ))}
-                </select>
-                <span className="adm-ui-select-caret" aria-hidden="true"><IconChevronDown /></span>
-            </div>
+            <AdminSelect
+                className="de-spot-select"
+                aria-label="여행지 추가"
+                value=""
+                onChange={(value) => { if (value) addDestination(value); }}
+                options={[
+                    { value: '', label: '＋ 여행지 추가…' },
+                    ...groups.flatMap(g => g.items.map(d => ({ value: d.ko, label: `${d.ja} — ${d.en}`, group: g.name }))),
+                ]}
+            />
             <AdminButton size="sm" className="de-self-start" leading={<Icon name="edit_note" className="de-ico" />} onClick={() => setAdvanced(a => !a)}>
                 {advanced ? '직접 입력 닫기' : '직접 입력 (목록에 없는 지역·좌표·사진)'}
             </AdminButton>

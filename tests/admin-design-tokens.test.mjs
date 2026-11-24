@@ -71,7 +71,12 @@ test('휴대폰 앱 틀은 한 파일에서 정하고 크기는 공통 변수를
     for (const name of ['--adm-tabbar-h', '--adm-topbar-h', '--adm-control-h', '--adm-fs-input', '--adm-pad-page']) assert.ok(mobile.includes(`var(${name})`), name);
     assert.match(read('public/admin-tokens.css'), /@media \(max-width: 760px\)\s*\{\s*:root\s*\{[^}]*--adm-control-h:\s*var\(--seed-control-height-large\)/);
     const layout = read('src/components/admin/AdminLayout.tsx');
-    assert.ok(layout.includes('AdminMobileTabBar') && layout.includes("admin-mobile.css"));
+    // 틀 CSS 네 장은 adminShell.ts 한 모듈이 순서대로 가져온다(따로 가져오면 빌드가 읽는 순서를 바꾼다)
+    assert.ok(layout.includes('AdminMobileTabBar') && layout.includes("styles/adminShell'"));
+    const shell = read('src/styles/adminShell.ts');
+    const order = ['admin-console.css', 'admin-shell-v3.css', 'admin-montage.css', 'admin-mobile.css'].map(name => shell.indexOf(`import './${name}'`));
+    assert.ok(order.every((at, index) => at >= 0 && (index === 0 || at > order[index - 1])), '기본 → 상단 바 → Seed 모양 → 휴대폰 순서');
+    assert.ok(read('src/pages/AdminLogin.tsx').includes("styles/adminShell'"), '로그인도 같은 모듈을 쓴다');
     const tabbar = read('src/components/admin/ui/AdminMobileTabBar.tsx');
     for (const label of ['홈', '예약', '견적', '배정', '전체']) assert.ok(tabbar.includes(label), label);
 });

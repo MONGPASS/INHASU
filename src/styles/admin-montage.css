@@ -103,10 +103,11 @@
 .admin-app-wrapper .eyebrow { display: none; }
 .admin-app-wrapper .page-title { color: var(--adm-ink); font-size: var(--adm-fs-title); font-weight: var(--adm-fw-bold); line-height: 1.36; letter-spacing: -0.0236em; }
 /* 제목 옆 밑줄 탭(AdminLayout titleAside): 제목과 탭이 한 줄, 아래에 구분선 */
+.admin-app-wrapper .admin-layout-heading { min-width: 0; }
 .admin-app-wrapper .admin-layout-heading.has-aside { display: flex; flex-wrap: wrap; align-items: flex-end; gap: var(--adm-space-2) var(--adm-space-8); border-bottom: var(--adm-border-width) solid var(--adm-line); }
 .admin-app-wrapper .admin-layout-heading.has-aside .page-title { padding-bottom: var(--adm-space-3); }
 .admin-app-wrapper .admin-layout-title-aside { min-width: 0; margin-bottom: calc(-1 * var(--adm-border-width)); }
-.admin-app-wrapper .admin-layout-heading > .cell-muted { margin-top: var(--adm-space-1) !important; color: var(--adm-text-2); font-size: var(--adm-fs-base) !important; line-height: 22px; }
+.admin-app-wrapper .admin-layout-heading > .cell-muted { margin-top: var(--adm-space-1); color: var(--adm-text-2); font-size: var(--adm-fs-base); line-height: 22px; }
 
 /* ── 상단 바 도구: 검색(회색 채움)·알림·사이트 보기 ── */
 .admin-toolbar .at-search-field { width: 320px; height: var(--adm-control-h); border: 1px solid transparent; border-radius: var(--adm-radius-sm); background: var(--adm-neutral-soft); color: var(--adm-text-3); }
@@ -129,7 +130,7 @@
 .admin-app-wrapper .btn-soft { background: var(--adm-neutral-soft); color: var(--adm-ink); }
 .admin-app-wrapper .btn-soft:hover:not(:disabled) { background: var(--adm-gray-200); }
 .admin-app-wrapper .btn-danger { border-color: transparent; background: var(--adm-danger-soft); color: var(--adm-danger); }
-.admin-app-wrapper .btn-danger:hover:not(:disabled) { background: var(--adm-danger); color: #fff; }
+.admin-app-wrapper .btn-danger:hover:not(:disabled) { background: var(--adm-danger); color: var(--adm-on-dark); }
 .admin-app-wrapper .btn-sm { height: var(--adm-control-h-sm); padding: 0 var(--adm-space-3); border-radius: 8px; font-size: var(--adm-fs-small); }
 .admin-app-wrapper .btn-lg { height: var(--adm-control-h-lg); padding: 0 var(--adm-space-5); border-radius: var(--adm-radius-sm); font-size: var(--adm-fs-base); }
 .admin-app-wrapper .link-action { color: var(--adm-accent-strong); font-size: var(--adm-fs-body); font-weight: var(--adm-fw-semibold); border-radius: 8px; }
@@ -164,7 +165,7 @@
 .admin-app-wrapper :is(.b-green, .tint-green) { background: var(--adm-success-soft); color: var(--adm-success-strong); }
 .admin-app-wrapper :is(.b-amber, .tint-amber) { background: var(--adm-warn-soft); color: var(--adm-warn-strong); }
 .admin-app-wrapper :is(.b-gray, .tint-ink) { background: var(--adm-neutral-soft); color: var(--adm-neutral); }
-.admin-app-wrapper .b-ink { background: var(--adm-ink); color: #fff; }
+.admin-app-wrapper .b-ink { background: var(--adm-ink); color: var(--adm-on-dark); }
 .admin-app-wrapper .sd-dot.b-amber { background: var(--adm-warn); }
 .admin-app-wrapper .sd-dot.b-blue, .admin-app-wrapper .sd-dot.b-purple { background: var(--adm-accent); }
 .admin-app-wrapper .sd-dot.b-gray { background: var(--adm-text-3); }
@@ -172,7 +173,7 @@
 /* ── 칩(필터)·묶음 전환 ── */
 .admin-app-wrapper .chip { height: var(--adm-control-h-sm); padding: 0 var(--adm-space-3); border: 1px solid var(--adm-line); border-radius: 8px; background: var(--adm-surface); color: var(--adm-text-2); font-size: var(--adm-fs-small); font-weight: var(--adm-fw-medium); }
 .admin-app-wrapper .chip:hover { border-color: var(--adm-line-strong); color: var(--adm-ink); }
-.admin-app-wrapper .chip.active { border-color: var(--adm-ink); background: var(--adm-ink); color: #fff; font-weight: var(--adm-fw-semibold); }
+.admin-app-wrapper .chip.active { border-color: var(--adm-ink); background: var(--adm-ink); color: var(--adm-on-dark); font-weight: var(--adm-fw-semibold); }
 .admin-app-wrapper .chip .ct { font-weight: var(--adm-fw-semibold); }
 .admin-app-wrapper .seg { padding: 2px; gap: 0; border-radius: var(--adm-radius-sm); background: var(--adm-neutral-soft); }
 .admin-app-wrapper .seg button { padding: 6px var(--adm-space-3); border-radius: 8px; color: var(--adm-text-2); font-size: var(--adm-fs-small); font-weight: var(--adm-fw-medium); }

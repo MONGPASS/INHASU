@@ -32,9 +32,7 @@ import { bookableAccommodationOptions, normalizeAccommodationOptions } from '../
 import { adminConfirm, adminNotify } from '../components/admin/ui/adminFeedback';
 import { adminConfirmLeave } from '../components/admin/ui/adminLeaveConfirm';
 import {
-    AdminButton, AdminIconButton, AdminTextButton, AdminTextInput, AdminTextArea, AdminSelect, AdminSwitch, AdminSearch,
-    AdminTable, AdminThead, AdminTbody, AdminTr, AdminTh, AdminTd, AdminPagination, AdminChip, AdminChipGroup, AdminSegmented, AdminTabs,
-    IconArrowDown, IconArrowUp, IconCheck, IconChevronDown, IconChevronLeft, IconChevronUp, IconClose, IconLocation, IconPencil, IconPlus, IconTrash,
+    AdminButton, AdminIconButton, AdminTextButton, AdminTextInput, AdminTextArea, AdminSelect, AdminSwitch, AdminSearch, AdminTable, AdminThead, AdminTbody, AdminTr, AdminTh, AdminTd, AdminPagination, AdminChip, AdminChipGroup, AdminSegmented, AdminTabs, IconArrowDown, IconArrowUp, IconCheck, IconChevronDown, IconChevronLeft, IconChevronUp, IconClose, IconLocation, IconPencil, IconPlus, IconTrash, AdminRadio, AdminSlider,
 } from '../components/admin/ui';
 
 
@@ -2404,15 +2402,14 @@ export const ProductModal: React.FC<ProductModalProps> = ({ product, categories,
                                                                     />
                                                                 </div>
                                                                 <div className="ape-w-range">
-                                                                    <label className="muted ape-mini-label">높이 ({(block.content as DividerContent).height}px)</label>
-                                                                    <input
-                                                                        type="range"
-                                                                        min="10"
-                                                                        max="120"
-                                                                        step="10"
+                                                                    <label className="muted ape-mini-label" htmlFor={`ape-divider-height-${index}`}>높이 ({(block.content as DividerContent).height}px)</label>
+                                                                    <AdminSlider
+                                                                        id={`ape-divider-height-${index}`}
+                                                                        min={10}
+                                                                        max={120}
+                                                                        step={10}
                                                                         value={(block.content as DividerContent).height}
-                                                                        onChange={(e) => updateBlockContent(index, { ...(block.content as DividerContent), height: parseInt(e.target.value) })}
-                                                                        className="ape-range"
+                                                                        onChange={(height) => updateBlockContent(index, { ...(block.content as DividerContent), height })}
                                                                     />
                                                                 </div>
                                                             </div>
@@ -2545,8 +2542,8 @@ export const ProductModal: React.FC<ProductModalProps> = ({ product, categories,
                                                         <div className="ape-rule" />
                                                     </div>
                                                     <div className="ape-w-range">
-                                                        <label className="muted ape-mini-label">간격 ({dvc.height}px)</label>
-                                                        <input type="range" min="10" max="120" step="10" value={dvc.height} onChange={(e) => updateItineraryBlockContent(flatIndex, { ...dvc, height: parseInt(e.target.value) })} className="ape-range" />
+                                                        <label className="muted ape-mini-label" htmlFor={`ape-itinerary-gap-${flatIndex}`}>간격 ({dvc.height}px)</label>
+                                                        <AdminSlider id={`ape-itinerary-gap-${flatIndex}`} min={10} max={120} step={10} value={dvc.height} onChange={(height) => updateItineraryBlockContent(flatIndex, { ...dvc, height })} />
                                                     </div>
                                                 </div>
                                             );
@@ -2811,11 +2808,8 @@ export const ProductModal: React.FC<ProductModalProps> = ({ product, categories,
                                             <div className="edit-row pa-stay-card" key={option.id}>
                                                 <div className="pa-stay-head">
                                                     <label htmlFor={`pa-stay-name-${index}`}>숙소 {index + 1}</label>
-                                                    <label className="pa-stay-default">
-                                                        <input type="radio" name="pa-default-stay" checked={!!option.isDefault}
-                                                            aria-label={`숙소 ${index + 1} 기본 옵션`} onChange={() => setDefaultAccommodation(option.id)} />
-                                                        기본 숙소
-                                                    </label>
+                                                    <AdminRadio className="pa-stay-default" size="sm" name="pa-default-stay" checked={!!option.isDefault}
+                                                        aria-label={`숙소 ${index + 1} 기본 옵션`} label="기본 숙소" onChange={() => setDefaultAccommodation(option.id)} />
                                                     <AdminIconButton variant="outlined" size="sm" className="is-danger" onClick={() => removeAccommodationOption(option.id)}
                                                         label={`숙소 ${index + 1} 삭제`} title="숙소 삭제"><DashboardIcon name="lc-trash" size={16} /></AdminIconButton>
                                                 </div>

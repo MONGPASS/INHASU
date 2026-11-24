@@ -1,6 +1,7 @@
 import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 import type { quoteDayFields } from '../../utils/reservationInline';
+import { AdminError, AdminLoading } from './ui/AdminSurface';
 
 type QuoteDay = ReturnType<typeof quoteDayFields> & { d: number };
 type QuoteField = 'date' | 'dest' | 'move' | 'items' | 'stay' | 'meals';
@@ -100,8 +101,8 @@ export function QuoteDayEditor(p: Props) {
 
     return <>
         <link rel="stylesheet" href="/quote-day-editor.css" precedence="quote-day-editor" />
-        {!ready && !error && <p className="ri-library-note" role="status">견적서의 일자별 일정 편집기를 불러오고 있습니다.</p>}
-        {error && <div className="ri-library-error" role="alert">{error}<button type="button" onClick={() => setAttempt(value => value + 1)}>다시 시도</button></div>}
+        {!ready && !error && <AdminLoading inline label="견적서의 일자별 일정 편집기를 불러오고 있습니다." />}
+        {error && <AdminError title="일정 편집기를 불러오지 못했습니다" reason={error} onRetry={() => setAttempt(value => value + 1)} />}
         <div ref={host} className="quote-day-editor" aria-label="견적서 일자별 일정 편집" />
         {slots.map((slot, index) => createPortal(p.renderDetails(index), slot, String(index)))}
     </>;

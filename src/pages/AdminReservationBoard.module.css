@@ -199,7 +199,7 @@
 .payDone { color: var(--adm-accent-strong); }
 .payWait { color: var(--adm-accent-strong); }
 .actions { display: flex; justify-content: flex-end; align-items: center; gap: 6px; }
-.nextAction { display: inline-flex; align-items: center; justify-content: center; height: 36px; padding: 0 14px; border: 0; border-radius:var(--adm-radius-sm); background: var(--mrt-ink, var(--adm-ink)); color: #fff;
+.nextAction { display: inline-flex; align-items: center; justify-content: center; height: 36px; padding: 0 14px; border: 0; border-radius:var(--adm-radius-sm); background: var(--mrt-ink, var(--adm-ink)); color: var(--adm-on-dark);
   font: inherit; font-size: 13px; font-weight: 700; white-space: nowrap; cursor: pointer; transition: background 160ms; }
 .nextAction:hover { background: var(--adm-ink); }
 .iconBtn { width: 36px; height: 36px; flex: none; display: inline-flex; align-items: center; justify-content: center; border: 1.5px solid var(--border-default); border-radius:var(--adm-radius-sm);

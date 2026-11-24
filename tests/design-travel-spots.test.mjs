@@ -61,7 +61,7 @@ test('조회 실패나 빈 공통 목록을 표시해도 기존 상품 카드의
     const make = props => {
         const context = runtime(field + '\nglobalThis.render = SpotCardsField;', {
             useDesignSpots: () => props, useState: () => [null, () => {}],
-            React: { createElement: (type, attributes, ...children) => ({ type, attributes, children }) }, Icon: 'icon',
+            React: { createElement: (type, attributes, ...children) => ({ type, attributes, children }) }, Icon: 'icon', AdminTextInput: 'AdminTextInput',
         });
         return context.render({ value: saved, onChange: value => changes.push(value) });
     };
@@ -73,8 +73,9 @@ test('조회 실패나 빈 공통 목록을 표시해도 기존 상품 카드의
     for (const props of [{ spots: [], loading: false, error: '여행지 조회 실패', retry: () => {} }, { spots: [], loading: false, error: '', retry: () => {} }]) {
         const tree = nodes(make(props));
         assert.ok(tree.some(node => node.type === 'img' && node.attributes.src === '/saved.webp'));
-        assert.ok(tree.some(node => node.type === 'input' && node.attributes.value === '기존 카드'));
-        assert.ok(tree.some(node => node.type === 'input' && node.attributes.value === '직접 입력 카드'));
+        const isText = node => node.type === 'input' || node.type === 'AdminTextInput';
+        assert.ok(tree.some(node => isText(node) && node.attributes.value === '기존 카드'));
+        assert.ok(tree.some(node => isText(node) && node.attributes.value === '직접 입력 카드'));
         assert.ok(tree.some(node => node.type === 'a' && node.attributes.href === '/admin/quote-desk/spots'));
         assert.equal(tree.some(node => node.attributes?.role === 'alert'), Boolean(props.error));
     }
