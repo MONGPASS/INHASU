@@ -68,7 +68,8 @@
 
 /* 숙소·계약 동의 상자 */
 .rdc-box { display: flex; flex-direction: column; gap: calc(var(--adm-space-2) + var(--adm-space-1) / 2); margin-top: var(--adm-space-1); padding: var(--adm-space-3); border-radius: var(--adm-radius-md); }
-.rdc-box.is-alert { background: var(--adm-danger-soft); }
+/* 확인이 필요한 상자도 바탕은 회색 — 빨간 바탕 대신 빨간 점과 글자로만 알린다(2026-11-24) */
+.rdc-box.is-alert { background: var(--adm-gray-100); }
 .rdc-box.is-soft { background: var(--adm-gray-100); }
 .rdc-box.is-row { flex-direction: row; align-items: center; }
 .rdc-box-head { display: flex; align-items: center; justify-content: space-between; gap: var(--adm-space-2); }
