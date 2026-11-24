@@ -3,7 +3,7 @@
     align-items: center;
     justify-content: center;
     width: var(--admin-3d-size, 36px);
-    height: var(--admin-3d-size, 36px);
+    height: var(--admin-3d-size, var(--adm-h-36));
     flex: 0 0 var(--admin-3d-size, 36px);
     vertical-align: middle;
     line-height: 1;

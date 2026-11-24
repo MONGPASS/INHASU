@@ -58,6 +58,7 @@ export const MAP = {
     IconInbox: 'search_doc_regular',        // 빈 목록
     IconInfo: 'info_regular',
     IconLayers: 'list_card_regular',       // 묶음·카드 목록
+    IconLaptop: 'laptop_regular',          // PC 화면(Seed에는 모니터 모양이 없어 노트북)
     IconListCategory: 'list_regular',
     IconLocation: 'location_regular',
     IconLock: 'lock_regular',
@@ -66,6 +67,7 @@ export const MAP = {
     IconMap: 'map_regular',
     IconMegaphone: 'loudspeaker_regular',
     IconMenu: 'menu_regular',               // 휴대폰 위 바 메뉴 열기
+    IconMobile: 'mobile_regular',          // 휴대폰 화면
     IconMinus: 'subtraction_regular',
     IconMoreHorizontal: 'more_horiz_regular',
     IconMoreVertical: 'more_vert_regular',

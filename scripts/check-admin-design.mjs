@@ -109,7 +109,8 @@ export function measureTsx(src) {
         rawField: fields.length,
         rawTable: count(s, /<table\b/g),
         inlineStyle: count(s, /style=\{\{/g),
-        px: count(s, new RegExp(`\\b(?:${SIZE_PROPS})\\s*:\\s*['"\`]?-?\\d`, 'g')),
+        // 스크롤 위치(scrollTo({ top: 0 }) 등)와 화면 폭 조건(matchMedia('(max-width: 760px)'))은 크기가 아니므로 세지 않는다
+        px: count(s.replace(/\.scroll(?:To|By)?\(\s*\{[^}]*\}\s*\)/g, '').replace(/matchMedia\(\s*['"`][^'"`]*['"`]\s*\)/g, ''), new RegExp(`\\b(?:${SIZE_PROPS})\\s*:\\s*['"\`]?-?\\d`, 'g')),
         hex: count(s, HEX),
         nativeDialog: count(s, /(^|[^.\w])(?:window\.)?(?:confirm|prompt)\(/gm),
     };

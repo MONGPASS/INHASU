@@ -4,7 +4,9 @@
  * 이벤트 배경색·색 견본만 고객 화면에 쓰이는 값을 style로 칠한다(디자인 문서 7절 예외).
  */
 .admin-app-wrapper .hm-page { display: flex; flex-direction: column; min-width: 0; }
-.hm-line-icon { display: block; flex: none; }
+/* 휴대폰·PC 표시(Seed mobile·laptop 아이콘) — 매체 칸 이름은 14px, 문구 상자 제목은 16px */
+.hm-line-icon { display: block; flex: none; font-size: var(--adm-fs-large); }
+.hm-media-label .hm-line-icon { font-size: var(--adm-fs-body); }
 
 /* 상단 고정 줄: 구역 이동 · 상태 · 저장 (본문 여백만큼 끌어올려 카드 폭 전체에 걸친다) */
 .admin-app-wrapper .hm-bar {

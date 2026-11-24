@@ -4,7 +4,7 @@ import { AdminLayout } from '../components/admin/AdminLayout';
 import { MaterialIcon } from '../components/admin/console/Icon';
 import {
     AdminBadge, AdminButton, AdminChip, AdminEmpty, AdminField, AdminFileButton, AdminIconButton, AdminMessage, AdminPickCard, AdminSegmented, AdminSelect, AdminTextArea, AdminTextButton, AdminTextInput,
-    IconApps, IconArrowDown, IconArrowUp, IconChevronDown, IconChevronLeft, IconChevronRight, IconImage, IconMegaphone, IconPlus, IconTrash, IconUpload,
+    IconApps, IconArrowDown, IconArrowUp, IconChevronDown, IconChevronLeft, IconChevronRight, IconImage, IconLaptop, IconMegaphone, IconMobile, IconPlus, IconTrash, IconUpload,
 } from '../components/admin/ui';
 import { api } from '../lib/api';
 import { uploadImage } from '../utils/upload';
@@ -131,15 +131,6 @@ const DEFAULT_CATEGORY_TABS: CategoryTab[] = [
         bannerImage: 'https://lh3.googleusercontent.com/aida-public/AB6AXuC2c-W88eNfAuepIIez8D142m0RaAu5IIVeT9H7JHKMdO_hBpKiaj9qahcrzlVZlKjJqxXoq0VzO-Aw0A7EN_sDU5pp1smnpRkWy6O3lt4E4KuNi4L3q95jN8U_VmB_8uMcgoSNcE8b0HtZVflsg_87AOF659W686DmWlQPYRdZW0HyVcje7MtAmXT-KDvgPboK9HujomSiuwF7EPAIP4cC_s0405X2ZaWONxKLKPMLHrNtX-m2362SM10q9c7aC5w_afAeRLJU2w'
     },
 ];
-
-/* 휴대폰·PC 표시 두 개만 Seed 모양이 저장소에 없어 예전 Lucide 선(ISC)으로 그린다. `lc-` 키는 Material 아이콘 검사에 걸리지 않게 하려는 것이다. */
-const HM_LINE = {
-    'lc-smartphone': <><rect width="14" height="20" x="5" y="2" rx="2" ry="2" /><path d="M12 18h.01" /></>,
-    'lc-monitor': <><rect width="20" height="14" x="2" y="3" rx="2" /><line x1="8" x2="16" y1="21" y2="21" /><line x1="12" x2="12" y1="17" y2="21" /></>,
-} as const;
-const HmIcon = ({ name, size = 16 }: { name: keyof typeof HM_LINE; size?: number }) => (
-    <svg className="hm-line-icon" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" focusable="false">{HM_LINE[name]}</svg>
-);
 
 const EVENT_COLORS = ['#0F766E', '#12b28c', '#6D28D9', '#E11D48', '#1A1B1E'];
 const EVENT_PLACES: { value: NonNullable<EventBanner['location']>; label: string; summary: string }[] = [
@@ -431,7 +422,7 @@ export const AdminBannerManage: React.FC = () => {
                     <div className="hm-card-body">
                         <div className="hm-media">
                             <div className="hm-media-item">
-                                <span className="hm-media-label"><HmIcon name="lc-smartphone" size={14} />모바일 · 16:10<em>필수</em></span>
+                                <span className="hm-media-label"><IconMobile className="hm-line-icon" />모바일 · 16:10<em>필수</em></span>
                                 <div className={`hm-mbox${banner.image ? ' has-image' : ''}`}>
                                     {preview(banner.image, 'hm-cover')}
                                     <span className="hm-mov">
@@ -443,7 +434,7 @@ export const AdminBannerManage: React.FC = () => {
                                 </div>
                             </div>
                             <div className="hm-media-item">
-                                <span className="hm-media-label"><HmIcon name="lc-monitor" size={14} />PC · 21:9<em>선택</em></span>
+                                <span className="hm-media-label"><IconLaptop className="hm-line-icon" />PC · 21:9<em>선택</em></span>
                                 <div className={`hm-pbox${banner.pcImage ? ' has-image' : ''}`}>
                                     {preview(banner.pcImage, 'hm-cover')}
                                     {!banner.pcImage && <span className="hm-pbox-empty"><IconImage aria-hidden="true" /><span>없으면 모바일 이미지 사용</span></span>}
@@ -454,7 +445,7 @@ export const AdminBannerManage: React.FC = () => {
                         </div>
                         <div className="hm-fields">
                             <div className="hm-basic">
-                                <span className="hm-box-title"><HmIcon name="lc-smartphone" />기본 문구<small>모바일과 PC에 함께 쓰여요</small></span>
+                                <span className="hm-box-title"><IconMobile className="hm-line-icon" />기본 문구<small>모바일과 PC에 함께 쓰여요</small></span>
                                 <div className="hm-grid">
                                     <AdminField id={`hm-${banner.id}-tag`} label="태그"><AdminTextInput id={`hm-${banner.id}-tag`} value={banner.tag} placeholder="예: Premium Trip" onChange={(e) => handleBannerChange(banner.id, 'tag', e.target.value)} /></AdminField>
                                     <AdminField id={`hm-${banner.id}-link`} label="링크"><AdminTextInput id={`hm-${banner.id}-link`} value={banner.link || ''} placeholder="/products/..." onChange={(e) => handleBannerChange(banner.id, 'link', e.target.value)} /></AdminField>
@@ -464,7 +455,7 @@ export const AdminBannerManage: React.FC = () => {
                             </div>
                             <div className="hm-pc">
                                 <AdminPickCard className="hm-pc-toggle" expanded={pcShown} onClick={() => setPcOpen(previous => ({ ...previous, [banner.id]: !previous[banner.id] }))}>
-                                    <HmIcon name="lc-monitor" /><b>PC 전용 문구</b>
+                                    <IconLaptop className="hm-line-icon" /><b>PC 전용 문구</b>
                                     <AdminBadge tone={pcTextUsed ? 'info' : 'neutral'}>{pcTextUsed ? '사용 중' : '기본 문구 사용'}</AdminBadge>
                                     <span className="hm-pc-hint">비워 두면 기본 문구를 써요</span>
                                     <span className={`hm-chev${pcShown ? ' is-open' : ''}`}><IconChevronDown /></span>
