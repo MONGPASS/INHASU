@@ -234,8 +234,9 @@
 .v7-step-sub.is-now { color: var(--adm-danger); animation: rvBlink 1.8s ease-in-out infinite; }
 
 /* 바로가기 아래 한 줄: 고객 정보 · 운영 메모(2026-11-24). 좁으면 아래위로 */
-/* 두 카드는 같은 높이(긴 쪽에 맞춘다). 고객 정보의 세부 묶음은 펼침 버튼 뒤라 평소에는 짧다 */
-.v7-top { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 360px), 1fr)); align-items: stretch; gap: var(--adm-space-4); }
+/* 두 카드는 각자 펼친다 — 한쪽을 펼쳐도 다른 쪽은 늘어나지 않는다(2026-11-24). 둘 다 접혀 있을 때만 높이를 맞춰(is-even) 아래 빈 곳이 없게 한다 */
+.v7-top { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 360px), 1fr)); align-items: start; gap: var(--adm-space-4); }
+.v7-top.is-even { align-items: stretch; }
 /* 카드 아래 가운데 펼침 아이콘: 카드 맨 아래에 붙는다(두 카드 높이가 같아도 아이콘 줄이 맞는다) */
 .v7-top > .v7-card { display: flex; flex-direction: column; }
 .v7-fold { display: flex; justify-content: center; margin-top: auto; padding: var(--adm-space-1) 0 var(--adm-space-2); }

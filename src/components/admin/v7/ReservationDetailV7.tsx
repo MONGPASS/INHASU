@@ -421,7 +421,7 @@ export function reservationDetailView({ model: m, onAction, busy = false, noteCo
                 onClick={() => { set({ navSid: n.sid }); goSec(n.sid); }}>{n.label}</button>)}
         </nav>
         {/* 고객 정보 · 일정: 바로가기 바로 아래 한 줄(2026-11-24 — 고객 알림 자동발송·운영 메모와 자리 바꿈) */}
-        <div className="v7-top">
+        <div className={!st.infoMore && !st.daysAll ? 'v7-top is-even' : 'v7-top'}>
                 <div id="sec-info" className="v7-card v7-info">
                     <div className="v7-info-head">
                         <b className="v7-info-title">고객 정보</b>
