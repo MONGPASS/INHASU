@@ -5,6 +5,7 @@ export const adminPageLoaders = {
     dashboard: () => import('../pages/AdminDashboard').then(module => ({ default: module.AdminDashboard })),
     quotes: () => import('../pages/AdminQuoteManage').then(module => ({ default: module.AdminQuoteManage })),
     quoteDesk: () => import('../pages/AdminQuoteDesk').then(module => ({ default: module.AdminQuoteDesk })),
+    courses: () => import('../pages/AdminCourseManage').then(module => ({ default: module.AdminCourseManage })),
     itinerary: () => import('../pages/AdminItineraryManage').then(module => ({ default: module.AdminItineraryManage })),
     spots: () => import('../pages/AdminSpotManage').then(module => ({ default: module.AdminSpotManage })),
     reservations: () => import('../pages/AdminReservationManage').then(module => ({ default: module.AdminReservationManage })),
@@ -34,7 +35,7 @@ const routes: Record<string, AdminPageKey> = {
     '/admin/accommodations': 'accommodations', '/admin/accommodation-ops': 'accommodationOps',
     '/admin/templates': 'templates', '/admin/reviews': 'reviews', '/admin/faq': 'faq',
     '/admin/promotions': 'promotions', '/admin/inquiries': 'inquiries', '/admin/tour-faqs': 'tourFaqs',
-    '/admin/quote-desk/itinerary': 'itinerary', '/admin/quote-desk/spots': 'spots',
+    '/admin/quote-desk/courses': 'courses', '/admin/quote-desk/itinerary': 'itinerary', '/admin/quote-desk/spots': 'spots',
     '/admin/hotels': 'quoteDesk', '/admin/tourist-spots': 'spots',
     '/admin/design-spots': 'spots', '/admin/guide-intro': 'quoteDesk',
 };

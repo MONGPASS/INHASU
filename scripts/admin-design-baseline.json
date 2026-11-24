@@ -557,6 +557,15 @@
   "hex": 0,
   "nativeDialog": 0
  },
+ "src/pages/AdminCourseManage.tsx": {
+  "rawButton": 0,
+  "rawField": 0,
+  "rawTable": 0,
+  "inlineStyle": 0,
+  "px": 0,
+  "hex": 0,
+  "nativeDialog": 0
+ },
  "src/pages/AdminDashboard.tsx": {
   "rawButton": 0,
   "rawField": 0,
@@ -854,6 +863,11 @@
   "hex": 2,
   "important": 0,
   "rawPx": 125
+ },
+ "src/pages/AdminCourseManage.css": {
+  "hex": 0,
+  "important": 0,
+  "rawPx": 0
  },
  "src/pages/AdminDashboard.module.css": {
   "hex": 0,
