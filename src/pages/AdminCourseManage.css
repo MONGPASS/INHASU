@@ -1,0 +1,68 @@
+/*
+ * 코스 관리(/admin/quote-desk/courses) — 목록형 기준(일정 관리와 같은 틀): 머리 → 카드 하나 안에 검색·고르기 칸 → 표.
+ * 모양은 우리 관리자 부품이 정하고, 이 파일은 배치(칸 너비·간격)와 편집 창의 구역·일자 카드만 둔다. 값은 --adm-* 변수만 쓴다.
+ */
+.cs-page { display: flex; flex-direction: column; gap: var(--adm-space-4); min-width: 0; }
+.cs-card { min-width: 0; }
+.cs-filters { display: flex; flex-wrap: wrap; align-items: center; gap: var(--adm-space-2) var(--adm-space-3); padding: var(--adm-space-4) var(--adm-space-5); }
+.cs-filters .adm-ui-select.cs-filter { flex: 1 1 calc(var(--adm-space-8) * 4.5); min-width: 0; max-width: calc(var(--adm-space-8) * 6.5); }
+.cs-count { display: inline-flex; align-items: center; gap: var(--adm-space-2); margin-left: auto; color: var(--adm-text-3); font-size: var(--adm-fs-caption); white-space: nowrap; }
+.cs-count b { color: var(--adm-text); font-weight: var(--adm-fw-bold); font-variant-numeric: tabular-nums; }
+.cs-note { margin: 0; padding: var(--adm-space-4) var(--adm-space-5); border-top: var(--adm-border-width) solid var(--adm-line-subtle); color: var(--adm-text-3); font-size: var(--adm-fs-caption); line-height: var(--adm-lh); }
+
+/* 표 */
+.cs-table { border-top: var(--adm-border-width) solid var(--adm-line-subtle); }
+.cs-table td { vertical-align: middle; }
+.cs-c-days { width: calc(var(--adm-space-8) * 3); }
+.cs-c-price { width: calc(var(--adm-space-8) * 3.5); font-variant-numeric: tabular-nums; }
+.cs-c-intensity { width: calc(var(--adm-space-8) * 2.75); color: var(--adm-text-2); }
+.cs-c-actions { width: calc(var(--adm-space-8) * 6.5); }
+.cs-name { display: flex; flex-direction: column; align-items: flex-start; gap: var(--adm-space-1); min-width: 0; }
+.cs-name-btn { color: var(--adm-text); font-weight: var(--adm-fw-semibold); text-align: left; white-space: normal; overflow-wrap: anywhere; }
+.cs-sub { color: var(--adm-text-3); font-size: var(--adm-fs-caption); overflow-wrap: anywhere; }
+.cs-sub-strong { color: var(--adm-text); font-weight: var(--adm-fw-semibold); }
+.cs-actions { display: inline-flex; align-items: center; justify-content: flex-end; gap: var(--adm-space-1); }
+
+/* 편집 창 */
+.cs-editor { display: flex; flex-direction: column; gap: var(--adm-space-6); }
+.cs-section { display: flex; flex-direction: column; gap: var(--adm-space-3); }
+.cs-section + .cs-section { padding-top: var(--adm-space-5); border-top: var(--adm-border-width) solid var(--adm-line-subtle); }
+.cs-section .adm-msg { margin: 0; }
+.cs-section-title { display: flex; flex-wrap: wrap; align-items: center; gap: var(--adm-space-2); margin: 0; color: var(--adm-ink); font-size: var(--adm-fs-base); font-weight: var(--adm-fw-bold); }
+.cs-section-hint { color: var(--adm-text-3); font-size: var(--adm-fs-caption); font-weight: var(--adm-fw-regular); }
+.cs-step { display: inline-flex; align-items: center; justify-content: center; width: var(--adm-space-5); height: var(--adm-space-5); border-radius: var(--adm-radius-xs);
+  background: var(--adm-accent-soft); color: var(--adm-accent-strong); font-size: var(--adm-fs-micro); font-weight: var(--adm-fw-bold); }
+.cs-sub-title { margin-top: var(--adm-space-2); color: var(--adm-text-2); font-size: var(--adm-fs-small); font-weight: var(--adm-fw-bold); }
+.cs-sub-title span { color: var(--adm-text-3); font-weight: var(--adm-fw-regular); }
+.cs-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--adm-space-3); }
+.cs-grid.is-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.cs-grid.is-4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+.cs-empty { margin: 0; padding: var(--adm-space-3); color: var(--adm-text-3); font-size: var(--adm-fs-small); text-align: center; }
+
+.cs-list { overflow: hidden; border: var(--adm-border-width) solid var(--adm-line); border-radius: var(--adm-radius-sm); }
+.cs-option { display: flex; align-items: center; gap: var(--adm-space-3); padding: var(--adm-space-2) var(--adm-space-3); }
+.cs-option + .cs-option { border-top: var(--adm-border-width) solid var(--adm-line-subtle); }
+.cs-option-label { flex: 1; min-width: 0; color: var(--adm-text); font-size: var(--adm-fs-small); font-weight: var(--adm-fw-semibold); }
+.cs-add-row { display: flex; flex-wrap: wrap; align-items: center; gap: var(--adm-space-2); }
+.cs-add-row > .adm-ui-input { flex: 1 1 calc(var(--adm-space-8) * 4); min-width: 0; }
+.cs-add-row > .adm-ui-input.cs-pax { flex: 0 1 calc(var(--adm-space-8) * 3); }
+.cs-balance { overflow: hidden; border: var(--adm-border-width) solid var(--adm-line); border-radius: var(--adm-radius-sm); }
+.cs-balance td { vertical-align: middle; }
+
+.cs-spots { display: flex; flex-wrap: wrap; gap: var(--adm-space-2); }
+
+.cs-day { display: flex; flex-direction: column; gap: var(--adm-space-2); padding: var(--adm-space-3) var(--adm-space-4); border: var(--adm-border-width) solid var(--adm-line); border-radius: var(--adm-radius-md); background: var(--adm-surface); }
+.cs-day-head { display: flex; flex-wrap: wrap; align-items: center; gap: var(--adm-space-2); }
+.cs-day-head > .adm-ui-input.cs-day-dest { flex: 2 1 calc(var(--adm-space-8) * 6); min-width: 0; }
+.cs-day-head > .adm-ui-input.cs-day-move { flex: 1 1 calc(var(--adm-space-8) * 5); min-width: 0; }
+.cs-day-tools { display: inline-flex; align-items: center; gap: var(--adm-space-1); margin-left: auto; }
+.cs-day-snippet { max-width: calc(var(--adm-space-8) * 10); }
+
+@media (max-width: 760px) {
+  .cs-filters, .cs-note { padding-inline: var(--adm-space-4); }
+  .cs-filters .adm-ui-select.cs-filter { flex-basis: calc(50% - var(--adm-space-2)); max-width: none; }
+  .cs-count { margin-left: 0; }
+  .cs-grid.is-4 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .cs-grid.is-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .cs-day-snippet { max-width: none; }
+}

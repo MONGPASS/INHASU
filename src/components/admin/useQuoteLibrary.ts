@@ -9,11 +9,11 @@ export type QuoteLibraryPhase = 'connecting' | 'loading' | 'ready' | 'unset' | '
 interface Options<M> {
     /** 이름 → 항목 자료 키(snippets·spots 등) */
     mapKey: QuoteLibraryKey;
-    /** 지역(카테고리) 목록 키(snippet_cats·spot_cats 등) */
-    catsKey: QuoteLibraryKey;
+    /** 지역(카테고리) 목록 키(snippet_cats·spot_cats 등). 지역 목록이 없는 자료(코스)는 비운다 */
+    catsKey?: QuoteLibraryKey;
     readMap: (data: unknown) => M;
     /** 저장된 지역 목록 + 항목에만 있는 지역 */
-    mergeCats: (map: M, cats: string[]) => string[];
+    mergeCats?: (map: M, cats: string[]) => string[];
     /** 서버에 저장된 자료가 없을 때(옛 도구와 같이 이 브라우저 저장분 → presets.js 기본값) */
     fallback: () => Promise<unknown>;
 }
@@ -25,7 +25,7 @@ const readCatList = (data: unknown): string[] => {
 };
 
 /**
- * 견적 자료실(`/api/data/:key`)의 ‘항목 + 지역 목록’ 한 쌍을 읽고 저장한다(일정 관리·여행지 관리 공통).
+ * 견적 자료실(`/api/data/:key`)의 ‘항목 + 지역 목록’ 한 쌍(또는 항목만)을 읽고 저장한다(일정 관리·여행지 관리·코스 관리 공통).
  * - 관리자 세션으로 견적 관리자 값을 받아(connectQuoteDesk) x-admin-token으로 보낸다.
  * - 저장은 마지막으로 읽은 updatedAt으로 충돌을 확인하고, 다른 기기가 먼저 저장했으면 덮어쓸지 묻는다.
  *   취소하면 저장하지 않고 최신 자료를 다시 불러온다(열려 있는 편집 창은 화면이 그대로 둔다).
@@ -59,13 +59,17 @@ export function useQuoteLibrary<M extends Record<string, unknown>>(options: Opti
                 token.current = value;
             }
             setPhase((current) => (current === 'ready' ? current : 'loading'));
-            const [items, catList] = await Promise.all([readQuoteLibrary(mapKey, token.current), readQuoteLibrary(catsKey, token.current)]);
+            const [items, catList] = await Promise.all([
+                readQuoteLibrary(mapKey, token.current),
+                catsKey ? readQuoteLibrary(catsKey, token.current) : Promise.resolve(null),
+            ]);
             if (request !== loadRequest.current) return;
             const nextMap = readMap(items.data == null ? await fallback().catch(() => ({})) : items.data);
             if (request !== loadRequest.current) return;
-            meta.current = { [mapKey]: items.updatedAt, [catsKey]: catList.updatedAt };
+            meta.current = { [mapKey]: items.updatedAt, ...(catsKey && catList ? { [catsKey]: catList.updatedAt } : {}) };
             setMap(nextMap);
-            setCats(mergeCats(nextMap, readCatList(catList.data)));
+            const savedCats = catList ? readCatList(catList.data) : [];
+            setCats(mergeCats ? mergeCats(nextMap, savedCats) : savedCats);
             setPhase('ready');
         } catch (error) {
             if (request !== loadRequest.current) return;
@@ -107,6 +111,7 @@ export function useQuoteLibrary<M extends Record<string, unknown>>(options: Opti
                 setMap(next.map);
             }
             if (next.cats) {
+                if (!catsKey) throw new Error('지역 목록이 없는 자료입니다.');
                 if (!await writeKey(catsKey, next.cats)) { await load(); return false; }
                 setCats(next.cats);
             }
@@ -119,11 +124,15 @@ export function useQuoteLibrary<M extends Record<string, unknown>>(options: Opti
         }
     };
 
+    // 화면의 effect 의존 값으로 써도 다시 실행되지 않도록 렌더마다 같은 함수를 돌려준다
+    const isSaving = useCallback(() => savingRef.current, []);
+    const currentToken = useCallback(() => token.current, []);
+
     return {
         phase, loadError, map, cats, saving, load, persist,
         /** 저장 중이면 true(창 닫기·중복 저장 막기용, 렌더와 무관하게 바로 읽는다) */
-        isSaving: () => savingRef.current,
+        isSaving,
         /** 견적 관리자 값(사진 올리기 등) */
-        token: () => token.current,
+        token: currentToken,
     };
 }

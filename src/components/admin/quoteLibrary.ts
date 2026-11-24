@@ -70,6 +70,11 @@ export async function loadFallbackSnippets(): Promise<Record<string, unknown>> {
     return localMap('snippets') ?? (await loadPresets()).snippets;
 }
 
+/** 기본 코스(presets.js의 PRESETS.courses). 서버에 저장된 코스가 없을 때 옛 코스 관리가 보여 주던 값(이 브라우저 저장분 우선). */
+export async function loadFallbackCourses(): Promise<Record<string, unknown>> {
+    return localMap('courses') ?? (await loadPresets()).courses;
+}
+
 /** 기본 여행지(presets.js의 PRESETS.spots). 서버에 저장된 여행지가 없을 때 옛 여행지 관리가 보여 주던 값(이 브라우저 저장분 우선). */
 export async function loadFallbackSpots(): Promise<QuoteSpotLibrary> {
     return localMap('spots') ?? (await loadPresets()).spots;
