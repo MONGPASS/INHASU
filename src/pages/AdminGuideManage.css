@@ -1,0 +1,41 @@
+/*
+ * 상품용 가이드·숙소(/admin/guides · /admin/accommodations) — 모양은 우리 관리자 부품이 정하고,
+ * 이 파일은 가이드 카드 격자·사진 칸·편집 창의 두 칸·칩 줄 배치만 둔다. 값은 --adm-* 변수만 쓴다.
+ */
+.ag-muted { color: var(--adm-text-3); font-size: var(--adm-fs-caption); }
+.ag-strong { color: var(--adm-ink); font-weight: var(--adm-fw-bold); }
+.ag-two { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--adm-space-4); }
+.ag-chips { display: flex; flex-wrap: wrap; gap: var(--adm-space-1); }
+.ag-row-actions { display: inline-flex; gap: calc(var(--adm-space-1) / 2); }
+
+/* 가이드 카드 */
+.ag-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(calc(var(--adm-space-8) * 7), 1fr)); gap: var(--adm-space-4); padding: var(--adm-space-5); }
+.ag-card { display: flex; flex-direction: column; align-items: center; gap: var(--adm-space-2); padding: var(--adm-space-5) var(--adm-space-4); text-align: center;
+  border: var(--adm-border-width) solid var(--adm-line); border-radius: var(--adm-radius-md); background: var(--adm-surface); }
+.ag-photo { display: inline-flex; align-items: center; justify-content: center; overflow: hidden; width: calc(var(--adm-space-8) * 2); height: calc(var(--adm-space-8) * 2);
+  border-radius: var(--adm-radius-pill); background: var(--adm-gray-100); color: var(--adm-text-3); font-size: var(--adm-fs-title); }
+.ag-photo.is-large { width: calc(var(--adm-space-8) * 2.5); height: calc(var(--adm-space-8) * 2.5); }
+.ag-photo img, .ag-thumb img, .ag-image img { width: 100%; height: 100%; object-fit: cover; }
+.ag-name { color: var(--adm-ink); font-size: var(--adm-fs-body); font-weight: var(--adm-fw-bold); }
+.ag-phone { color: var(--adm-text-3); font-size: var(--adm-fs-caption); }
+.ag-stats { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); width: 100%; margin: var(--adm-space-2) 0 0; padding-top: var(--adm-space-3); border-top: var(--adm-border-width) solid var(--adm-line-subtle); }
+.ag-stats dt { color: var(--adm-text-3); font-size: var(--adm-fs-caption); }
+.ag-stats dd { margin: 0; color: var(--adm-ink); font-size: var(--adm-fs-small); font-weight: var(--adm-fw-bold); }
+.ag-actions { display: flex; flex-wrap: wrap; justify-content: center; gap: var(--adm-space-1); margin-top: var(--adm-space-2); }
+.ag-upload { display: flex; align-items: center; gap: var(--adm-space-4); }
+.ag-years { max-width: calc(var(--adm-space-8) * 4); }
+
+/* 숙소 */
+.ag-thumb { display: inline-flex; align-items: center; justify-content: center; overflow: hidden; width: calc(var(--adm-space-8) * 1.5); height: calc(var(--adm-space-8) * 1.5);
+  border-radius: var(--adm-radius-sm); background: var(--adm-gray-100); color: var(--adm-text-3); }
+.ag-images { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--adm-space-2); margin-bottom: var(--adm-space-2); }
+.ag-images:empty { display: none; }
+.ag-image { position: relative; overflow: hidden; aspect-ratio: 16 / 9; border-radius: var(--adm-radius-sm); }
+.ag-image-off { position: absolute; top: var(--adm-space-1); right: var(--adm-space-1); }
+.ag-type-groups { display: flex; flex-direction: column; gap: var(--adm-space-3); }
+.ag-type-group { display: flex; flex-direction: column; gap: var(--adm-space-1); }
+
+@media (max-width: 760px) {
+  .ag-two { grid-template-columns: minmax(0, 1fr); }
+  .ag-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--adm-space-3); padding: var(--adm-space-4); }
+}

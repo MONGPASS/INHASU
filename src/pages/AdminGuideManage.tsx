@@ -1,11 +1,19 @@
 import React, { useState, useEffect } from 'react';
-import { AdminLayout } from '../components/admin/AdminLayout';
-import { Icon } from '../components/admin/console/Icon';
+import {
+    AdminBadge, AdminButton, AdminChip, AdminDialog, AdminEmpty, AdminField, AdminFileButton, AdminSearch, AdminSelect, AdminTextArea, AdminTextInput,
+    IconCheck, IconPencil, IconPerson, IconPlus, IconTrash, IconUpload,
+} from '../components/admin/ui';
+import { AdminFilterBar, ListPage } from '../components/admin/ui/AdminPage';
 import { api } from '../lib/api';
 import { uploadImage } from '../utils/upload';
 import { adminConfirm, adminNotify } from '../components/admin/ui/adminFeedback';
 import { adminValidateRequired } from '../components/admin/ui/adminForm';
+import './AdminGuideManage.css';
 
+/**
+ * 상품용 가이드(`/admin/guides`) — 상품 상세의 가이드 소개에 쓰는 가이드 목록(`/api/tour-guides`).
+ * 견적·배정의 가이드 등록 정보(`/admin/quote-desk/resources`)와는 다른 자료다. 우리 관리자 부품(당근 Seed)으로 그린다.
+ */
 interface Guide {
     id: string;
     name: string;
@@ -19,9 +27,18 @@ interface Guide {
     createdAt: string;
 }
 
+type GuideForm = Omit<Guide, 'id' | 'createdAt' | 'status'>;
+const EMPTY_FORM: GuideForm = { name: '', image: '', introduction: '', phone: '', experienceYears: 0, languages: [], specialties: [] };
+
+const AVAILABLE_LANGUAGES = ['한국어', '영어', '몽골어', '중국어', '일본어'];
+const AVAILABLE_SPECIALTIES = ['고비사막', '홉스굴', '테를지', '승마', '문화체험', '사진촬영'];
+const STATUS_OPTIONS = [{ value: 'all', label: '전체 상태' }, { value: 'active', label: '활동중' }, { value: 'pending', label: '승인대기' }];
+
 /** 옛 표기('홉스골')로 저장된 전문 분야도 현재 선택지('홉스굴')로 인식한다. */
 const normalizeSpecialties = (list: unknown): string[] =>
     Array.from(new Set((Array.isArray(list) ? list : []).map((s) => (s === '홉스골' ? '홉스굴' : String(s)))));
+
+const toggle = (list: string[], value: string) => list.includes(value) ? list.filter(v => v !== value) : [...list, value];
 
 export const AdminGuideManage: React.FC = () => {
     const [guides, setGuides] = useState<Guide[]>([]);
@@ -29,16 +46,9 @@ export const AdminGuideManage: React.FC = () => {
     const [editingGuide, setEditingGuide] = useState<Guide | null>(null);
     const [searchTerm, setSearchTerm] = useState('');
     const [statusFilter, setStatusFilter] = useState('all');
-
-    const [formData, setFormData] = useState<Omit<Guide, 'id' | 'createdAt' | 'status'>>({
-        name: '',
-        image: '',
-        introduction: '',
-        phone: '',
-        experienceYears: 0,
-        languages: [],
-        specialties: []
-    });
+    const [formData, setFormData] = useState<GuideForm>(EMPTY_FORM);
+    const [saving, setSaving] = useState(false);
+    const [uploading, setUploading] = useState(false);
 
     const loadGuides = async () => {
         try {
@@ -64,36 +74,24 @@ export const AdminGuideManage: React.FC = () => {
 
     useEffect(() => { loadGuides(); }, []);
 
-    const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-        const file = e.target.files?.[0];
-        if (file) {
-            try {
-                const url = await uploadImage(file, 'guides');
-                setFormData({ ...formData, image: url });
-            } catch (error) {
-                console.error('Guide image upload failed:', error);
-                adminNotify('이미지 업로드 실패');
-            }
+    const handleImageUpload = async (files: File[]) => {
+        const file = files[0];
+        if (!file) return;
+        setUploading(true);
+        try {
+            const url = await uploadImage(file, 'guides');
+            setFormData(f => ({ ...f, image: url }));
+        } catch (error) {
+            console.error('Guide image upload failed:', error);
+            adminNotify('이미지 업로드 실패');
+        } finally {
+            setUploading(false);
         }
-    };
-
-    const handleLanguageToggle = (lang: string) => {
-        const updated = formData.languages.includes(lang)
-            ? formData.languages.filter(l => l !== lang)
-            : [...formData.languages, lang];
-        setFormData({ ...formData, languages: updated });
-    };
-
-    const handleSpecialtyToggle = (specialty: string) => {
-        const updated = formData.specialties.includes(specialty)
-            ? formData.specialties.filter(s => s !== specialty)
-            : [...formData.specialties, specialty];
-        setFormData({ ...formData, specialties: updated });
     };
 
     const handleSubmit = async () => {
         if (!adminValidateRequired() || !formData.name || !formData.phone) return;
-
+        setSaving(true);
         try {
             const payload = {
                 name: formData.name,
@@ -104,19 +102,15 @@ export const AdminGuideManage: React.FC = () => {
                 languages: formData.languages,
                 specialties: formData.specialties,
             };
-
-            if (editingGuide) {
-                await api.tourGuides.update(editingGuide.id, payload);
-            } else {
-                await api.tourGuides.create({ ...payload, status: 'active' });
-            }
-
+            if (editingGuide) await api.tourGuides.update(editingGuide.id, payload);
+            else await api.tourGuides.create({ ...payload, status: 'active' });
             await loadGuides();
-            setIsModalOpen(false);
-            resetForm();
+            closeModal();
         } catch (error: any) {
             console.error('Guide save error:', error);
             adminNotify('저장 실패: ' + error.message);
+        } finally {
+            setSaving(false);
         }
     };
 
@@ -138,19 +132,13 @@ export const AdminGuideManage: React.FC = () => {
         }
     };
 
+    const openNew = () => { setEditingGuide(null); setFormData(EMPTY_FORM); setIsModalOpen(true); };
     const handleEdit = (guide: Guide) => {
         setEditingGuide(guide);
-        setFormData({
-            name: guide.name,
-            image: guide.image,
-            introduction: guide.introduction,
-            phone: guide.phone,
-            experienceYears: guide.experienceYears,
-            languages: guide.languages,
-            specialties: guide.specialties
-        });
+        setFormData({ name: guide.name, image: guide.image, introduction: guide.introduction, phone: guide.phone, experienceYears: guide.experienceYears, languages: guide.languages, specialties: guide.specialties });
         setIsModalOpen(true);
     };
+    const closeModal = () => { setIsModalOpen(false); setEditingGuide(null); setFormData(EMPTY_FORM); };
 
     const handleDelete = async (id: string) => {
         if (await adminConfirm('정말 삭제하시겠습니까?')) {
@@ -163,295 +151,86 @@ export const AdminGuideManage: React.FC = () => {
         }
     };
 
-    const resetForm = () => {
-        setFormData({
-            name: '',
-            image: '',
-            introduction: '',
-            phone: '',
-            experienceYears: 0,
-            languages: [],
-            specialties: []
-        });
-        setEditingGuide(null);
-    };
-
     const filteredGuides = guides.filter(g =>
         g.name.toLowerCase().includes(searchTerm.toLowerCase()) &&
         (statusFilter === 'all' || g.status === statusFilter)
     );
-
     const pendingCount = guides.filter(g => g.status === 'pending').length;
 
-    const availableLanguages = ['한국어', '영어', '몽골어', '중국어', '일본어'];
-    const availableSpecialties = ['고비사막', '홉스굴', '테를지', '승마', '문화체험', '사진촬영'];
-
     return (
-        <AdminLayout
+        <ListPage
             activePage="guides"
             title="가이드 관리"
             description={pendingCount > 0 ? `승인대기 ${pendingCount}건` : undefined}
-            actions={
-                <button
-                    className="btn btn-ink"
-                    onClick={() => {
-                        resetForm();
-                        setIsModalOpen(true);
-                    }}
-                >
-                    <Icon name="person_add" />가이드 등록
-                </button>
-            }
+            actions={<AdminButton variant="primary" leading={<IconPlus />} onClick={openNew}>가이드 등록</AdminButton>}
+            filters={<AdminFilterBar
+                search={<AdminSearch value={searchTerm} onChange={setSearchTerm} placeholder="가이드 이름 검색" aria-label="가이드 검색" />}
+                end={<AdminSelect aria-label="상태" value={statusFilter} onChange={setStatusFilter} options={STATUS_OPTIONS} />}
+            />}
         >
-            <div className="route-anim">
-                {/* Toolbar */}
-                <div className="toolbar">
-                    <label className="tb-search">
-                        <Icon name="search" />
-                        <input
-                            placeholder="가이드 이름, 지역 검색"
-                            value={searchTerm}
-                            onChange={(e) => setSearchTerm(e.target.value)}
-                        />
-                    </label>
-                    <select
-                        className="select"
-                        value={statusFilter}
-                        onChange={(e) => setStatusFilter(e.target.value)}
-                    >
-                        <option value="all">전체 상태</option>
-                        <option value="active">활동중</option>
-                        <option value="pending">승인대기</option>
-                    </select>
-                    <div className="spacer" />
-                    <button
-                        className="btn btn-ink"
-                        onClick={() => {
-                            resetForm();
-                            setIsModalOpen(true);
-                        }}
-                    >
-                        <Icon name="person_add" />가이드 등록
-                    </button>
+            {filteredGuides.length > 0 ? (
+                <div className="ag-grid">
+                    {filteredGuides.map(guide => {
+                        const isActive = guide.status === 'active';
+                        const langLabel = guide.languages.length > 0 ? (guide.languages.length > 1 ? `${guide.languages[0]} 외` : guide.languages[0]) : '–';
+                        return (
+                            <article className="ag-card" key={guide.id}>
+                                <span className="ag-photo">{guide.image ? <img src={guide.image} alt={guide.name} loading="lazy" /> : <IconPerson aria-hidden="true" />}</span>
+                                <b className="ag-name">{guide.name}</b>
+                                <span className="ag-phone">{guide.phone || '연락처 미등록'}</span>
+                                <AdminBadge tone={isActive ? 'success' : 'warn'}>{guide.status === 'pending' ? '승인대기' : '활동중'}</AdminBadge>
+                                <dl className="ag-stats">
+                                    <div><dt>경력</dt><dd>{guide.experienceYears > 0 ? `${guide.experienceYears}년` : '–'}</dd></div>
+                                    <div><dt>전문</dt><dd>{guide.specialties.length}</dd></div>
+                                    <div><dt>언어</dt><dd>{langLabel}</dd></div>
+                                </dl>
+                                <span className="ag-actions">
+                                    {guide.status === 'pending' && <AdminButton size="sm" variant="primary" leading={<IconCheck />} onClick={() => void handleApprove(guide)}>승인</AdminButton>}
+                                    <AdminButton size="sm" variant="secondary" leading={<IconPencil />} onClick={() => handleEdit(guide)}>수정</AdminButton>
+                                    <AdminButton size="sm" variant="weak" leading={<IconTrash />} onClick={() => void handleDelete(guide.id)}>삭제</AdminButton>
+                                </span>
+                            </article>
+                        );
+                    })}
                 </div>
+            ) : <AdminEmpty title="등록된 가이드가 없습니다" />}
 
-                {/* Guide grid */}
-                {filteredGuides.length > 0 ? (
-                    <div className="guide-grid">
-                        {filteredGuides.map(guide => {
-                            const isActive = guide.status === 'active';
-                            const statusLabel = guide.status === 'pending' ? '승인대기' : '활동중';
-                            const langLabel = guide.languages.length > 0
-                                ? (guide.languages.length > 1 ? `${guide.languages[0]} 외` : guide.languages[0])
-                                : '–';
-                            return (
-                                <div className="guide-card" key={guide.id}>
-                                    {guide.image ? (
-                                        <img className="gphoto" src={guide.image} alt={guide.name} loading="lazy" />
-                                    ) : (
-                                        <span
-                                            className="gphoto"
-                                            style={{ display: 'grid', placeItems: 'center', color: 'var(--mrt-gray-400)' }}
-                                        >
-                                            <Icon name="person" style={{ fontSize: 30 }} />
-                                        </span>
-                                    )}
-                                    <div className="cell-strong" style={{ fontSize: 15 }}>{guide.name}</div>
-                                    <div className="cell-muted" style={{ fontSize: 12, marginTop: 2 }}>
-                                        {guide.phone || '연락처 미등록'}
-                                    </div>
-                                    <div style={{ marginTop: 10 }}>
-                                        <span className={`badge ${isActive ? 'b-green' : 'b-amber'}`}>{statusLabel}</span>
-                                    </div>
-                                    <div className="gstat">
-                                        <div>
-                                            <b>{guide.experienceYears > 0 ? `${guide.experienceYears}년` : '–'}</b>
-                                            <span>경력</span>
-                                        </div>
-                                        <div>
-                                            <b>{guide.specialties.length}</b>
-                                            <span>전문</span>
-                                        </div>
-                                        <div>
-                                            <b>{langLabel}</b>
-                                            <span>언어</span>
-                                        </div>
-                                    </div>
-                                    <div className="row" style={{ gap: 6, marginTop: 14, justifyContent: 'center' }}>
-                                        {guide.status === 'pending' && (
-                                            <button className="btn btn-sm btn-blue" onClick={() => handleApprove(guide)}>
-                                                <Icon name="check" />승인
-                                            </button>
-                                        )}
-                                        <button className="btn btn-sm btn-ghost" onClick={() => handleEdit(guide)}>
-                                            <Icon name="edit" />수정
-                                        </button>
-                                        <button className="btn btn-sm btn-danger" onClick={() => handleDelete(guide.id)}>
-                                            <Icon name="delete" />삭제
-                                        </button>
-                                    </div>
-                                </div>
-                            );
-                        })}
-                    </div>
-                ) : (
-                    <div className="empty">
-                        <Icon name="person_off" />
-                        <p>등록된 가이드가 없습니다.</p>
-                    </div>
-                )}
-            </div>
-
-            {/* Add / Edit modal */}
-            {isModalOpen && (
-                <div className="picker-scrim" onClick={() => { setIsModalOpen(false); resetForm(); }}>
-                    <div
-                        className="picker"
-                        style={{ width: 560, maxHeight: '90vh' }}
-                        onClick={(e) => e.stopPropagation()}
-                    >
-                        <div className="card-head">
-                            <h2>{editingGuide ? '가이드 수정' : '가이드 등록'}</h2>
-                            <div className="spacer" />
-                            <button
-                                className="act-btn"
-                                title="닫기"
-                                onClick={() => { setIsModalOpen(false); resetForm(); }}
-                            >
-                                <Icon name="close" />
-                            </button>
-                        </div>
-
-                        <div className="card-pad" style={{ overflowY: 'auto' }}>
-                            {/* Image upload */}
-                            <div className="field">
-                                <label>프로필 사진</label>
-                                <div className="row" style={{ gap: 16 }}>
-                                    {formData.image ? (
-                                        <img
-                                            src={formData.image}
-                                            alt="Preview"
-                                            style={{ width: 80, height: 80, borderRadius: '50%', objectFit: 'cover', flex: 'none' }}
-                                        />
-                                    ) : (
-                                        <span
-                                            style={{ width: 80, height: 80, borderRadius: '50%', background: 'var(--mrt-gray-100)', color: 'var(--mrt-gray-400)', display: 'grid', placeItems: 'center', flex: 'none' }}
-                                        >
-                                            <Icon name="person" style={{ fontSize: 36 }} />
-                                        </span>
-                                    )}
-                                    <input
-                                        type="file"
-                                        accept="image/*"
-                                        onChange={handleImageUpload}
-                                        style={{ fontSize: 13, color: 'var(--text-tertiary)' }}
-                                    />
-                                </div>
-                            </div>
-
-                            {/* Name + Phone */}
-                            <div className="field-row">
-                                <div className="field" style={{ marginBottom: 0 }}>
-                                    <label className="adm-req">이름</label>
-                                    <input
-                                        type="text"
-                                        className="inp"
-                                        value={formData.name}
-                                        onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                                        placeholder="가이드 이름"
-                                    />
-                                </div>
-                                <div className="field" style={{ marginBottom: 0 }}>
-                                    <label className="adm-req">연락처</label>
-                                    <input
-                                        type="tel"
-                                        className="inp"
-                                        value={formData.phone}
-                                        onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                                        placeholder="010-0000-0000"
-                                    />
-                                </div>
-                            </div>
-
-                            {/* Introduction */}
-                            <div className="field" style={{ marginTop: 18 }}>
-                                <label>소개글</label>
-                                <textarea
-                                    className="inp"
-                                    value={formData.introduction}
-                                    onChange={(e) => setFormData({ ...formData, introduction: e.target.value })}
-                                    rows={4}
-                                    placeholder="가이드 경력, 전문 분야 등을 입력하세요"
-                                />
-                            </div>
-
-                            {/* Experience years */}
-                            <div className="field">
-                                <label>경력 연수</label>
-                                <div className="row" style={{ gap: 10 }}>
-                                    <input
-                                        type="number"
-                                        min="0"
-                                        max="50"
-                                        className="inp"
-                                        style={{ width: 120, textAlign: 'center' }}
-                                        value={formData.experienceYears}
-                                        onChange={(e) => setFormData({ ...formData, experienceYears: Number(e.target.value) })}
-                                    />
-                                    <span className="cell-muted" style={{ fontSize: 13 }}>년</span>
-                                </div>
-                            </div>
-
-                            {/* Languages */}
-                            <div className="field">
-                                <label>언어</label>
-                                <div className="chip-row">
-                                    {availableLanguages.map(lang => (
-                                        <button
-                                            key={lang}
-                                            type="button"
-                                            onClick={() => handleLanguageToggle(lang)}
-                                            className={`chip ${formData.languages.includes(lang) ? 'active' : ''}`}
-                                        >
-                                            {lang}
-                                        </button>
-                                    ))}
-                                </div>
-                            </div>
-
-                            {/* Specialties */}
-                            <div className="field" style={{ marginBottom: 0 }}>
-                                <label>전문 분야</label>
-                                <div className="chip-row">
-                                    {availableSpecialties.map(specialty => (
-                                        <button
-                                            key={specialty}
-                                            type="button"
-                                            onClick={() => handleSpecialtyToggle(specialty)}
-                                            className={`chip ${formData.specialties.includes(specialty) ? 'active' : ''}`}
-                                        >
-                                            {specialty}
-                                        </button>
-                                    ))}
-                                </div>
-                            </div>
-                        </div>
-
-                        <div className="drawer-foot">
-                            <div className="spacer" style={{ flex: 1 }} />
-                            <button
-                                className="btn btn-ghost"
-                                onClick={() => { setIsModalOpen(false); resetForm(); }}
-                            >
-                                취소
-                            </button>
-                            <button className="btn btn-ink" onClick={handleSubmit}>
-                                {editingGuide ? '수정' : '등록'}
-                            </button>
-                        </div>
-                    </div>
+            <AdminDialog open={isModalOpen} onClose={closeModal} title={editingGuide ? '가이드 수정' : '가이드 등록'}
+                onSubmit={() => void handleSubmit()} submitLabel={editingGuide ? '수정' : '등록'} submitting={saving} submitDisabled={uploading}>
+                <AdminField label="프로필 사진">
+                    <span className="ag-upload">
+                        <span className="ag-photo is-large">{formData.image ? <img src={formData.image} alt="미리보기" /> : <IconPerson aria-hidden="true" />}</span>
+                        <AdminFileButton size="sm" accept="image/*" leading={<IconUpload />} loading={uploading} onFiles={(files) => void handleImageUpload(files)}>
+                            {formData.image ? '사진 바꾸기' : '사진 올리기'}
+                        </AdminFileButton>
+                    </span>
+                </AdminField>
+                <div className="ag-two">
+                    <AdminField label="이름" required>
+                        {(id) => <AdminTextInput id={id} value={formData.name} onChange={(e) => setFormData({ ...formData, name: e.target.value })} placeholder="가이드 이름" />}
+                    </AdminField>
+                    <AdminField label="연락처" required>
+                        {(id) => <AdminTextInput id={id} type="tel" value={formData.phone} onChange={(e) => setFormData({ ...formData, phone: e.target.value })} placeholder="010-0000-0000" />}
+                    </AdminField>
                 </div>
-            )}
-        </AdminLayout>
+                <AdminField label="소개글">
+                    {(id) => <AdminTextArea id={id} minRows={4} value={formData.introduction} onChange={(e) => setFormData({ ...formData, introduction: e.target.value })} placeholder="가이드 경력, 전문 분야 등을 입력하세요" />}
+                </AdminField>
+                <AdminField label="경력 연수">
+                    {(id) => <AdminTextInput id={id} className="ag-years" type="number" min={0} max={50} trailing="년" value={String(formData.experienceYears)}
+                        onChange={(e) => setFormData({ ...formData, experienceYears: Number(e.target.value) })} />}
+                </AdminField>
+                <AdminField label="언어">
+                    <span className="ag-chips" role="group" aria-label="언어">
+                        {AVAILABLE_LANGUAGES.map(lang => <AdminChip key={lang} active={formData.languages.includes(lang)} onClick={() => setFormData({ ...formData, languages: toggle(formData.languages, lang) })}>{lang}</AdminChip>)}
+                    </span>
+                </AdminField>
+                <AdminField label="전문 분야">
+                    <span className="ag-chips" role="group" aria-label="전문 분야">
+                        {AVAILABLE_SPECIALTIES.map(s => <AdminChip key={s} active={formData.specialties.includes(s)} onClick={() => setFormData({ ...formData, specialties: toggle(formData.specialties, s) })}>{s}</AdminChip>)}
+                    </span>
+                </AdminField>
+            </AdminDialog>
+        </ListPage>
     );
 };
