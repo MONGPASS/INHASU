@@ -11,7 +11,7 @@
 | 메뉴 | 화면 | 주소 | 파일 | 유형 | 화면 안의 팝업 |
 |---|---|---|---|---|---|
 | (없음) | 관리자 로그인·처음 설정 | `/admin/login` | `pages/AdminLogin.tsx` | 입력형 | 없음 |
-| 대시보드 | 대시보드 | `/admin` | `pages/AdminDashboard.tsx` | 대시보드형 | 기간 선택 팝오버 |
+| 대시보드 | 대시보드(2026-11-24 Claude Design ‘관리자 대시보드 개선 시안’ 시안 A — 인사말 머리 · 지표 4칸 · 오늘 처리할 일 업무함 · 출발 준비 현황 · 유입 경로 · 예약 구성 · 최근 예약 · 견적 문의) | `/admin` | `pages/AdminDashboard.tsx`(유입 경로 `dashboard/TrafficSources.tsx`, 계산 `utils/adminDashboard.ts`) | 대시보드형 | 없음 |
 | 예약 관리 | 통합 예약 목록 | `/admin/reservations` | `pages/AdminReservationManage.tsx` + `components/admin/v7/ReservationListV7.tsx`(+ `reservation-list.css`) | 목록형(기준 화면, 2026-11-23 강력 개선안: 줄을 누르면 예약 상세) | 머리 Excel 범위 메뉴(`AdminMenu`), 수동 예약 추가 창(`AdminDialog`), 일괄 작업 막대와 그 고르기 창(`V7Menu`: 진행상황·입금 확인·안내 알림), 예약 상세 서랍, 견적 상세 서랍, 예약 전환 선택 창 |
 | 예약 관리 | 투어 캘린더 | `/admin/calendar` | `pages/AdminCalendar.tsx` | 대시보드형 | 날짜 옆 패널(화면 안에 고정) |
 | (목록에서 진입) | 고객 예약 관리 — 상품 예약 | `/admin/customer-workspace/product/:id` | `AdminReservationManage.tsx`(`customerPage`) + `v7/ReservationDetailV7.tsx` | 상세형 | 가이드·숙소·차량 고르기, 저장 전 미리보기(전체 화면), 일정표·계약 편집기(전체 화면), 휴대폰용 메뉴 |

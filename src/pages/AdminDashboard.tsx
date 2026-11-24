@@ -2,18 +2,17 @@ import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { AdminLayout } from '../components/admin/AdminLayout';
 import {
-    AdminBadge, AdminButton, AdminIconButton, AdminMenu, AdminTabs, AdminTextButton, IconCheck, IconChevronDown, IconChevronRight, IconClock, IconDocumentText, IconRefresh,
+    AdminButton, AdminIconButton, AdminTabs, AdminTextButton, IconChat, IconCheck, IconChevronRight, IconCircleExclamationFill, IconClock, IconCoins, IconCoupon,
+    IconDocumentText, IconFlight, IconHome, IconPencil, IconRefresh,
 } from '../components/admin/ui';
 import { useAdminWorkspace } from '../components/admin/AdminWorkspaceContext';
-import { DashboardIcon, type DashboardIconName } from '../components/admin/dashboard/DashboardIcon';
-import { IconBlock, IconCalendar, IconCoins, IconDocument, IconListCategory, IconWrite } from '../components/admin/ui/AdminIcons';
-import { TrafficSources } from '../components/admin/dashboard/TrafficSources';
-import { useEntrance, type DashboardTipFor, type DashboardTipLine } from '../components/admin/dashboard/dashboardMotion';
-import type { AdminWorkspaceData } from '../types/adminWorkspace';
+import { TrafficSources, trafficPeriodLabel, trafficReady, useAdminTraffic, type AdminTraffic } from '../components/admin/dashboard/TrafficSources';
+import { trafficKpis } from '../utils/adminTraffic';
+import type { AdminWorkBooking, AdminWorkspaceData } from '../types/adminWorkspace';
 import {
-    REVENUE_PERIODS, dashboardAddDays, dashboardAnswerRate, dashboardAvailability, dashboardBookingGroup, dashboardBookingSplit, dashboardDailyNew,
-    dashboardDate, dashboardNumber, dashboardPeriod, dashboardPhone, dashboardRevenue, dashboardSeoulDate, dashboardShortRange,
-    dashboardTaskCards, dashboardTimestamp, dashboardWon, type DashboardTaskKind, type RevenuePeriod,
+    dashboardAvailability, dashboardBookingGroup, dashboardBookingSplit, dashboardDate, dashboardDayDiff, dashboardDepartures,
+    dashboardMonthRange, dashboardNumber, dashboardPeriod, dashboardSeoulDate, dashboardWon, dashboardWorkQueue, type DashboardDeparture,
+    type DashboardQueueKind, type DashboardQueueRow,
 } from '../utils/adminDashboard';
 import styles from './AdminDashboard.module.css';
 
@@ -24,136 +23,155 @@ interface DashboardState {
     refresh: () => Promise<void>;
 }
 
-interface Tip { x: number; y: number; title: string; lines: DashboardTipLine[] }
-
-/**
- * 공통 DashboardIcon 표에 없는 이 화면 전용 이름 → 당근 Seed 아이콘(2026-11-24, 예전 Lucide 선 대신).
- * `lc-` 키는 scripts/check-icon-subset.mjs가 Material 이름으로 읽지 않게 하려는 것이다.
- */
-const PAGE_ICONS = {
-    'lc-wallet': IconCoins,
-    'lc-calendar-plus': IconCalendar,
-    'lc-file-plus': IconDocument,
-    'lc-list': IconListCategory,
-    'lc-user-x': IconBlock,
-    'lc-file-pen-line': IconWrite,
-} as const;
-type PageIconName = keyof typeof PAGE_ICONS;
-type AnyIcon = DashboardIconName | PageIconName;
-
-function PageIcon({ name, size = 16 }: { name: AnyIcon; size?: number }) {
-    if (!(name in PAGE_ICONS)) return <DashboardIcon name={name as DashboardIconName} size={size} />;
-    const Glyph = PAGE_ICONS[name as PageIconName];
-    return <Glyph width={size} height={size} focusable="false" className={styles.pageIcon} />;
-}
-
-const TASK_TABS: { kind: DashboardTaskKind; label: string; icon: AnyIcon; chip: AnyIcon; action: string }[] = [
-    { kind: 'assignment', label: '가이드·차량 배정', icon: 'lc-users', chip: 'lc-user-x', action: '배정하기' },
-    { kind: 'deposit_report', label: '입금 신고 확인', icon: 'lc-banknote', chip: 'lc-banknote', action: '입금 확인' },
-    { kind: 'contract', label: '계약 확인', icon: 'lc-file-check', chip: 'lc-file-pen-line', action: '계약 확인' },
+type QueueTab = 'all' | DashboardQueueKind;
+const QUEUE_TABS: { value: QueueTab; label: string }[] = [
+    { value: 'all', label: '전체' }, { value: 'contract', label: '계약 확인' }, { value: 'quote', label: '견적 답변' },
+    { value: 'deposit_report', label: '입금 확인' }, { value: 'assignment', label: '배정' },
 ];
-const BOOKING_FILTERS = ['전체', '확정 대기', '예약 확정'] as const;
-type BookingFilter = typeof BOOKING_FILTERS[number];
 
 const metricLabel = (label: string, value: number | null | undefined, unit: string) =>
     `${label}: ${dashboardNumber(value)}${value != null ? unit : ''}`;
 
-/**
- * Teams leaving within the next 7 days (today included, Korean calendar date from the server),
- * the same window the server uses for pre-departure assignment checks. Cancelled bookings are left out.
- * Null when part of the booking data could not be loaded, so it is never shown as 0.
- */
-export function dashboardDepartingSoon(data: AdminWorkspaceData | null): number | null {
-    if (!data || !/^\d{4}-\d{2}-\d{2}$/.test(data.today) || !dashboardAvailability(data).bookings) return null;
-    const until = dashboardAddDays(data.today, 7);
-    return data.bookings.filter(b => dashboardBookingGroup(b.status) !== 'other'
-        && /^\d{4}-\d{2}-\d{2}$/.test(b.startDate) && b.startDate >= data.today && b.startDate <= until).length;
+const seoulClock = new Intl.DateTimeFormat('ko-KR', { timeZone: 'Asia/Seoul', hour: '2-digit', minute: '2-digit', hour12: false });
+const seoulHour = new Intl.DateTimeFormat('en-US', { timeZone: 'Asia/Seoul', hour: 'numeric', hourCycle: 'h23' });
+/** 인사말은 한국시간 지금 시각으로 고른다. */
+function greeting(now = new Date()): string {
+    const hour = Number(seoulHour.format(now));
+    return hour < 5 ? '늦은 밤이에요' : hour < 12 ? '좋은 아침이에요' : hour < 18 ? '좋은 오후예요' : '좋은 저녁이에요';
 }
-
-/** "2026.12.31 – 01.03": the task table's travel period, with the full start year like the design. */
-function taskRange(start: string, end: string): string {
-    const short = dashboardShortRange(start, end).range;
-    const from = start.slice(2).replaceAll('-', '.');
-    return /^\d{4}-\d{2}-\d{2}$/.test(start) && short.startsWith(from) ? `${start.slice(0, 2)}${short}` : short;
+/** "15:49": the time the workspace data was read, Korean time. */
+function readTime(value: string): string {
+    const time = /^\d{4}-\d{2}-\d{2}[ T]\d{2}:\d{2}(:\d{2})?$/.test(value) ? `${value.replace(' ', 'T')}Z` : value;
+    const date = new Date(time);
+    return Number.isFinite(date.getTime()) ? seoulClock.format(date) : '';
 }
+const shortDay = (key: string) => /^\d{4}-\d{2}-\d{2}$/.test(key) ? key.slice(2).replaceAll('-', '.') : '일정 미정';
 
 function SectionState({ loading, complete, error, empty }: { loading: boolean; complete: boolean; error: string; empty: string }) {
     return <div className={styles.empty} role={loading ? 'status' : undefined}>
-        <span className={styles.emptyIcon}><DashboardIcon name={loading ? 'lc-refresh-cw' : complete ? 'lc-check' : 'lc-circle-alert'} size={20} /></span>
         <p>{loading ? '자료를 불러오고 있습니다.' : complete ? empty : error || '일부 자료를 불러오지 못했습니다. 다시 조회해 주세요.'}</p>
     </div>;
 }
 
-function SectionTitle({ title, note }: { title: string; note?: string }) {
-    return <div className={styles.sectionTitle}>
-        <h2>{title}</h2>
-        {note && <span className={styles.sectionNote}>{note}</span>}
+function CardHead({ id, title, count, countLabel, to, note }: { id: string; title: string; count?: string; countLabel?: string; to?: string; note?: string }) {
+    return <div className={styles.cardHead}>
+        <div className={styles.cardHeadText}>
+            <h2 id={id} className={styles.cardTitle}>{title}{count != null && <span className={styles.titleCount} aria-label={countLabel}> {count}</span>}</h2>
+            {note && <span className={styles.cardNote}>{note}</span>}
+        </div>
+        {to && <AdminTextButton to={to} size="sm">전체 보기</AdminTextButton>}
     </div>;
 }
 
+type KpiTone = 'danger' | 'accent' | 'blue' | 'purple';
+interface KpiCard { label: string; value: string; aria: string; icon: React.ReactNode; tone: KpiTone; to: string; pill?: string; sub: string }
+const TONE_CLASS: Record<KpiTone, string> = { danger: styles.toneDanger, accent: styles.toneAccent, blue: styles.toneBlue, purple: styles.tonePurple };
+
+function Kpi({ card }: { card: KpiCard }) {
+    const body = <>
+        <span className={styles.kpiTop}>
+            <span className={`${styles.kpiIcon} ${TONE_CLASS[card.tone]}`} aria-hidden="true">{card.icon}</span>
+            <IconChevronRight className={styles.kpiChevron} aria-hidden="true" />
+        </span>
+        <span className={styles.kpiText}>
+            <span className={styles.kpiLabel}>{card.label}</span>
+            <span className={styles.kpiValue} aria-label={card.aria}>{card.value}</span>
+        </span>
+        <span className={styles.kpiFoot}>
+            {card.pill && <span className={`${styles.pill} ${TONE_CLASS[card.tone]}`}>{card.pill}</span>}
+            <span className={styles.kpiSub}>{card.sub}</span>
+        </span>
+    </>;
+    return card.to.startsWith('#')
+        ? <a href={card.to} className={styles.kpi}>{body}</a>
+        : <Link to={card.to} className={styles.kpi}>{body}</Link>;
+}
+
+/** 문의 전환율 카드: 유입 경로 카드에서 고른 GA4 기간. 연결 전·조회 실패는 0이 아니라 그 사실을 적는다. */
+function conversionCard(traffic: AdminTraffic): KpiCard {
+    const data = trafficReady(traffic.load);
+    const range = trafficPeriodLabel(traffic.period);
+    const kpis = data ? trafficKpis(data) : [];
+    const cvr = kpis.find(kpi => kpi.label === '문의 전환율');
+    const leads = kpis.find(kpi => kpi.label === '견적 문의');
+    const value = cvr?.value == null ? '—' : `${cvr.format(cvr.value)}%`;
+    return {
+        label: '문의 전환율', value, aria: `문의 전환율 ${range}: ${value}`, icon: <IconChat />, tone: 'purple', to: '#dashboard-traffic',
+        pill: cvr?.delta || undefined,
+        sub: data ? `${range} · 문의 ${leads?.value == null ? '—' : dashboardNumber(leads.value)}건`
+            : traffic.load.status === 'loading' ? '유입 통계를 불러오는 중' : traffic.load.status === 'error' ? '유입 통계 조회 실패' : 'GA4 연결 필요',
+    };
+}
+
+const DEPARTURE_ICON: Record<DashboardDeparture['next'], React.ReactNode> = {
+    deposit: <IconCoins />, contract: <IconPencil />, confirm: <IconCheck />, depart: <IconFlight />,
+};
+const DEPARTURE_TONES = [styles.toneAccent, styles.toneBlue, styles.tonePurple];
+
+function bookingLook(b: AdminWorkBooking): { icon: React.ReactNode; tone: string } {
+    const group = dashboardBookingGroup(b.status);
+    if (group === 'confirmed') return { icon: <IconCheck />, tone: styles.toneAccent };
+    if (group === 'waiting' && b.depositPaid && !b.contractSigned) return { icon: <IconPencil />, tone: styles.toneBlue };
+    return { icon: <IconClock />, tone: styles.toneGray };
+}
+
 /** Shared workspace data is presented as received; server counts are never recalculated here. */
-export function AdminDashboardBody({ data, loading, error, refresh }: DashboardState) {
+const NO_TRAFFIC: AdminTraffic = { load: { status: 'loading' }, retry: () => {}, period: '30d', setPeriod: () => {} };
+export function AdminDashboardBody({ data, loading, error, refresh, traffic = NO_TRAFFIC }: DashboardState & { traffic?: AdminTraffic }) {
     const availability = dashboardAvailability(data);
     const initialLoading = loading && !data;
     const metrics = data?.metrics;
-    const [period, setPeriod] = useState<RevenuePeriod>('전체 기간');
-    const [taskTab, setTaskTab] = useState<DashboardTaskKind | null>(null);
-    const [bookingFilter, setBookingFilter] = useState<BookingFilter>('전체');
-    const [tip, setTip] = useState<Tip | null>(null);
-    const t = useEntrance(`${data ? 'ready' : 'waiting'}:${period}`);
-    const tipFor: DashboardTipFor = (title, lines) => ({
-        onMouseMove: (event: React.MouseEvent) => setTip({ x: event.clientX, y: event.clientY, title, lines }),
-        onMouseLeave: () => setTip(null),
-    });
+    const [tab, setTab] = useState<QueueTab>('all');
 
-    const revenue = dashboardRevenue(data, period);
+    const queue = dashboardWorkQueue(data);
+    const count = (value: QueueTab) => value === 'all' ? queue.length : queue.filter(row => row.kind === value).length;
+    const rows = tab === 'all' ? queue : queue.filter(row => row.kind === tab);
+    const overdue = queue.filter(row => row.overdue).length;
+
     const split = dashboardBookingSplit(data);
-    const splitBars = [
-        { name: '예약 확정', label: `예약 확정 ${split.confirmed.count}`, ...split.confirmed, className: styles.splitConfirmed },
-        { name: '확정 대기', label: `확정 대기 ${split.waiting.count}`, ...split.waiting, className: styles.splitWaiting },
-    ].filter(bar => bar.count > 0);
-    const days = availability.bookings ? dashboardDailyNew(data) : [];
-    const dayMax = Math.max(1, ...days.map(day => day.count));
-    const answer = dashboardAnswerRate(data);
-    const answerPct = answer && answer.received ? answer.answered / answer.received * 100 : null;
+    const pct = (n: number) => split.total ? n / split.total * 100 : 0;
+    const other = split.total - split.confirmed.count - split.waiting.count;
+    const waitingNext = (data?.bookings || [])
+        .filter(b => dashboardBookingGroup(b.status) === 'waiting' && !!data && /^\d{4}-\d{2}-\d{2}$/.test(b.startDate) && b.startDate >= data.today)
+        .sort((a, b) => a.startDate.localeCompare(b.startDate))[0];
+    const waitingDays = waitingNext && data ? dashboardDayDiff(data.today, waitingNext.startDate) : null;
 
+    const departures = dashboardDepartures(data);
+    const recent = (data?.bookings || []).slice(0, 5);
     const pendingInquiries = data?.inquiries.filter(inquiry => inquiry.pending) || [];
-    const taskCards = dashboardTaskCards(data);
-    const activeTab = taskTab ?? TASK_TABS.find(tab => taskCards[tab.kind].length)?.kind ?? 'assignment';
-    const taskTeams = new Set(TASK_TABS.flatMap(tab => taskCards[tab.kind].map(card => card.task.key.slice(tab.kind.length + 1)))).size;
-    const anyTask = taskTeams > 0;
-    const departing = dashboardDepartingSoon(data);
 
-    const bookings = data?.bookings || [];
-    const bookingCounts: Record<BookingFilter, number> = {
-        '전체': bookings.length,
-        '확정 대기': bookings.filter(b => dashboardBookingGroup(b.status) === 'waiting').length,
-        '예약 확정': bookings.filter(b => dashboardBookingGroup(b.status) === 'confirmed').length,
-    };
-    const bookingRows = bookings.filter(b => bookingFilter === '전체'
-        || dashboardBookingGroup(b.status) === (bookingFilter === '확정 대기' ? 'waiting' : 'confirmed')).slice(0, 6);
-
-    const unit = (value: number | null | undefined, suffix: string) => value == null ? '—' : `${dashboardNumber(value)}${suffix}`;
-    const tiles: { label: string; value: string; aria: string; icon: AnyIcon; to: string; hot?: boolean }[] = [
-        { label: '처리 필요 팀', value: data ? `${taskTeams}팀` : '—', aria: data ? `처리 필요 팀: ${taskTeams}팀${availability.tasks ? '' : ' (일부 자료)'}` : '처리 필요 팀: —',
-            icon: 'lc-clipboard-check', to: '#dashboard-tasks', hot: true },
-        { label: '확정 매출', value: dashboardWon(metrics?.confirmedSales), aria: metricLabel('확정 매출 전체 기간', metrics?.confirmedSales, '원'), icon: 'lc-wallet', to: '/admin/reservations' },
-        { label: '오늘 신규 예약', value: unit(metrics?.todayReservations, '건'), aria: metricLabel('오늘 신규 예약', metrics?.todayReservations, '건'), icon: 'lc-calendar-plus', to: '/admin/reservations' },
-        { label: '답변 대기 견적', value: unit(metrics?.newQuotes, '건'), aria: metricLabel('답변 대기 견적', metrics?.newQuotes, '건'), icon: 'lc-message-circle', to: '/admin/quote-desk/inbox' },
-        { label: '7일 내 출발', value: unit(departing, '팀'), aria: metricLabel('7일 내 출발', departing, '팀'), icon: 'lc-plane-takeoff', to: '/admin/calendar' },
+    const kpis: KpiCard[] = [
+        { label: '처리할 일', value: data ? `${queue.length}건` : '—', aria: data ? `처리할 일: ${queue.length}건${availability.tasks ? '' : ' (일부 자료)'}` : '처리할 일: —',
+            icon: <IconCircleExclamationFill />, tone: 'danger', to: '#dashboard-tasks', pill: overdue ? `출발일 지남 ${overdue}` : undefined,
+            sub: !data ? '업무를 확인하고 있습니다' : overdue ? '먼저 정리해 주세요' : queue.length ? '급한 순서로 정리했어요' : '처리할 일이 없어요' },
+        { label: '확정 매출', value: dashboardWon(metrics?.confirmedSales), aria: metricLabel('확정 매출', metrics?.confirmedSales, '원'),
+            icon: <IconCoupon />, tone: 'accent', to: '/admin/reservations', pill: data ? `확정 ${dashboardNumber(split.confirmed.count)}건` : undefined, sub: '전체 기간' },
+        { label: '서명·확정 대기', value: data ? `${dashboardNumber(split.waiting.count)}건` : '—', aria: data ? `서명·확정 대기: ${split.waiting.count}건` : '서명·확정 대기: —',
+            icon: <IconClock />, tone: 'blue', to: '/admin/reservations',
+            pill: waitingNext && waitingDays != null ? `${waitingDays === 0 ? 'D-DAY' : `D-${waitingDays}`} ${waitingNext.customerName || '이름 미정'}` : undefined,
+            sub: waitingNext ? `${dashboardMonthRange(waitingNext.startDate, waitingNext.startDate, data?.today || '')} 출발` : data ? '다가오는 대기 예약 없음' : '예약을 확인하고 있습니다' },
+        conversionCard(traffic),
     ];
 
+    const readAt = data ? readTime(data.generatedAt) : '';
     return <div className={`route-anim ${styles.dashboard}`}>
-        {/* Montage 시안: 날짜·최근 조회 + 새로고침 아이콘 버튼, 오른쪽에 주요(채움) 버튼 하나 */}
-        <div className={styles.head}>
-            <p className={styles.today}>
-                {data ? `${dashboardDate(data.today)} · 한국시간 기준` : '오늘의 운영 현황'}
-                <span>{data ? `최근 조회 ${dashboardTimestamp(data.generatedAt)}` : initialLoading ? '상품·견적 자료를 확인하고 있습니다.' : '운영 자료를 다시 조회해 주세요.'}</span>
-                <AdminIconButton size="lg" label={loading ? '조회 중…' : '새로고침'}
-                    disabled={loading} onClick={() => { void refresh(); }}><IconRefresh /></AdminIconButton>
-            </p>
-            <AdminButton to="/admin/quote-desk/builder" variant="primary" leading={<IconDocumentText />}>견적서 작성</AdminButton>
-        </div>
+        <header className={styles.head}>
+            <div className={styles.hello}>
+                <span className={styles.helloIcon} aria-hidden="true"><IconHome /></span>
+                <div className={styles.helloText}>
+                    <h1>{greeting()}, 관리자님</h1>
+                    <p>오늘 처리할 일과 예약 흐름을 한눈에 확인하세요.</p>
+                </div>
+            </div>
+            <div className={styles.headTools}>
+                <span className={styles.clock} title={data ? '최근 조회 시각(한국시간)' : undefined}>
+                    <IconClock aria-hidden="true" />
+                    {data ? `${dashboardDate(data.today)}${readAt ? ` · ${readAt}` : ''}` : initialLoading ? '자료를 확인하고 있습니다' : '운영 자료를 다시 조회해 주세요'}
+                </span>
+                <AdminIconButton variant="outlined" label={loading ? '조회 중…' : '새로고침'} disabled={loading} onClick={() => { void refresh(); }}><IconRefresh /></AdminIconButton>
+                <AdminButton to="/admin/quote-desk/builder" variant="primary" leading={<IconDocumentText />}>견적서 작성</AdminButton>
+            </div>
+        </header>
 
         {error && <div className={styles.warning} role="alert">{error}{data && <span>마지막으로 불러온 자료를 표시하고 있습니다.</span>}</div>}
         {!!data?.warnings.length && <div className={styles.warning} role="status">
@@ -162,265 +180,158 @@ export function AdminDashboardBody({ data, loading, error, refresh }: DashboardS
             <span>확인되지 않은 집계는 —로 표시합니다.</span>
         </div>}
 
-        <div className={styles.tiles} role="group" aria-label="오늘의 핵심 지표" aria-busy={initialLoading}>
-            {tiles.map(tile => {
-                const body = <>
-                    <span className={styles.tileIcon}><PageIcon name={tile.icon} size={22} /></span>
-                    <span className={styles.tileLabel}>{tile.label}</span>
-                    <span className={styles.tileValue} aria-label={tile.aria}>{tile.value}</span>
-                </>;
-                const className = `${styles.tile} ${tile.hot ? styles.tileHot : ''}`;
-                return tile.to.startsWith('#')
-                    ? <a key={tile.label} href={tile.to} className={className}>{body}</a>
-                    : <Link key={tile.label} to={tile.to} className={className}>{body}</Link>;
-            })}
-        </div>
+        <section className={styles.kpis} aria-label="핵심 지표" aria-busy={initialLoading}>
+            {kpis.map(card => <Kpi key={card.label} card={card} />)}
+        </section>
 
-        <SectionTitle title="지금 처리할 일" />
-        <div className={styles.row420}>
-            <section className={`${styles.card} ${styles.tasks}`} id="dashboard-tasks">
-                <div className={styles.taskHead}>
-                    <span className={styles.cardTitle}>오늘 확인할 업무</span>
-                    <span className={styles.taskSub}>{data
-                        ? <>처리가 필요한 팀 <b>{taskTeams}</b>팀 · 출발일 가까운 순{!availability.tasks && ' · 일부 자료'}</>
-                        : initialLoading ? '업무를 확인하고 있습니다.' : '업무 자료를 다시 조회해 주세요.'}</span>
-                </div>
-                <div className={styles.tabs}>
-                    <AdminTabs size="sm" label="업무 종류" value={activeTab} onChange={value => setTaskTab(value as DashboardTaskKind)}
-                        items={TASK_TABS.map(tab => ({ value: tab.kind, label: tab.label, count: taskCards[tab.kind].length, id: `dashboard-tab-${tab.kind}`, controls: `dashboard-panel-${tab.kind}` }))} />
-                </div>
-                {!availability.tasks && data && <p className={`${styles.partial} ${styles.partialInset}`}>확인된 업무만 표시합니다. 불러오지 못한 자료에 추가 업무가 있을 수 있습니다.</p>}
-                {!data || !anyTask ? <div className={styles.taskPanel}>
-                    <SectionState loading={initialLoading} complete={availability.tasks} error={error}
-                        empty={data?.tasks.length ? '배정·입금·계약 확인이 필요한 팀이 없습니다.' : '확인이 필요한 업무가 없습니다.'} />
-                </div> : TASK_TABS.map(tab => <div key={tab.kind} className={styles.taskPanel} role="tabpanel" id={`dashboard-panel-${tab.kind}`}
-                    aria-labelledby={`dashboard-tab-${tab.kind}`} hidden={activeTab !== tab.kind}>
-                    {!!taskCards[tab.kind].length && <div className={`${styles.taskGrid} ${styles.taskGridHead}`} aria-hidden="true">
-                        <span>출발</span><span>고객 · 상품</span><span>여행 기간</span><span>미처리 항목</span><span />
-                    </div>}
-                    {taskCards[tab.kind].map(card => {
-                        const soon = card.dday !== null && card.dday <= 90;
-                        return <div key={card.task.key} className={`${styles.taskGrid} ${styles.taskRow}`}>
-                            <span className={styles.ddayCell}>
-                                <AdminBadge size="md" outlined={!soon}>
-                                    {card.dday === null ? '미정' : card.dday === 0 ? 'D-DAY' : card.dday < 0 ? `D+${-card.dday}` : `D-${card.dday}`}
-                                </AdminBadge>
-                            </span>
-                            <span className={styles.stack2}>
-                                <span className={styles.rowName}>{card.name}</span>
-                                {card.product && <span className={styles.rowSub}>{card.product}</span>}
-                            </span>
-                            <span className={styles.taskRange}>{taskRange(card.start, card.end)}</span>
-                            <span className={styles.chips}>
-                                <AdminBadge size="md" outlined icon={<PageIcon name={tab.chip} size={14} />}>{card.task.title}</AdminBadge>
-                            </span>
-                            <span className={styles.taskActionCell}>
-                                <AdminButton to={card.task.href} size="sm">{tab.action}</AdminButton>
-                            </span>
-                        </div>;
-                    })}
-                    {!taskCards[tab.kind].length && <div className={styles.empty}>
-                        <span className={styles.emptyIcon}><DashboardIcon name="lc-check" size={20} /></span><p>이 탭에는 확인할 업무가 없어요.</p>
-                    </div>}
-                </div>)}
-                <div className={styles.taskFoot}>
-                    <DashboardIcon name="lc-message-circle" size={16} color="var(--adm-text-2)" />
-                    <span className={styles.taskFootText}>{!availability.inquiries
-                        ? data ? '문의 자료를 확인할 수 없어 답변 대기 건수를 표시하지 않습니다.' : '문의 자료를 확인하고 있습니다.'
-                        : pendingInquiries.length
-                            ? <>답변을 기다리는 견적 문의 <b>{pendingInquiries.length}</b>건</>
-                            : '답변을 기다리는 문의가 없습니다.'}</span>
-                    {availability.inquiries && !!pendingInquiries.length
-                        && <AdminTextButton to="/admin/quote-desk/inbox" size="sm">견적 문의 보기</AdminTextButton>}
-                </div>
-            </section>
+        <div className={styles.body}>
+            <div className={styles.mainCol}>
+                <section className={`${styles.card} ${styles.queue}`} id="dashboard-tasks" aria-labelledby="dashboard-tasks-title">
+                    <div className={styles.queueHead}>
+                        <CardHead id="dashboard-tasks-title" title="오늘 처리할 일" note="급한 순서로 정렬했어요"
+                            to={tab === 'quote' ? '/admin/quote-desk/inbox' : '/admin/reservations'} />
+                    </div>
+                    <div className={styles.queueTabs}>
+                        <AdminTabs size="sm" label="업무 종류" value={tab} onChange={value => setTab(value)}
+                            items={QUEUE_TABS.map(item => ({ value: item.value, label: item.label, count: data ? count(item.value) : '—', id: `dashboard-tab-${item.value}`,
+                                controls: 'dashboard-queue', tone: queue.some(row => row.overdue && (item.value === 'all' ? false : row.kind === item.value)) ? 'danger' as const : undefined }))} />
+                    </div>
+                    {!availability.tasks && data && <p className={styles.partial}>확인된 업무만 표시합니다. 불러오지 못한 자료에 추가 업무가 있을 수 있습니다.</p>}
+                    <div className={styles.queueTable} role="tabpanel" id="dashboard-queue" aria-labelledby={`dashboard-tab-${tab}`}>
+                        {!!rows.length && <div className={`${styles.queueGrid} ${styles.queueGridHead}`} aria-hidden="true">
+                            <span>출발</span><span>고객 · 상품</span><span>여행 기간</span><span>구분</span><span>상태</span><span />
+                        </div>}
+                        <ul className={styles.queueList}>
+                            {rows.map(row => <QueueRow key={row.key} row={row} />)}
+                        </ul>
+                        {!rows.length && <SectionState loading={initialLoading} complete={availability.tasks} error={error}
+                            empty={tab === 'all' ? '확인이 필요한 업무가 없습니다.' : '이 탭에는 확인할 업무가 없어요.'} />}
+                    </div>
+                </section>
 
-            <section className={`${styles.card} ${styles.quotesCard}`}>
-                <div className={styles.quotesHead}>
-                    <span className={styles.cardTitle}>최근 견적 요청</span>
-                    {data && <span className={styles.countBadge}>{availability.inquiries ? pendingInquiries.length : '일부'}</span>}
-                    <span className={styles.headNote}>답변 대기 · 접수일 최신순</span>
+                <div className={styles.pair}>
+                    <section className={styles.card} aria-labelledby="dashboard-departures-title">
+                        <CardHead id="dashboard-departures-title" title="출발 준비 현황" to="/admin/calendar" />
+                        {!availability.bookings && data && <p className={styles.partialFlat}>불러온 예약만 표시합니다.</p>}
+                        <ul className={styles.plainList}>
+                            {departures.map((d, index) => <li key={d.key}>
+                                <Link to={d.href} className={styles.departure}>
+                                    <span className={`${styles.squareIcon} ${DEPARTURE_TONES[index % DEPARTURE_TONES.length]}`} aria-hidden="true">{DEPARTURE_ICON[d.next]}</span>
+                                    <span className={styles.departureBody}>
+                                        <span className={styles.departureTop}><b>{d.name}</b><span>{d.date}</span></span>
+                                        <span className={styles.departureStep}>{d.step}</span>
+                                        <span className={styles.progressRow}>
+                                            {/* 진행 막대 길이만 실행 중 계산값이라 인라인 */}
+                                            <span className={styles.progress} role="img" aria-label={`준비 ${d.percent}%`}>
+                                                <span className={DEPARTURE_TONES[index % DEPARTURE_TONES.length]} style={{ width: `${d.percent}%` }} />
+                                            </span>
+                                            <span className={styles.progressPct} aria-hidden="true">{d.percent}%</span>
+                                        </span>
+                                    </span>
+                                </Link>
+                            </li>)}
+                        </ul>
+                        {!departures.length && <SectionState loading={initialLoading} complete={availability.bookings} error={error} empty="다가오는 출발이 없습니다." />}
+                    </section>
+                    <TrafficSources {...traffic} />
                 </div>
-                {!availability.inquiries && data && <p className={`${styles.partial} ${styles.partialInset}`}>불러온 문의만 표시합니다. 일부 문의 자료는 확인이 필요합니다.</p>}
-                <div className={styles.quotesList}>
-                    {pendingInquiries.slice(0, 20).map(inquiry => {
-                        const received = dashboardSeoulDate(inquiry.createdAt);
-                        return <Link key={inquiry.key} to={inquiry.href} className={styles.quoteRow}>
-                            <div className={styles.quoteTop}>
-                                <span className={styles.quoteName}>{inquiry.name || '이름 미정'}</span>
-                                {inquiry.phone && <span className={styles.quotePhone}>{dashboardPhone(inquiry.phone)}</span>}
-                                <AdminBadge tone="info" className={styles.quoteStatus}>{inquiry.statusLabel || inquiry.status}</AdminBadge>
-                            </div>
-                            <div className={styles.quoteDest}><b>{inquiry.destination || '희망 여행 미정'}</b></div>
-                            <div className={styles.quoteMeta}>
-                                <span><DashboardIcon name="lc-file-text" size={13} />{inquiry.type === 'quote_request' ? '맞춤 견적' : '기존 견적'}</span>
-                                {inquiry.status === 'reservation_requested' && <span className={styles.quoteAlert}>예약 확정 필요</span>}
-                                <span className={styles.quoteDate}>{received ? received.replaceAll('-', '.') : '접수일 미정'}</span>
-                            </div>
-                        </Link>;
-                    })}
+            </div>
+
+            <div className={styles.sideCol}>
+                <section className={styles.card} aria-labelledby="dashboard-mix-title">
+                    <CardHead id="dashboard-mix-title" title="예약 구성" />
+                    {/* 도넛 비율만 실행 중 계산값이라 인라인(CSS 변수) */}
+                    <div className={styles.donut} role="img"
+                        aria-label={`${availability.bookings ? '전체' : '불러온'} 예약 ${split.total}건 중 확정 ${split.confirmed.count}건, 확정 대기 ${split.waiting.count}건`}
+                        style={{ '--dash-confirmed': `${pct(split.confirmed.count)}%`, '--dash-waiting': `${pct(split.confirmed.count + split.waiting.count)}%` } as React.CSSProperties}>
+                        <span className={styles.donutHole}>
+                            <b>{data ? `${dashboardNumber(split.total)}건` : '—'}</b>
+                            <span>{availability.bookings || !data ? '전체 예약' : '불러온 예약'}</span>
+                        </span>
+                    </div>
+                    <ul className={styles.legend}>
+                        <li><span className={`${styles.legendDot} ${styles.fillAccent}`} aria-hidden="true" /><span>예약 확정</span><span className={styles.legendPct}>{Math.round(pct(split.confirmed.count))}%</span><b>{split.confirmed.count}건</b></li>
+                        <li><span className={`${styles.legendDot} ${styles.fillBlue}`} aria-hidden="true" /><span>확정 대기</span><span className={styles.legendPct}>{Math.round(pct(split.waiting.count))}%</span><b>{split.waiting.count}건</b></li>
+                        {other > 0 && <li><span className={`${styles.legendDot} ${styles.fillGray}`} aria-hidden="true" /><span>그 밖</span><span className={styles.legendPct}>{Math.round(pct(other))}%</span><b>{other}건</b></li>}
+                    </ul>
+                </section>
+
+                <section className={styles.card} aria-labelledby="dashboard-recent-title">
+                    <CardHead id="dashboard-recent-title" title="최근 예약" to="/admin/reservations" />
+                    {!availability.bookings && data && <p className={styles.partialFlat}>불러온 예약만 표시합니다. 일부 예약 자료는 확인이 필요합니다.</p>}
+                    <ul className={styles.plainList}>
+                        {recent.map(b => {
+                            const look = bookingLook(b);
+                            return <li key={b.key}>
+                                <Link to={b.href} className={styles.personRow}>
+                                    <span className={`${styles.roundIcon} ${look.tone}`} aria-hidden="true">{look.icon}</span>
+                                    <span className={styles.personBody}>
+                                        <b>{b.customerName || '이름 미정'}</b>
+                                        <span>{b.type === 'quote_booking' ? '견적 예약' : '상품 예약'} · {b.productName || '상품 미정'} · <span aria-hidden="true">{shortDay(b.startDate)}</span>
+                                            <span className={styles.srOnly}>여행 기간 {dashboardPeriod(b.startDate, b.endDate)}</span></span>
+                                    </span>
+                                    <span className={styles.personEnd}>
+                                        <b aria-label={`팀 금액 ${dashboardNumber(b.totalAmount)}${b.totalAmount != null ? '원' : ''}`}>{dashboardWon(b.totalAmount)}</b>
+                                        <span className={look.tone}>{b.statusLabel || b.status || '상태 미정'}</span>
+                                    </span>
+                                </Link>
+                            </li>;
+                        })}
+                    </ul>
+                    {!recent.length && <SectionState loading={initialLoading} complete={availability.bookings} error={error} empty="접수된 예약이 없습니다." />}
+                </section>
+
+                <section className={styles.card} aria-labelledby="dashboard-inquiries-title">
+                    <CardHead id="dashboard-inquiries-title" title="견적 문의" to="/admin/quote-desk/inbox"
+                        count={data ? dashboardNumber(metrics?.newQuotes) : undefined} countLabel={metricLabel('답변 대기 견적', metrics?.newQuotes, '건')} />
+                    {!availability.inquiries && data && <p className={styles.partialFlat}>불러온 문의만 표시합니다. 일부 문의 자료는 확인이 필요합니다.</p>}
+                    <ul className={styles.plainList}>
+                        {pendingInquiries.slice(0, 4).map(inquiry => {
+                            const received = dashboardSeoulDate(inquiry.createdAt);
+                            const name = inquiry.name || '이름 미정';
+                            return <li key={inquiry.key}>
+                                <Link to={inquiry.href} className={styles.personRow}>
+                                    <span className={`${styles.roundIcon} ${styles.avatar}`} aria-hidden="true">{name.slice(0, 1)}</span>
+                                    <span className={styles.personBody}>
+                                        <b>{name}</b>
+                                        <span>{inquiry.destination || '희망 여행 미정'} · {inquiry.type === 'quote_request' ? '맞춤 견적' : '기존 견적'} · {received ? received.slice(5).replace('-', '.') : '접수일 미정'}</span>
+                                    </span>
+                                    <span className={`${styles.pill} ${inquiry.statusLabel === '신규' || inquiry.status === 'new' ? styles.toneBlue : styles.toneAccent}`}>{inquiry.statusLabel || inquiry.status || '답변 대기'}</span>
+                                </Link>
+                            </li>;
+                        })}
+                    </ul>
                     {!pendingInquiries.length && <SectionState loading={initialLoading} complete={availability.inquiries} error={error} empty="답변을 기다리는 문의가 없습니다." />}
-                </div>
-                <div className={styles.moreRow}><AdminTextButton to="/admin/quote-desk/inbox" size="sm" trailing={<IconChevronRight />}>견적 문의 전체 보기</AdminTextButton></div>
-            </section>
+                </section>
+            </div>
         </div>
-
-
-        <SectionTitle title="예약 · 유입" note="최근 통합 예약과 사이트 유입 경로" />
-        <div className={styles.row520}>
-            <section className={`${styles.card} ${styles.recent}`}>
-                <div className={styles.recentHead}>
-                    <span className={styles.cardTitle}>최근 통합 예약</span>
-                    <AdminBadge size="md">상품 · 견적</AdminBadge>
-                    <AdminTextButton to="/admin/reservations" size="sm" className={styles.headLink} trailing={<IconChevronRight />}>전체 보기</AdminTextButton>
-                </div>
-                <div className={styles.pills}>
-                    <AdminTabs size="sm" label="예약 상태" value={bookingFilter} onChange={value => setBookingFilter(value as BookingFilter)}
-                        items={BOOKING_FILTERS.map(filter => ({ value: filter, label: filter, count: data ? bookingCounts[filter] : '—' }))} />
-                </div>
-                {!availability.bookings && data && <p className={styles.partial}>불러온 예약만 표시합니다. 일부 예약 자료는 확인이 필요합니다.</p>}
-                <div className={styles.table}>
-                    <div className={styles.tableHead} aria-hidden="true">
-                        <span>고객 · 상품</span><span>여행 기간</span><span className={styles.right}>팀 금액</span><span className={styles.right}>상태</span>
-                    </div>
-                    {bookingRows.map(booking => {
-                        const group = dashboardBookingGroup(booking.status);
-                        const range = dashboardShortRange(booking.startDate, booking.endDate);
-                        const name = booking.customerName || '이름 미정';
-                        return <Link key={booking.key} to={booking.href} className={styles.tableRow}>
-                            <span className={styles.who}>
-                                <span className={`${styles.avatar} ${group === 'waiting' ? styles.avatarWait : ''}`} aria-hidden="true">{name.replace(/\s*\(.*\)/, '').slice(0, 1)}</span>
-                                <span className={styles.stack2}>
-                                    <span className={styles.rowName}>{name}</span>
-                                    <span className={styles.rowSub}>{booking.type === 'quote_booking' ? '견적 예약' : '상품 예약'} · {booking.productName || '상품 미정'} · <span className={styles.mono}>#{booking.reservationNumber || booking.id.slice(0, 8)}</span></span>
-                                </span>
-                            </span>
-                            <span className={`${styles.stack2} ${styles.rangeCell}`} aria-label={`여행 기간 ${dashboardPeriod(booking.startDate, booking.endDate)}`}>
-                                <span className={styles.rowRange}>{range.range}</span>
-                                {range.nights && <span className={styles.rowSub}>{range.nights}</span>}
-                            </span>
-                            <span className={styles.rowAmount} aria-label={`팀 금액 ${dashboardNumber(booking.totalAmount)}${booking.totalAmount != null ? '원' : ''}`}>{dashboardWon(booking.totalAmount)}</span>
-                            <span className={styles.statusCell}>
-                                {/* 상태는 색과 함께 아이콘·문구로(확정 ✓, 대기 시계) */}
-                                <AdminBadge size="md" tone={group === 'confirmed' ? 'info' : 'neutral'}
-                                    icon={group === 'confirmed' ? <IconCheck /> : group === 'waiting' ? <IconClock /> : undefined}>
-                                    {booking.statusLabel || booking.status || '상태 미정'}
-                                </AdminBadge>
-                            </span>
-                        </Link>;
-                    })}
-                    {!bookingRows.length && <SectionState loading={initialLoading} complete={availability.bookings} error={error}
-                        empty={bookingFilter === '전체' ? '접수된 예약이 없습니다.' : '이 상태의 예약이 없습니다.'} />}
-                </div>
-            </section>
-            <TrafficSources tipFor={tipFor} />
-        </div>
-
-        <SectionTitle title="매출 · 예약 현황" note="확정 매출과 오늘 들어온 예약" />
-        <div className={styles.row420} role="group" aria-label="통합 운영 집계" aria-busy={initialLoading}>
-            <section className={styles.revenue}>
-                <div className={styles.revHead}>
-                    <span className={styles.revTitle}>확정 매출</span>
-                    <span className={styles.info} role="img" aria-label="확정·결제·완료 예약의 팀 전체 금액. 기간은 예약 접수일(한국시간) 기준"
-                        title="확정·결제·완료 예약의 팀 전체 금액 · 기간은 예약 접수일(한국시간) 기준">
-                        <DashboardIcon name="lc-info" size={14} color="var(--adm-text-3)" />
-                    </span>
-                    {/* 기간 고르기: 우리 고르기 메뉴(바깥 누르기·Esc로 닫힘). 고른 기간은 이름 앞 체크로 보인다 */}
-                    <div className={styles.revPicker}>
-                        <AdminMenu label="매출 기간"
-                            trigger={<AdminButton variant="weak" size="sm" trailing={<IconChevronDown aria-hidden="true" />}>{period}</AdminButton>}
-                            items={REVENUE_PERIODS.map(option => ({
-                                key: option,
-                                label: <span className={`${styles.revOption} ${period === option ? styles.revOptionOn : ''}`}>
-                                    <IconCheck aria-hidden="true" className={styles.revCheck} />{option}{period === option && <span className={styles.srOnly}> (선택됨)</span>}
-                                </span>,
-                                description: dashboardRevenue(data, option).range || undefined,
-                                onSelect: () => setPeriod(option),
-                            }))} />
-                    </div>
-                </div>
-                <div className={styles.revValueRow}>
-                    <span className={styles.revValue} aria-label={metricLabel('확정 매출', revenue.value, '원')}>
-                        {revenue.value == null ? '—' : dashboardWon(revenue.value * t)}
-                    </span>
-                    <span className={styles.revCaption}>{revenue.value == null && data ? '자료 확인 필요' : '확정·결제·완료 팀 금액'}</span>
-                </div>
-                <div className={styles.revSplitHead}>
-                    <span>예약 구분</span>
-                    <span>{availability.bookings ? '전체 예약' : '불러온 예약'} <b>{dashboardNumber(data ? split.total : null)}</b>건</span>
-                </div>
-                <div className={styles.split}>
-                    {/* 막대 길이·나타나기만 실행 중 계산값이라 인라인 */}
-                    {splitBars.length ? splitBars.map(bar => <span key={bar.name} className={`${styles.splitSeg} ${bar.className} ${t > 0.3 ? styles.splitSegOpen : ''}`}
-                        {...tipFor(bar.name, [{ k: '예약', v: `${bar.count}건` }, { k: '비중', v: `${(bar.count / split.total * 100).toFixed(1)}%` },
-                            { k: '팀 금액', v: dashboardWon(bar.amount) }])}
-                        style={{ flex: `0 1 ${bar.count / split.total * 100 * t}%`, opacity: Math.min(1, t * 2) }}>
-                        {bar.label}
-                    </span>) : <span className={styles.splitEmpty}>{initialLoading ? '집계 중…' : data ? '예약 없음' : '자료 확인 필요'}</span>}
-                </div>
-            </section>
-
-            <section className={styles.pair}>
-                <div className={styles.pairCell}>
-                    <div className={styles.pairBody}>
-                        <span className={styles.pairLabel}>오늘 신규 예약</span>
-                        <div className={styles.pairRow}>
-                            <div>
-                                <span className={styles.bigNum} aria-label={metricLabel('오늘 신규 예약', metrics?.todayReservations, '건')}>{dashboardNumber(metrics?.todayReservations)}</span>
-                                {metrics?.todayReservations != null && <span className={styles.bigUnit}>건</span>}
-                                <div className={styles.pairNote}>{metrics?.todayReservations == null ? initialLoading ? '집계 중…' : '자료 확인 필요' : '상품 + 견적 예약'}</div>
-                            </div>
-                            {!!days.length && <div className={styles.miniBars} aria-label="최근 7일 신규 예약">
-                                {days.map(day => <span key={day.key} className={styles.miniBar}
-                                    {...tipFor(`${day.label}${day.today ? ' · 오늘' : ''}`, [{ k: '신규 예약', v: `${day.count}건` }])}>
-                                    <span className={`${styles.miniFill} ${day.today ? styles.miniFillToday : day.count && day.count === dayMax ? styles.miniFillMax : ''}`}
-                                        style={{ height: `${Math.max(day.count ? 0 : 6, day.count / dayMax * 100 * t)}%` }} />
-                                </span>)}
-                            </div>}
-                        </div>
-                    </div>
-                    <Link className={styles.moreLink} to="/admin/reservations">자세히 보기<DashboardIcon name="lc-arrow-right" size={16} /></Link>
-                </div>
-                <div className={styles.pairCell}>
-                    <div className={styles.pairBody}>
-                        <span className={styles.pairLabel}>답변 대기 견적</span>
-                        <div className={styles.pairRow}>
-                            <div>
-                                <span className={styles.bigNum} aria-label={metricLabel('답변 대기 견적', metrics?.newQuotes, '건')}>{dashboardNumber(metrics?.newQuotes)}</span>
-                                {metrics?.newQuotes != null && <span className={styles.bigUnit}>건</span>}
-                                <div className={styles.pairNote}>입금 대기 <b aria-label={metricLabel('입금 대기', metrics?.unpaidReservations, '건')}>{dashboardNumber(metrics?.unpaidReservations)}</b>{metrics?.unpaidReservations != null && '건'}</div>
-                            </div>
-                            {answer && <div className={styles.ring}
-                                {...tipFor(`${answer.month}월 견적 답변 처리율`, [{ k: '접수', v: `${answer.received}건` }, { k: '답변 완료', v: `${answer.answered}건` },
-                                    { k: '처리율', v: answerPct == null ? '—' : `${answerPct.toFixed(1)}%` }])}>
-                                <svg width="64" height="64" viewBox="0 0 64 64" aria-hidden="true">
-                                    <defs><linearGradient id="dashboard-mint-ring" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stopColor="var(--adm-accent)" /><stop offset="1" stopColor="var(--adm-accent)" /></linearGradient></defs>
-                                    <circle cx="32" cy="32" r="26" fill="none" className={styles.ringTrack} strokeWidth="7" />
-                                    <circle cx="32" cy="32" r="26" fill="none" stroke="url(#dashboard-mint-ring)" strokeWidth="7" strokeLinecap="round" pathLength={100}
-                                        transform="rotate(-90 32 32)" style={{ strokeDasharray: `${(answerPct ?? 0) * t} 100` }} />
-                                </svg>
-                                <span className={styles.ringPct}>{answerPct == null ? '—' : `${Math.round(answerPct * t)}%`}</span>
-                            </div>}
-                        </div>
-                    </div>
-                    <Link className={styles.moreLink} to="/admin/quote-desk/inbox">자세히 보기<DashboardIcon name="lc-arrow-right" size={16} /></Link>
-                </div>
-            </section>
-        </div>
-
-        {tip && <div className={styles.tip} aria-hidden="true" style={{
-            left: tip.x > (typeof window !== 'undefined' ? window.innerWidth : 1600) - 220 ? tip.x - 190 : tip.x + 14, top: tip.y + 16,
-        }}>
-            <div className={styles.tipTitle}>{tip.title}</div>
-            {tip.lines.map(line => <div key={line.k} className={styles.tipLine}><span>{line.k}</span><span>{line.v}</span></div>)}
-        </div>}
     </div>;
+}
+
+const DUE_CLASS = { danger: styles.toneDanger, accent: styles.toneAccent, neutral: styles.toneGray } as const;
+const STATUS_CLASS = { danger: styles.statusDanger, info: styles.statusInfo, neutral: styles.statusNeutral } as const;
+
+function QueueRow({ row }: { row: DashboardQueueRow }) {
+    return <li className={`${styles.queueGrid} ${styles.queueRow}`}>
+        <span className={styles.dueCell}><span className={`${styles.due} ${DUE_CLASS[row.dueTone]}`}>{row.due}</span></span>
+        <span className={styles.who}>
+            <b>{row.name}</b>
+            {row.product && <span>{row.product}</span>}
+        </span>
+        <span className={styles.period} aria-label={`여행 기간 ${row.periodLabel}`}>{row.period}</span>
+        <span className={styles.category}>{row.category}</span>
+        <span className={`${styles.status} ${STATUS_CLASS[row.statusTone]}`}><span className={styles.statusDot} aria-hidden="true" />{row.status}</span>
+        <span className={styles.actionCell}>
+            <AdminButton to={row.href} size="sm" variant={row.overdue ? 'weak' : 'secondary'} fullWidth>{row.action}</AdminButton>
+        </span>
+    </li>;
 }
 
 export const AdminDashboard: React.FC = () => {
     const workspace = useAdminWorkspace();
-    // 디자인 v3: 통합 예약 목록은 본문 바로가기에 있으므로 상단 작업 버튼을 두지 않는다.
-    return <AdminLayout activePage="dashboard" title="대시보드" description="상품과 견적 예약의 오늘 업무를 함께 확인합니다.">
-        <AdminDashboardBody {...workspace} />
+    const traffic = useAdminTraffic();
+    // 시안 A: 화면 제목 대신 본문 머리(인사말·조회 시각·견적서 작성)를 그린다. 위치 표시와 휴대폰 아래 메뉴는 그대로.
+    return <AdminLayout activePage="dashboard" title="대시보드" description="상품과 견적 예약의 오늘 업무를 함께 확인합니다." headingInBody>
+        <AdminDashboardBody {...workspace} traffic={traffic} />
     </AdminLayout>;
 };

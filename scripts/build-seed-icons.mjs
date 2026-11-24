@@ -26,6 +26,7 @@ export const MAP = {
     IconCall: 'call_regular',
     IconCamera: 'camera_regular',
     IconCar: 'car_regular',                // 차량
+    IconChat: 'chatting_regular',          // 대화·견적 문의(대시보드 문의 전환율)
     IconCheck: 'check_regular',
     IconCheckThick: 'check_regular',
     IconChevronDown: 'expand_more_regular',
@@ -40,6 +41,7 @@ export const MAP = {
     IconClose: 'close_regular',
     IconCoins: 'money_won_regular',
     IconCopy: 'copy_regular',
+    IconCoupon: 'coupon_regular',          // 매출(대시보드 확정 매출)
     IconDocument: 'article_regular',        // 문서 템플릿(file은 클립 모양이라 쓰지 않음)
     IconDocumentText: 'search_doc_regular', // 견적 문의
     IconDownload: 'download_regular',

@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { TrafficError, buildTrafficData, classifyTrafficSource, readTraffic, resetTrafficTokenCache, signServiceAccountJwt, trafficReportRequest } from '../functions/lib/ga4Traffic.ts';
+import { TrafficError, buildTrafficData, classifyTrafficSource, isTrafficPeriod, readTraffic, resetTrafficTokenCache, signServiceAccountJwt, trafficReportRequest } from '../functions/lib/ga4Traffic.ts';
 import { trafficKpis, trafficRows } from '../src/utils/adminTraffic.ts';
 import { analyticsPageLocation, isTrackedPath } from '../src/utils/analytics.ts';
 
@@ -124,4 +124,14 @@ test('GA에는 공개 화면만 보내고 주소의 토큰은 지우며 utm만 �
     assert.equal(analyticsPageLocation('https://mongolia-milkyway.com', '/products/abc', '?t=SECRET&utm_source=kakao&adminId=7&utm_campaign=fall'),
         'https://mongolia-milkyway.com/products/abc?utm_source=kakao&utm_campaign=fall');
     assert.equal(analyticsPageLocation('https://mongolia-milkyway.com', '/', '?token=x'), 'https://mongolia-milkyway.com/');
+});
+
+test('유입 경로 기간은 오늘·어제·7일·30일·90일이고 각각 바로 앞의 같은 길이 기간과 비교한다', () => {
+    const ranges = period => trafficReportRequest(period).requests[0].dateRanges;
+    assert.deepEqual(ranges('today'), [{ startDate: 'today', endDate: 'today' }, { startDate: 'yesterday', endDate: 'yesterday' }]);
+    assert.deepEqual(ranges('yesterday'), [{ startDate: 'yesterday', endDate: 'yesterday' }, { startDate: '2daysAgo', endDate: '2daysAgo' }]);
+    assert.deepEqual(ranges('7d'), [{ startDate: '6daysAgo', endDate: 'today' }, { startDate: '13daysAgo', endDate: '7daysAgo' }]);
+    assert.deepEqual(ranges('90d'), [{ startDate: '89daysAgo', endDate: 'today' }, { startDate: '179daysAgo', endDate: '90daysAgo' }]);
+    for (const period of ['today', 'yesterday', '7d', '30d', '90d']) assert.ok(isTrafficPeriod(period), period);
+    for (const period of ['1d', '365d', '', 'constructor']) assert.ok(!isTrafficPeriod(period), period);
 });

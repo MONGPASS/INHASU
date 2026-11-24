@@ -318,7 +318,7 @@
   "rawButton": 0,
   "rawField": 0,
   "rawTable": 0,
-  "inlineStyle": 3,
+  "inlineStyle": 1,
   "px": 0,
   "hex": 0,
   "nativeDialog": 0
@@ -588,7 +588,7 @@
   "rawButton": 0,
   "rawField": 0,
   "rawTable": 0,
-  "inlineStyle": 4,
+  "inlineStyle": 2,
   "px": 0,
   "hex": 0,
   "nativeDialog": 0

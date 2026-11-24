@@ -34,6 +34,8 @@ interface AdminLayoutProps {
     flush?: boolean;
     /** 편집 화면처럼 제목·설명·작업 버튼을 숨긴다. 상단 바(검색·알림)·사이드바·좁은 화면 메뉴 토글은 유지한다. */
     hideHeading?: boolean;
+    /** 제목·설명 줄만 숨기고 화면이 본문에서 직접 머리를 그린다(대시보드 인사말). 위치 표시·휴대폰 아래 메뉴는 그대로. */
+    headingInBody?: boolean;
     children: React.ReactNode;
 }
 
@@ -47,7 +49,7 @@ const EYEBROW: Record<string, string> = {
 };
 
 export const AdminLayout: React.FC<AdminLayoutProps> = ({
-    activePage, title, description, eyebrow, showSearch = true, actions, titleAside, flush = false, hideHeading = false, children,
+    activePage, title, description, eyebrow, showSearch = true, actions, titleAside, flush = false, hideHeading = false, headingInBody = false, children,
 }) => {
     const eb = eyebrow === null ? null : eyebrow || EYEBROW[activePage] || '관리자 콘솔';
     const location = useLocation();
@@ -129,7 +131,7 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({
                     <div className="header-in">
                         <AdminIconButton ref={menuButtonRef} className="admin-customer-menu-toggle" label="관리자 메뉴 열기" aria-expanded={menuShown} aria-controls={menuId} onClick={() => { setMobileActionsOpen(false); setMobileMenuOpen(true); }}><IconMenu /></AdminIconButton>
                         {!hideHeading && <nav className="admin-breadcrumb" aria-label="현재 위치"><span>{adminSectionLabel(activePage)}</span><span aria-hidden="true">/</span><b aria-current="page">{title}</b></nav>}
-                        {!hideHeading && <div className={`admin-layout-heading${titleAside ? ' has-aside' : ''}`}>
+                        {!hideHeading && !headingInBody && <div className={`admin-layout-heading${titleAside ? ' has-aside' : ''}`}>
                             {eb && <div className="eyebrow"><span className="dot" />{eb}</div>}
                             <div className="page-title">{title}</div>
                             {titleAside && <div className="admin-layout-title-aside">{titleAside}</div>}

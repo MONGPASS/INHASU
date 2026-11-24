@@ -1,61 +1,46 @@
-/* 유입 경로 — 대시보드 카드(Seed 은하수 판). 값은 --adm-* 토큰, 채널 바탕은 Seed 색 단계. */
-.card { display: flex; flex-direction: column; gap: var(--adm-space-4); min-width: 0; padding: var(--adm-pad-card); container-type: inline-size;
-  border: var(--adm-border-width) solid var(--adm-line); border-radius: var(--adm-radius-md); background: var(--adm-surface); }
-.head { display: flex; align-items: center; gap: var(--adm-space-2); flex-wrap: wrap; }
-.title { font-size: var(--adm-fs-lead); font-weight: var(--adm-fw-bold); letter-spacing: -0.03em; color: var(--adm-ink); }
-.info { display: flex; cursor: help; }
-.seg { margin-left: auto; }
+/* 유입 경로 카드 (대시보드 시안 A). 값은 --adm-* 토큰만 쓴다. 카드 모양은 AdminDashboard.module.css의 .card와 같다. */
+.card { display: flex; flex-direction: column; gap: var(--adm-space-4); min-width: 0; padding: var(--adm-space-5) var(--adm-space-6);
+  border: var(--adm-border-width) solid var(--adm-line-subtle); border-radius: var(--adm-radius-lg); background: var(--adm-surface); }
+.head { display: flex; align-items: center; gap: var(--adm-space-1-5); }
+.title { margin: 0; font-size: var(--adm-fs-lead); font-weight: var(--adm-fw-bold); color: var(--adm-ink); }
+.info { display: flex; color: var(--adm-text-3); font-size: var(--adm-fs-body); cursor: help; }
+.period { margin-left: auto; }
+/* 메뉴 항목: 고른 기간만 앞에 체크, 나머지는 같은 자리를 비워 글자가 줄 맞게 */
+.option { display: inline-flex; align-items: center; gap: var(--adm-space-2); }
+.optionCheck { flex: none; visibility: hidden; color: var(--adm-accent-strong); }
+.optionOn { font-weight: var(--adm-fw-bold); color: var(--adm-accent-strong); }
+.optionOn .optionCheck { visibility: visible; }
+.srOnly { position: absolute; width: 1px; height: 1px; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
 
-.kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: var(--adm-space-3); padding-bottom: var(--adm-space-4); border-bottom: var(--adm-border-width) solid var(--adm-line-subtle); }
-.kpi { display: flex; flex-direction: column; gap: var(--adm-space-1); }
-.kpiLabel { font-size: var(--adm-fs-small); color: var(--adm-text-2); }
-.kpiRow { display: flex; align-items: baseline; gap: var(--adm-space-1); flex-wrap: wrap; }
-.kpiValue { font-size: var(--adm-fs-title); font-weight: var(--adm-fw-bold); letter-spacing: -0.02em; color: var(--adm-ink); font-variant-numeric: tabular-nums; }
-.kpiUnit { font-size: var(--adm-fs-small); color: var(--adm-text-2); }
-.kpiDelta { font-size: var(--adm-fs-caption); font-weight: var(--adm-fw-semibold); color: var(--adm-accent-strong); }
-.kpiDown { color: var(--adm-danger); }
+.total { display: flex; align-items: baseline; flex-wrap: wrap; gap: var(--adm-space-2-5); }
+.totalValue { font-size: var(--adm-fs-stat); font-weight: var(--adm-fw-bold); line-height: var(--adm-lh-tight); color: var(--adm-ink); }
+.delta { padding: calc(var(--adm-space-1) - 1px) var(--adm-space-2); border-radius: var(--adm-radius-pill); background: var(--adm-accent-soft); color: var(--adm-accent-strong);
+  font-size: var(--adm-fs-caption); font-weight: var(--adm-fw-bold); }
+.deltaDown { background: var(--adm-danger-soft); color: var(--adm-danger); }
+.totalNote { font-size: var(--adm-fs-caption); color: var(--adm-text-3); }
 
-.track { height: calc(var(--adm-space-3) + var(--adm-space-1) / 2); border-radius: var(--adm-radius-xs); background: var(--adm-gray-100); overflow: hidden; }
-.segments { display: flex; gap: calc(var(--adm-space-1) * .75); height: 100%; }
-.segments > span { cursor: pointer; }
+/* 채널 비중 막대 — 칸 폭은 TSX가 방문 수로 준다 */
+.stack { display: flex; gap: var(--adm-space-0-5); height: var(--adm-space-2-5); border-radius: var(--adm-radius-sm); overflow: hidden; }
+.stack > span { flex-basis: 0; min-width: var(--adm-space-0-5); }
+.tone0 { background: var(--adm-accent-strong); }
+.tone1 { background: var(--adm-accent); }
+.tone2 { background: var(--adm-tag-blue-solid); }
+.tone3 { background: var(--adm-tag-lime-solid); }
+.toneRest { background: var(--adm-gray-300); }
 
-.table { display: flex; flex-direction: column; gap: calc(var(--adm-space-1) / 2); }
-.tableHead, .row { display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(0, 2fr) 64px 44px 56px; gap: var(--adm-space-3); }
-.tableHead { padding: 0 var(--adm-space-1) var(--adm-space-1); font-size: var(--adm-fs-caption); font-weight: var(--adm-fw-medium); color: var(--adm-text-3); }
-.right { text-align: right; }
-.row { align-items: center; padding: var(--adm-space-2) var(--adm-space-1); border-radius: var(--adm-radius-sm); font-size: var(--adm-fs-body); }
-.row:hover { background: var(--adm-gray-50); }
-.channel { display: flex; align-items: center; gap: var(--adm-space-2); min-width: 0; }
-.dot { width: calc(var(--adm-space-8) - var(--adm-space-1) / 2); height: calc(var(--adm-space-8) - var(--adm-space-1) / 2); flex: none; display: flex; align-items: center; justify-content: center; box-sizing: border-box;
-  border: var(--adm-border-width) solid transparent; border-radius: var(--adm-radius-sm); color: var(--adm-text-2); }
-.dot img { display: block; width: var(--adm-space-4); height: var(--adm-space-4); }
-/* 채널 바탕: 브랜드와 가까운 Seed 색 단계(로고 색은 로고 주소에) */
-.dotNaver { background: var(--seed-scale-color-green-500); }
-.dotPaper { border-color: var(--adm-line); background: var(--adm-surface); }
-.dotInstagram { background: linear-gradient(135deg, var(--adm-warn) 0%, var(--seed-scale-color-red-500) 35%, var(--seed-scale-color-pink-500) 60%, var(--seed-scale-color-purple-500) 100%); }
-.dotFacebook { background: var(--seed-scale-color-blue-500); }
-.dotYoutube { background: var(--seed-scale-color-red-500); }
-.dotKakao { background: var(--adm-warn-line); }
-.dotPlain { background: var(--adm-gray-100); }
-.channelName { font-weight: var(--adm-fw-medium); color: var(--adm-ink); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.shareCell { display: flex; align-items: center; gap: var(--adm-space-2); }
-.bar { flex: 1; height: var(--adm-space-2); border-radius: var(--adm-radius-xs); background: var(--adm-gray-100); overflow: hidden; cursor: pointer; }
-.bar > span { display: block; height: 100%; border-radius: var(--adm-radius-xs); }
-.share { width: 36px; font-size: var(--adm-fs-caption); color: var(--adm-text-2); text-align: right; }
-.visits { text-align: right; font-weight: var(--adm-fw-semibold); color: var(--adm-ink); font-variant-numeric: tabular-nums; }
-.leads { text-align: right; color: var(--adm-text); font-variant-numeric: tabular-nums; }
-.cvr { text-align: right; font-size: var(--adm-fs-small); font-weight: var(--adm-fw-semibold); color: var(--adm-accent-strong); }
-.note { margin: 0; font-size: var(--adm-fs-caption); line-height: var(--adm-lh); color: var(--adm-text-3); }
+.list { display: flex; flex-direction: column; gap: var(--adm-space-2-5); margin: 0; padding: 0; list-style: none; }
+.row { display: grid; grid-template-columns: 12px minmax(0, 1fr) 48px 64px; align-items: center; gap: var(--adm-space-2-5); font-size: var(--adm-fs-small); color: var(--adm-ink); }
+.dot { width: 10px; aspect-ratio: 1; border-radius: var(--adm-radius-pill); }
+.name { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.share { text-align: right; color: var(--adm-text-2); }
+.visits { text-align: right; font-weight: var(--adm-fw-bold); }
 
-.state { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: var(--adm-space-2); min-height: calc(var(--adm-space-8) * 6.25); padding: var(--adm-space-6) var(--adm-space-4);
-  border-radius: var(--adm-radius-md); background: var(--adm-gray-50); text-align: center; }
-.state strong { font-size: var(--adm-fs-body); font-weight: var(--adm-fw-bold); color: var(--adm-ink); }
-.state p { margin: 0; max-width: 380px; font-size: var(--adm-fs-small); line-height: var(--adm-lh); color: var(--adm-text-2); }
-.stateIcon { width: var(--adm-control-h); height: var(--adm-control-h); display: flex; align-items: center; justify-content: center; border: var(--adm-border-width) solid var(--adm-line);
-  border-radius: var(--adm-radius-md); background: var(--adm-surface); color: var(--adm-accent-strong); }
+.state { display: flex; flex-direction: column; align-items: center; gap: var(--adm-space-2); margin: 0; padding: var(--adm-space-5) var(--adm-space-3); text-align: center;
+  font-size: var(--adm-fs-small); line-height: var(--adm-lh); color: var(--adm-text-2); }
+.state p { margin: 0; }
+.state strong { color: var(--adm-ink); font-size: var(--adm-fs-body); }
+.stateIcon { color: var(--adm-danger); font-size: var(--adm-fs-xl); }
 
-/* 좁은 카드: 채널·방문·문의·전환율만 남기고 비중 막대를 뺀다 */
-@container (max-width: 480px) {
-  .tableHead, .row { grid-template-columns: minmax(0, 1fr) 56px 40px 52px; }
-  .tableHead > span:nth-child(2), .shareCell { display: none; }
+@media (max-width: 760px) {
+  .card { padding: var(--adm-space-4); }
 }
