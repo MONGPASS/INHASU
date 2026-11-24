@@ -156,6 +156,11 @@ Montage를 화면에서 직접 쓰게 강제하면 단점이 있다:
 > - 로컬 확인: 8804 합성 서버에는 후기 API가 없어(404, 이때 오류 상태 확인) 브라우저 안에서만 fetch를 가짜 응답으로 바꿔 확인했다(서버·DB에는 쓰지 않음). 1440: 지표·칩 거르기, 노출 끄기(`PUT is_approved:0`), 삭제 확인 → `DELETE`, 등록 창(빈 칸이면 꺼짐 → 작성자·내용·작성일·4점 → `POST` 후 다시 불러오기). 375: 가로 넘침 0, 카드(후기 한 줄 전체·스위치·삭제).
 
 
+> **투어 캘린더·일반 문의 완료(2026-11-24, `feature/seed-calendar-inquiry`)** — Seed 부품으로 바꿨다. 레이아웃·데이터 흐름은 그대로다.
+> - 투어 캘린더: 요약 4칸 `AdminStat`(처리 필요·배정 겹침은 누르면 거르기, 건수가 있으면 주의 테두리) · 검색 `AdminSearch` · 출처/처리 상태 `AdminChipGroup` · 이전 문의 `AdminCheckbox` · 월간/목록 `AdminSegmented` · 목록 `AdminTable` · 경고 `AdminMessage` · 빈 화면 `AdminEmpty`. 팀 카드의 출처는 `AdminBadge`(상품 tag-blue · 견적 tag-violet · 이전 문의 주의색), 처리할 업무는 주의 배지, 바로가기는 `AdminTextButton to`(전체 새로고침 없는 화면 이동). 달력 칸·일정 막대·팀 카드는 `AdminCalendar.css`가 변수만으로 그린다(7절 예외). 생 부품 20→0, CSS 숫자 크기 184→0.
+> - 일반 문의: 현황 4칸 `AdminStat` · 검색 · 상태 `AdminChipGroup` · 답장·메모 `AdminTextArea`/`AdminField` · 버튼 `AdminButton`. 옛 화면 알림(page-toast)은 `adminNotify`로, 문의 패널 닫기의 `window.confirm`은 `adminConfirm`으로 바꿨다(부르는 쪽을 기다리게 바꿈, 확인 창이 떠 있는 동안 다른 이동은 무시). `.iq-*` 규칙은 `AdminContentManage.css`에서 빼고 `AdminInquiryManage.css`로 옮겼다. 생 부품 13→0 · 인라인 style 4→0 · 기본 확인창 1→0.
+> - 전체 전환율 80%→82%.
+
 ### 단계 4. 상세형·입력형·대시보드형
 - 고객 예약 상세(`v7/ReservationDetailV7.tsx`, `CustomerWorkspaceOverview`, `Reservation*`) — 상세형 기준
 - 상품 추가·수정(`AdminProductManage.tsx`의 `ProductModal`, 디자인 블록 편집기는 기능 유지) — 입력형 기준

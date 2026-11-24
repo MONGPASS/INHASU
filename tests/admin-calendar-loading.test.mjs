@@ -41,20 +41,20 @@ test('최근 조회한 예약이 있으면 캘린더 첫 렌더부터 실제 일
 
 test('기본 캘린더는 이전 문의 캐시 없이도 예약 집계를 바로 표시한다', () => {
     const html = render(warm());
-    const metric = html.match(/tc-metric-label[^>]*>이번 달 투어<\/span><strong>(.*?)<\/strong>/)?.[1];
+    const metric = html.match(/adm-ui-stat-label[^>]*>이번 달 투어<\/span><span class="adm-ui-stat-value">(.*?)<\/span>/)?.[1];
     assert.equal(metric, '1팀');
 });
 
 test('이전 문의를 포함할 때는 해당 출처를 읽기 전까지 전체 집계를 확정하지 않는다', () => {
     const html = render(warm(), { legacy: true });
-    const metric = html.match(/tc-metric-label[^>]*>이번 달 투어<\/span><strong>(.*?)<\/strong>/)?.[1];
+    const metric = html.match(/adm-ui-stat-label[^>]*>이번 달 투어<\/span><span class="adm-ui-stat-value">(.*?)<\/span>/)?.[1];
     assert.equal(metric, '—');
     assert.ok(html.includes('불러오는 중'));
 });
 
 test('필수 출처가 아직 없으면 합계를 확인된 0팀으로 표시하지 않는다', () => {
     const html = render({ '/api/reservations': [] });
-    const metric = html.match(/tc-metric-label[^>]*>이번 달 투어<\/span><strong>(.*?)<\/strong>/)?.[1];
+    const metric = html.match(/adm-ui-stat-label[^>]*>이번 달 투어<\/span><span class="adm-ui-stat-value">(.*?)<\/span>/)?.[1];
     assert.equal(metric, '—');
     assert.ok(html.includes('예약 정보를 불러오고 있습니다'));
 });
