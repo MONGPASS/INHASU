@@ -17,7 +17,7 @@ import {
     type PillTone, type V7MenuItem, type V7MenuState,
 } from './v7Ui';
 import { adminConfirm } from '../ui/adminFeedback';
-import { AdminButton, AdminIconButton, AdminTextButton, IconCheckThick, IconCoins, IconDocument, IconListCategory, IconPersons } from '../ui';
+import { AdminButton, AdminIconButton, AdminTextButton, IconChat, IconCheck, IconCheckThick, IconClock, IconCoins, IconDocument, IconListCategory, IconPencil, IconPersons, IconSend } from '../ui';
 import './reservation-detail-cards.css';
 
 type Model = CustomerWorkspaceOverviewModel;
@@ -35,6 +35,10 @@ export interface ReservationDetailV7Links {
 }
 
 /** 이 화면에서 열지 않는 배정 업무. 배정은 ‘숙소 배정’·‘가이드·숙소·차량’ 메뉴에서만 한다(2026-11-24). */
+/** ‘지금 할 일’ 카드 왼쪽 아이콘: 맞춤 견적 진행 단계(m.flow) id별. */
+const NEXT_STEP_ICON: Record<string, React.ComponentType> = {
+    quote: IconDocument, answer: IconChat, deposit: IconCoins, sign: IconPencil, confirm: IconCheck, assign: IconPersons, publish: IconSend,
+};
 /** 일정 카드가 처음에 보여 주는 일차 수(고객 정보 카드와 같은 높이). */
 const PLAN_PREVIEW_DAYS = 3;
 const ASSIGN_ACTIONS = new Set(['assignments', 'assign', 'guide', 'vehicle', 'stay']);
@@ -402,9 +406,18 @@ export function reservationDetailView({ model: m, onAction, busy = false, noteCo
         <div className="v7-panel v7-progress">
             <V7StepHead big label={stepHead.label} tone={stepHead.tone} count={cancelled ? '' : `${steps.filter(s => s.done).length} / ${steps.length} 단계 완료`} />
             <V7Steps large steps={steps} cancelled={!!cancelled} onStep={i => flow ? goSec(flowStepSec[flow.steps[i]?.id] || 'sec-plan') : stepTargets[i] ? goSec(stepTargets[i]) : ASSIGN_ACTIONS.has(m.steps[i]?.id || '') ? goSec('sec-asg') : onAction(m.steps[i]?.id || 'payments')} />
-            {flow && <div className={flow.next.waiting ? 'v7-next is-waiting' : 'v7-next'} role="group" aria-label="지금 할 일">
+            {/* 지금 할 일(2026-11-24 흰 카드): 왼쪽 단계 아이콘 · 단계 꼬리표 · 제목·설명 · 오른쪽 버튼 */}
+            {flow && (() => {
+                const doneAll = flow.current >= flow.steps.length, stepNow = flow.steps[flow.current];
+                const tone = doneAll ? 'is-done' : flow.next.waiting ? 'is-waiting' : 'is-action';
+                const Glyph = doneAll ? IconCheck : flow.next.waiting ? IconClock : NEXT_STEP_ICON[stepNow?.id || ''] || IconCheck;
+                return <div className={`v7-next ${tone}`} role="group" aria-label="지금 할 일">
+                <span className="v7-next-icon" aria-hidden="true"><Glyph /></span>
                 <div className="v7-next-text">
-                    <div className="v7-next-kicker">{flow.current >= flow.steps.length ? '완료' : flow.next.waiting ? '고객 응답을 기다리는 중' : '지금 할 일'}</div>
+                    <div className="v7-next-tags">
+                        <span className="v7-next-tag">{doneAll ? '모든 단계 완료' : `${flow.current + 1}단계 · ${stepNow?.label || ''}`}</span>
+                        {!doneAll && flow.next.waiting && <span className="v7-next-tag is-muted">고객 응답을 기다리는 중</span>}
+                    </div>
                     <div className="v7-next-title">{flow.next.title}</div>
                     {flow.next.detail && <div className="v7-next-detail">{flow.next.detail}</div>}
                 </div>
@@ -412,7 +425,7 @@ export function reservationDetailView({ model: m, onAction, busy = false, noteCo
                     {flow.next.secondary && <AdminButton variant="secondary" disabled={busy} onClick={action(flow.next.secondary.action)}>{flow.next.secondary.label}</AdminButton>}
                     {flow.next.primary && <AdminButton variant="primary" disabled={busy} onClick={action(flow.next.primary.action)}>{flow.next.primary.label}</AdminButton>}
                 </div>}
-            </div>}
+            </div>; })()}
         </div>
 
         {/* Montage 시안: 구역 탭(밑줄). 누르면 해당 카드로 이동만 하고 업무를 실행하지 않는다. */}
