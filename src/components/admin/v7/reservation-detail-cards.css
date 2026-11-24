@@ -18,12 +18,18 @@
   font-size: var(--adm-fs-micro); font-weight: var(--adm-fw-bold); line-height: 1; }
 .rdc-tile.is-left .rdc-tile-mark { background: var(--adm-danger); color: var(--adm-on-dark); }
 .rdc-tile.is-done .rdc-tile-mark { background: var(--adm-accent); color: var(--adm-on-primary); }
-.rdc-tile[data-tip] { cursor: help; }
-.rdc-tile[data-tip]:focus-visible { outline: calc(var(--adm-border-width) * 2) solid var(--adm-accent-strong); outline-offset: var(--adm-border-width); }
-.rdc-tile[data-tip]::after { content: attr(data-tip); position: absolute; top: calc(100% + 6px); left: 0; z-index: 5; padding: var(--adm-space-1) var(--adm-space-2);
+/* 서류 칸 문서 상태 점(빨강 확인 필요 · 민트 진행 · 회색 그 밖) */
+.rdc-tip-dot { position: relative; flex: none; width: 8px; aspect-ratio: 1; border-radius: var(--adm-radius-pill); background: var(--adm-gray-300); }
+.rdc-tip-dot.is-alert { background: var(--adm-danger); }
+.rdc-tip-dot.is-info { background: var(--adm-accent); }
+/* 점이 작아 마우스를 올리기 쉽게 보이지 않는 여백을 둔다 */
+.rdc-tip-dot::before { content: ""; position: absolute; inset: -6px; }
+:is(.rdc-tile, .rdc-tip-dot)[data-tip] { cursor: help; }
+:is(.rdc-tile, .rdc-tip-dot)[data-tip]:focus-visible { outline: calc(var(--adm-border-width) * 2) solid var(--adm-accent-strong); outline-offset: var(--adm-border-width); }
+:is(.rdc-tile, .rdc-tip-dot)[data-tip]::after { content: attr(data-tip); position: absolute; top: calc(100% + 6px); left: 0; z-index: 5; padding: var(--adm-space-1) var(--adm-space-2);
   border-radius: var(--adm-radius-sm); background: var(--adm-ink); color: var(--adm-on-dark); font-size: var(--adm-fs-caption); font-weight: var(--adm-fw-bold);
   white-space: nowrap; opacity: 0; pointer-events: none; transition: opacity var(--adm-dur) var(--adm-ease); }
-.rdc-tile[data-tip]:hover::after, .rdc-tile[data-tip]:focus-visible::after { opacity: 1; }
+:is(.rdc-tile, .rdc-tip-dot)[data-tip]:hover::after, :is(.rdc-tile, .rdc-tip-dot)[data-tip]:focus-visible::after { opacity: 1; }
 /* 제목 줄 끝의 연필(편집) 버튼 — 고객 정보 카드의 수정 버튼과 같은 모양 */
 .rdc-head .rdc-edit { flex: none; }
 .rdc-title { flex: 1 1 auto; margin: 0; color: var(--adm-text); font-size: var(--adm-fs-lead); font-weight: var(--adm-fw-bold); }
@@ -97,10 +103,6 @@
 .rdc-stay-status { color: var(--adm-accent-strong); font-weight: var(--adm-fw-bold); white-space: nowrap; }
 
 /* 서류 */
-.rdc-tag { align-self: flex-start; padding: calc(var(--adm-space-1) / 2) calc(var(--adm-space-1) * 1.5); border-radius: var(--adm-radius-xs); font-size: var(--adm-fs-micro); font-weight: var(--adm-fw-semibold); }
-.rdc-tag.is-alert { background: var(--adm-danger-soft); color: var(--adm-danger); }
-.rdc-tag.is-info { background: var(--adm-accent-soft); color: var(--adm-accent-strong); }
-.rdc-tag.is-neutral { background: var(--adm-gray-100); color: var(--adm-text-2); }
 .adm-rdc-open { display: inline-flex; flex: none; align-items: center; gap: calc(var(--adm-space-1) / 2); padding: var(--adm-space-1) 0; border: 0; background: transparent; color: var(--adm-text);
   font: inherit; font-size: var(--adm-fs-small); font-weight: var(--adm-fw-semibold); cursor: pointer; }
 .adm-rdc-open:disabled { color: var(--adm-text-disabled); cursor: not-allowed; }

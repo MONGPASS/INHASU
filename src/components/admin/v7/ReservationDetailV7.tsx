@@ -356,8 +356,10 @@ export function reservationDetailView({ model: m, onAction, busy = false, noteCo
         {rdcHead(IconDocument, '서류', cardBadge(docAlerts), cardEdit('서류', { onClick: action('documents') }))}
         <div className="rdc-body">
             {m.documents.map(doc => <div key={doc.id} className="rdc-row">
-                <span className="rdc-row-main"><span className="rdc-row-title">{doc.label}</span>
-                    <span className={cls('rdc-tag', docAlert(doc.status) ? 'is-alert' : doc.status ? 'is-info' : 'is-neutral')}>{doc.status || doc.detail || '내용 확인'}</span></span>
+                {/* 문서 상태(2026-11-24): 꼬리표 대신 이름 옆 색 점 + 올리면 말풍선(저장됨·준비 중·대기 등) */}
+                <span className="rdc-row-main"><span className="rdc-row-title">{doc.label}
+                    <span className={cls('rdc-tip-dot', docAlert(doc.status) ? 'is-alert' : doc.status ? 'is-info' : 'is-neutral')} data-tip={doc.status || doc.detail || '내용 확인'}
+                        tabIndex={0} role="img" aria-label={`${doc.label} · ${doc.status || doc.detail || '내용 확인'}`} /></span></span>
                 {doc.editAction && editLink(doc.editLabel || `${doc.label} 수정`, action(doc.editAction, doc.id))}{openLink(doc.label, action(doc.action || doc.id, doc.id), doc.disabled)}
             </div>)}
             <div className={cls('rdc-box', 'is-row', agreeAlert ? 'is-alert' : 'is-soft')}>
