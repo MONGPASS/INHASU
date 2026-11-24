@@ -233,6 +233,13 @@ Montage를 화면에서 직접 쓰게 강제하면 단점이 있다:
 > - 다음 할 일(`nextAction`)·검색 칸·정렬 비교는 옛 문서와 같다 — `tests/quote-inbox.test.mjs`가 `견적관리.html`의 함수를 꺼내 같은 자료로 결과를 비교한다(계산 `components/admin/quoteInbox.ts`). 30초마다 다시 읽어 새 문의·새 고객 행동을 화면 알림(`adminNotify`)으로 알리고, 다른 탭을 보고 있으면 탭 제목에도 표시한다. 다시 읽기에 실패하면 목록을 비우지 않고 위에 알린다.
 > - 옛 화면과 달라진 점: 정렬은 표 머리 대신 고르기 칸(접수 최신·오래된·출발일 빠른·늦은·이름순), ‘더보기’ 대신 50건씩 페이지, ‘할 일 있음’ 칩·요약 칸을 더했다(행동 알림이 6건을 넘으면 거기서 본다). 검색·필터·정렬·페이지를 주소에 두어 고객 화면의 ‘목록으로’가 같은 목록으로 돌아온다. 새 관리자 안에서 이미 숨겨 두었던 개요 도구 줄(폼 미리보기·링크 복사·백업·복원·CSV)은 넣지 않았다.
 
+> **고객 화면 견적 편집 완료(2026-11-24, `feature/quote-customer-builder`, 예약관리 전환 2단계)** — 고객 통합 작업 화면에서 견적서 작성·수정·링크 공유를 열면 옛 `/견적만들기?id=` iframe 대신 React 견적서 만들기 편집기가 그 자리에 들어간다.
+> - `pages/AdminQuoteBuilder.tsx`를 `QuoteBuilderEditor`(편집기, forwardRef)와 `AdminQuoteBuilder`(독립 화면 틀 = AdminLayout)로 나눴다. 독립 화면 `/admin/quote-desk/builder`의 동작은 그대로다.
+> - `embedded`일 때: 받은 `requestId`만 연다(코스 관리의 공유 견적·옛 `leaders_prefill`을 읽거나 지우지 않음), 저장 뒤 주소를 바꾸지 않는다, 머리 버튼(초기화·지도/견적서 미리보기·저장하기·링크 공유하기)은 편집 카드 위 한 줄, 아래 막대는 화면 여백 안쪽(`.qbd-embedded`).
+> - 바깥 화면과의 약속(옛 `QuoteEditorState`와 같다): `flushAll()` — 저장·공유 중이면 `busy`, 초안 보관 실패면 그 문구, 아니면 초안을 보관하고 통과. `onState` — 저장 중 · 미저장(원본과 다름, 초안 복원 선택 전은 제외) · 초안 오류. `navigate()` — quote-share는 마지막 단계(링크 공유), 그 밖은 일자별 일정(옛 `setStep(4)`·`setStep(1)`); 불러오기 전에 고르면 불러온 뒤 그 단계로 연다. `onSaved` — 서버 저장이 성공한 뒤 고객 현황을 다시 읽는다.
+> - `AdminQuoteDesk`: `nativeBuilder`일 때 iframe을 만들지 않고 `lazy`로 편집기를 받는다. 문의 상세와 같은 상태 받기(`receiveNativeState`)가 편집기가 준비되면 기다리던 작업 위치로 옮긴다. ‘작업 화면 다시 불러오기’는 React 작업 화면을 새로 그린다(`nativeReload`).
+> - 남은 예약관리 전환: 3) 예약 편집기 `예약관리.html` → React(의존 테스트 15개) 4) iframe·옛 문서·`견적관리-모바일` 정리.
+
 > **고객 화면 문의 상세 완료(2026-11-24, `feature/quote-customer-inquiry`, 예약관리 전환 1단계)** — 고객 통합 작업 화면(`/admin/customer-workspace/quote/:id`)에서 예약 전 고객의 ‘문의 · 고객 정보’ 작업을 열면 옛 `견적관리.html?workspace=1` iframe 대신 React `components/admin/QuoteInquiryPanel.tsx`가 그려진다(우리 관리자 부품: 진행 상태 칸 고르기 · 지금 할 일/예약 진행 기록 안내 · 문의 내용 · 상담 메모 · 견적서·고객 링크 · 고객 진행 타임라인 · 아래 고정 줄(삭제 · 정보 복사 · 견적서 만들기/수정)).
 > - **같은 API**: `PATCH /api/requests/:id`(status·memo·quoteExpiresAt·rotateCustomerLink·acceptQuote) · `DELETE`. 예약확정 검사·유효기간 7일 연장·고객 링크(`내견적.html?t=`)·정보 복사 글·타임라인은 `components/admin/quoteInquiryDetail.ts`이고 `tests/quote-customer-inquiry.test.mjs`가 `견적관리.html`의 함수를 꺼내 같은 자료로 비교한다. 화면 동작(메모 저장 한 번·실패 유지·저장 중 잠금·상태 되돌리기·수락·삭제·링크)은 실제 컴포넌트 handler로 검사한다.
 > - **바깥 화면 연결**: `AdminQuoteDesk`의 `nativeInquiry`(고객 화면 + 문의 도구)일 때 iframe을 만들지 않고, `flushFrame`·섹션 이동·캘린더/목록 바로가기(`?action=notes` 등)·카카오 발송 잠금이 이 화면의 ref(`flushAll`·`navigate`)와 `onState`(저장 중·미저장)를 쓴다. [견적서 만들기]·[예약관리 열기]는 같은 화면 안의 견적 편집기·예약 편집기(아직 iframe)로 바꾼다. 삭제하면 목록(`returnTo`)으로 돌아간다.

@@ -167,7 +167,7 @@ test('초안 보관은 quote-editor-state.js와 같은 자리·형식이다(옛 
     d.removeDraft(b, scope); assert.equal(b.map.size, 0);
 });
 
-test('견적서 만들기 메뉴는 React로 열리고, 고객 화면 안 편집은 옛 문서를 그대로 쓴다', () => {
+test('견적서 만들기 메뉴는 React로 열리고, 고객 화면 안 편집도 같은 React 편집기를 끼워 쓴다', () => {
     const app = readFileSync('src/App.tsx', 'utf8');
     const own = app.indexOf('path="/admin/quote-desk/builder"');
     assert.ok(own > 0 && own < app.indexOf('path="/admin/quote-desk/:tool?"'), '견적 도구 iframe보다 앞에서 잡는다');
@@ -177,6 +177,21 @@ test('견적서 만들기 메뉴는 React로 열리고, 고객 화면 안 편집
     assert.match(page, /localStorage\.setItem\('leaders_quote', JSON\.stringify\(/, '미리보기는 옛 도구와 같이 브라우저에 넣고 견적서·일정지도를 연다');
     assert.match(page, /legacyKey: 'leaders_quote_draft'|'leaders_quote_draft'/, '옛 형식 초안도 읽는다');
     assert.match(page, /adminConfirm\(\{[^}]*고객에게 견적서 도착 알림톡이 발송/, '링크 공유는 알림톡 확인 창');
-    assert.match(readFileSync('src/pages/AdminQuoteDesk.tsx', 'utf8'), /quoteDeskFrameSrc|견적만들기/);
-    assert.match(readFileSync('src/components/admin/quoteDesk.ts', 'utf8'), /tool\.key === 'builder' && bookingId\) return `\$\{tool\.doc\}\?id=/, '고객 화면 안 편집기는 옛 견적만들기');
+    // 끼워 쓸 때: 주소·다른 화면이 넘긴 값(코스 공유·leaders_prefill)을 건드리지 않고 받은 요청만 연다
+    assert.match(page, /handoff\.current \?\?= embedded \? \{ shareCourse: '', anonymous: false, prefillId: '' \} : takeHandoffs\(paramsRef\.current\);/);
+    assert.match(page, /const id = \(embedded \? requestId : paramsRef\.current\.get\('id'\)\) \|\| prefillId \|\| legacyId;/);
+    assert.equal(page.match(/if \(!embedded && (?:c|next)\.reqId && paramsRef\.current\.get\('id'\) !== (?:c|next)\.reqId\)/g)?.length, 2, '고객 화면 주소를 바꾸지 않는다');
+    assert.match(page, /commitDraft\(next\.reqId\);\n\s+onSaved\?\.\(next\.reqId\);/, '서버 저장이 끝난 뒤에만 바깥 고객 현황을 다시 읽게 한다');
+    // 이동 보호: 옛 QuoteEditorState.flushAll과 같이 저장 중이면 막고, 초안 보관 실패는 그 문구를 돌려준다
+    assert.match(page, /if \(busyRef\.current\) return \{ ok: false, busy: true \};/);
+    assert.match(page, /const error = flushDraft\(\);\n\s+return error \? \{ ok: false, busy: false, dirty: isDirty, error \} : \{ ok: true, busy: false, dirty: isDirty \};/);
+    assert.match(page, /navigate\(section\) \{ navStep\.current = section === 'quote-share' \? STEPS\.length - 1 : 1;/, '옛 setStep(4)·setStep(1)과 같은 단계');
+    assert.match(page, /setStep\(navStep\.current \?\? 0\)/, '불러오기 전에 고른 단계로 연다');
+    const desk = readFileSync('src/pages/AdminQuoteDesk.tsx', 'utf8');
+    assert.match(desk, /customerPage && \(tool\.key === 'inbox' \|\| tool\.key === 'builder'\)\n\s+\? 'about:blank'/, '고객 화면은 견적만들기 iframe을 만들지 않는다');
+    assert.match(desk, /const nativeBuilder = customerPage && tool\.key === 'builder';/);
+    assert.match(desk, /if \(nativeBuilder\) return builderRef\.current\?\.flushAll\(\) \|\| \{ ok: true, busy: false \};/, '이동·새로고침 보호가 견적 초안을 보관한다');
+    assert.match(desk, /if \(nativeBuilder\) return !!builderRef\.current\?\.navigate\(section\);/);
+    assert.match(desk, /lazy\(\(\) => import\('\.\/AdminQuoteBuilder'\)\.then\(module => \(\{ default: module\.QuoteBuilderEditor \}\)\)\)/, '편집기는 그 작업을 열 때만 받는다');
+    assert.match(desk, /<QuoteBuilderEditor key=\{`\$\{accountId\}:\$\{bookingId\}:\$\{nativeReload\}`\} ref=\{builderRef\} embedded requestId=\{bookingId\}/);
 });
