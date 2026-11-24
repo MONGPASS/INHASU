@@ -74,11 +74,13 @@ function EmbedDim({ frameRef, onClose }: { frameRef: React.RefObject<HTMLIFrameE
     return createPortal(<div className="adm-embed-dim" aria-hidden="true" onClick={onClose} style={{ clipPath: `path(evenodd, '${hole}')` }} />, document.body);
 }
 
-export const AdminQuoteDesk: React.FC<{ customerPage?: boolean }> = ({ customerPage = false }) => {
+/** tool: 자기 주소를 가진 도구 화면(견적 문의의 ?id=·?qe= 등)이 이 화면에 맡길 때 넘기는 도구 이름(주소에 :tool이 없다). */
+export const AdminQuoteDesk: React.FC<{ customerPage?: boolean; tool?: string }> = ({ customerPage = false, tool: toolProp }) => {
     const { user } = useUser();
     const accountId = user?.role === 'admin' ? user.id : '';
     const activeAccount = useRef(accountId); activeAccount.current = accountId;
-    const { tool: toolParam, id: customerId } = useParams<{ tool?: string; id?: string }>();
+    const routeParams = useParams<{ tool?: string; id?: string }>();
+    const toolParam = toolProp ?? routeParams.tool, customerId = routeParams.id;
     const [searchParams] = useSearchParams();
     const workspaceLocation = useLocation();
     const calendarActionRequest = useRef<{ key: string; scope: string; consumed: boolean } | null>(null);

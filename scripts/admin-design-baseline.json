@@ -656,6 +656,15 @@
   "hex": 0,
   "nativeDialog": 0
  },
+ "src/pages/AdminQuoteInbox.tsx": {
+  "rawButton": 0,
+  "rawField": 0,
+  "rawTable": 0,
+  "inlineStyle": 0,
+  "px": 0,
+  "hex": 0,
+  "nativeDialog": 0
+ },
  "src/pages/AdminQuoteManage.tsx": {
   "rawButton": 9,
   "rawField": 1,
@@ -904,6 +913,11 @@
   "rawPx": 0
  },
  "src/pages/AdminProductList.css": {
+  "hex": 0,
+  "important": 0,
+  "rawPx": 0
+ },
+ "src/pages/AdminQuoteInbox.css": {
   "hex": 0,
   "important": 0,
   "rawPx": 0

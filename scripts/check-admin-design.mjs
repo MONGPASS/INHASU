@@ -63,6 +63,7 @@ const SCREENS = [
     ['상품용 가이드·숙소', /(AdminGuideManage|AdminAccommodationManage)/],
     ['콘텐츠 공통 CSS', /AdminContentManage\.css/],
     ['관리자 로그인', /AdminLogin/],
+    ['견적 문의(React 전환)', /AdminQuoteInbox/],
     ['코스 관리(React 전환)', /AdminCourseManage/],
     ['가이드·숙소·차량 등록 정보(React 전환)', /AdminResourceManage/],
     ['일정 관리(React 전환)', /AdminItineraryManage/],
