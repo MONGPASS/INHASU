@@ -68,6 +68,7 @@ const AdminQuoteDesk = lazy(adminPageLoaders.quoteDesk)
 const AdminCourseManage = lazy(adminPageLoaders.courses)
 const AdminQuoteInbox = lazy(adminPageLoaders.inbox)
 const AdminQuoteBookings = lazy(adminPageLoaders.bookings)
+const AdminQuoteBuilder = lazy(adminPageLoaders.builder)
 const QuoteDeskIndexRedirect = lazy(adminPageLoaders.inboxIndex)
 const AdminResourceManage = lazy(adminPageLoaders.resources)
 const AdminItineraryManage = lazy(adminPageLoaders.itinerary)
@@ -184,6 +185,7 @@ function App() {
             <Route path="/admin/quote-desk" element={<AdminGuard><QuoteDeskIndexRedirect /></AdminGuard>} />
             <Route path="/admin/quote-desk/inbox" element={<AdminGuard><AdminQuoteInbox /></AdminGuard>} />
             <Route path="/admin/quote-desk/bookings" element={<AdminGuard><AdminQuoteBookings /></AdminGuard>} />
+            <Route path="/admin/quote-desk/builder" element={<AdminGuard><AdminQuoteBuilder /></AdminGuard>} />
             <Route path="/admin/quote-desk/courses" element={<AdminGuard><AdminCourseManage /></AdminGuard>} />
             <Route path="/admin/quote-desk/resources" element={<AdminGuard><AdminResourceManage /></AdminGuard>} />
             <Route path="/admin/quote-desk/itinerary" element={<AdminGuard><AdminItineraryManage /></AdminGuard>} />

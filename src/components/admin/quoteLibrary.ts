@@ -29,6 +29,34 @@ function loadPresets(): Promise<QuotePresets> {
     return presets;
 }
 
+let quoteBase: Promise<Record<string, any>> | undefined;
+/**
+ * 견적 문서의 기본값(public/data.js의 QUOTE — 회사 정보·표지 사진·기본 요금 등). 옛 견적서 만들기가 BASE로 쓰던 값이다.
+ * data.js는 전역 값을 만들므로 숨긴 창 안에서 읽는다.
+ */
+export function loadQuoteBase(): Promise<Record<string, any>> {
+    quoteBase ??= new Promise<Record<string, any>>((resolve, reject) => {
+        const frame = document.createElement('IFRAME') as HTMLIFrameElement;
+        frame.hidden = true;
+        frame.setAttribute('aria-hidden', 'true');
+        document.body.appendChild(frame);
+        const fail = () => { frame.remove(); reject(new Error('견적서 기본 정보(data.js)를 불러오지 못했습니다.')); };
+        const doc = frame.contentDocument;
+        if (!doc) return fail();
+        const script = doc.createElement('script');
+        script.src = '/data.js';
+        script.onload = () => {
+            const data = (frame.contentWindow as (Window & { QUOTE?: Record<string, any> }) | null)?.QUOTE;
+            if (!data || typeof data !== 'object') return fail();
+            resolve(structuredClone(data));
+            frame.remove();
+        };
+        script.onerror = fail;
+        doc.head.appendChild(script);
+    }).catch(error => { quoteBase = undefined; throw error; });
+    return quoteBase;
+}
+
 function localMap(key: string) {
     try {
         const data = JSON.parse(localStorage.getItem('leaders_' + key) ?? 'null');
