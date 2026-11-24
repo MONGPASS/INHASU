@@ -8,6 +8,7 @@ export const adminPageLoaders = {
     resources: () => import('../pages/AdminResourceManage').then(module => ({ default: module.AdminResourceManage })),
     courses: () => import('../pages/AdminCourseManage').then(module => ({ default: module.AdminCourseManage })),
     inbox: () => import('../pages/AdminQuoteInbox').then(module => ({ default: module.AdminQuoteInbox })),
+    bookings: () => import('../pages/AdminQuoteBookings').then(module => ({ default: module.AdminQuoteBookings })),
     inboxIndex: () => import('../pages/AdminQuoteInbox').then(module => ({ default: module.QuoteDeskIndexRedirect })),
     itinerary: () => import('../pages/AdminItineraryManage').then(module => ({ default: module.AdminItineraryManage })),
     spots: () => import('../pages/AdminSpotManage').then(module => ({ default: module.AdminSpotManage })),
@@ -38,7 +39,7 @@ const routes: Record<string, AdminPageKey> = {
     '/admin/accommodations': 'accommodations', '/admin/accommodation-ops': 'accommodationOps',
     '/admin/templates': 'templates', '/admin/reviews': 'reviews', '/admin/faq': 'faq',
     '/admin/promotions': 'promotions', '/admin/inquiries': 'inquiries', '/admin/tour-faqs': 'tourFaqs',
-    '/admin/quote-desk': 'inbox', '/admin/quote-desk/inbox': 'inbox', '/admin/quote-desk/resources': 'resources', '/admin/quote-desk/courses': 'courses', '/admin/quote-desk/itinerary': 'itinerary', '/admin/quote-desk/spots': 'spots',
+    '/admin/quote-desk': 'inbox', '/admin/quote-desk/inbox': 'inbox', '/admin/quote-desk/bookings': 'bookings', '/admin/quote-desk/resources': 'resources', '/admin/quote-desk/courses': 'courses', '/admin/quote-desk/itinerary': 'itinerary', '/admin/quote-desk/spots': 'spots',
     '/admin/hotels': 'resources', '/admin/tourist-spots': 'spots',
     '/admin/design-spots': 'spots', '/admin/guide-intro': 'resources',
 };

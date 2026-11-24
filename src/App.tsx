@@ -67,6 +67,7 @@ const AdminQuoteManage = lazy(adminPageLoaders.quotes)
 const AdminQuoteDesk = lazy(adminPageLoaders.quoteDesk)
 const AdminCourseManage = lazy(adminPageLoaders.courses)
 const AdminQuoteInbox = lazy(adminPageLoaders.inbox)
+const AdminQuoteBookings = lazy(adminPageLoaders.bookings)
 const QuoteDeskIndexRedirect = lazy(adminPageLoaders.inboxIndex)
 const AdminResourceManage = lazy(adminPageLoaders.resources)
 const AdminItineraryManage = lazy(adminPageLoaders.itinerary)
@@ -179,9 +180,10 @@ function App() {
             <Route path="/admin" element={<AdminGuard><AdminDashboard /></AdminGuard>} />
             <Route path="/admin/quotes" element={<AdminGuard><AdminQuoteManage /></AdminGuard>} />
             {/* 맞춤 견적 데스크: 견적 관리 도구(public/*.html)를 관리자 안에 끼워 넣는다. tool = inbox | bookings | builder | courses | itinerary | spots | resources */}
-            {/* 견적 도구 중 React로 옮긴 화면. 주소는 그대로이고 옛 문서(public/일정관리.html·명소관리.html 등)는 비교용으로만 남는다. 견적 문의의 ?id=·?qe=는 AdminQuoteInbox가 AdminQuoteDesk에 맡긴다. */}
+            {/* 견적 도구 중 React로 옮긴 화면. 주소는 그대로이고 옛 문서(public/일정관리.html·명소관리.html 등)는 비교용으로만 남는다. 견적 문의의 ?id=·?qe=, 견적 예약 목록의 ?id=는 각 화면이 AdminQuoteDesk에 맡긴다. */}
             <Route path="/admin/quote-desk" element={<AdminGuard><QuoteDeskIndexRedirect /></AdminGuard>} />
             <Route path="/admin/quote-desk/inbox" element={<AdminGuard><AdminQuoteInbox /></AdminGuard>} />
+            <Route path="/admin/quote-desk/bookings" element={<AdminGuard><AdminQuoteBookings /></AdminGuard>} />
             <Route path="/admin/quote-desk/courses" element={<AdminGuard><AdminCourseManage /></AdminGuard>} />
             <Route path="/admin/quote-desk/resources" element={<AdminGuard><AdminResourceManage /></AdminGuard>} />
             <Route path="/admin/quote-desk/itinerary" element={<AdminGuard><AdminItineraryManage /></AdminGuard>} />

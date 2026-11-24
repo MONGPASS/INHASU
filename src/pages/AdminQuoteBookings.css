@@ -1,0 +1,62 @@
+/*
+ * 견적 예약 목록(/admin/quote-desk/bookings) — 모양은 우리 관리자 부품이 정한다.
+ * 이 파일은 표 칸 안의 두 줄 글자·배정 칸 막대·출발월 줄·선택 작업 줄·진행 기록 창의 배치만 둔다. 값은 --adm-* 변수만 쓴다.
+ */
+.qb-two { display: flex; flex-direction: column; align-items: flex-start; gap: calc(var(--adm-space-1) / 2); min-width: 0; }
+.qb-two b { color: var(--adm-ink); font-weight: var(--adm-fw-bold); }
+.qb-two small, .qb-muted { color: var(--adm-text-3); font-size: var(--adm-fs-caption); }
+.qb-c-name { min-width: calc(var(--adm-space-8) * 3.5); }
+.qb-c-log { min-width: calc(var(--adm-space-8) * 4); }
+.qb-range { display: inline-flex; flex-wrap: wrap; align-items: center; gap: var(--adm-space-1); color: var(--adm-ink); font-weight: var(--adm-fw-bold); white-space: nowrap; }
+
+/* 배정 상태: 가이드·차량·숙소 세 칸 */
+.qb-assign { display: inline-flex; align-items: center; gap: var(--adm-space-2); }
+.qb-assign b { color: var(--adm-text-2); font-size: var(--adm-fs-caption); white-space: nowrap; }
+.qb-assign b.is-ok { color: var(--adm-success-strong); }
+.qb-steps { display: inline-flex; gap: calc(var(--adm-space-1) / 2); }
+.qb-steps i { width: var(--adm-space-4); height: var(--adm-space-1); border-radius: var(--adm-radius-pill); background: var(--adm-gray-200); }
+.qb-steps.is-1 i:nth-child(-n+1), .qb-steps.is-2 i:nth-child(-n+2) { background: var(--adm-warn); }
+.qb-steps.is-3 i { background: var(--adm-success); }
+
+/* 결제: 예약금·잔금 두 줄 */
+.qb-pay { display: flex; flex-direction: column; gap: var(--adm-space-1); min-width: calc(var(--adm-space-8) * 7); }
+.qb-pay-line { display: grid; grid-template-columns: auto auto minmax(calc(var(--adm-space-8) * 3), 1fr); align-items: center; gap: var(--adm-space-2); }
+.qb-pay-label { color: var(--adm-text-3); font-size: var(--adm-fs-caption); }
+.qb-pay-amount { color: var(--adm-ink); font-size: var(--adm-fs-small); font-weight: var(--adm-fw-bold); font-variant-numeric: tabular-nums; white-space: nowrap; text-align: right; }
+
+.qb-log { max-width: calc(var(--adm-space-8) * 6); text-align: left; white-space: normal; }
+.qb-log.is-bad { color: var(--adm-danger); }
+.qb-actions { display: flex; flex-direction: column; align-items: flex-start; gap: var(--adm-space-1); }
+.qb-links { display: inline-flex; flex-wrap: wrap; gap: 0 var(--adm-space-2); }
+.qb-sort { display: inline-flex; align-items: center; gap: var(--adm-space-2); }
+
+/* 출발월 줄 */
+.qb-months { display: flex; flex-wrap: wrap; align-items: center; gap: var(--adm-space-2); padding: var(--adm-space-3) var(--adm-space-5); border-bottom: var(--adm-border-width) solid var(--adm-line-subtle); }
+.qb-months-label { display: inline-flex; align-items: center; gap: var(--adm-space-1); color: var(--adm-text-2); font-size: var(--adm-fs-small); font-weight: var(--adm-fw-bold); }
+.qb-year { display: inline-flex; align-items: center; gap: var(--adm-space-1); padding-left: var(--adm-space-2); border-left: var(--adm-border-width) solid var(--adm-line-subtle); }
+.qb-month-cells { display: inline-flex; flex-wrap: wrap; gap: var(--adm-space-1); }
+
+/* 선택 작업 줄 */
+.qb-bulk { display: flex; flex-wrap: wrap; align-items: center; gap: var(--adm-space-2); padding: var(--adm-space-3) var(--adm-space-5); border-bottom: var(--adm-border-width) solid var(--adm-line-subtle); background: var(--adm-gray-50); }
+.qb-bulk-count { color: var(--adm-text-2); font-size: var(--adm-fs-small); }
+.qb-bulk-count b { color: var(--adm-ink); font-variant-numeric: tabular-nums; }
+.qb-bulk-end { display: inline-flex; gap: var(--adm-space-2); margin-left: auto; }
+
+/* 진행 기록 창: 날짜별로 묶고 지난 날짜는 흐리게 */
+.qb-tl { display: flex; flex-direction: column; gap: var(--adm-space-4); margin: 0; padding: 0; list-style: none; }
+.qb-tl-day.is-past { opacity: .62; }
+.qb-tl-date { display: block; margin-bottom: var(--adm-space-2); color: var(--adm-text-2); font-size: var(--adm-fs-caption); }
+.qb-tl-day ul { display: flex; flex-direction: column; gap: var(--adm-space-2); margin: 0; padding: 0 0 0 var(--adm-space-3); border-left: var(--adm-border-width) solid var(--adm-line); list-style: none; }
+.qb-tl-day ul > li { display: flex; flex-direction: column; gap: calc(var(--adm-space-1) / 2); }
+.qb-tl-label { color: var(--adm-text-2); font-size: var(--adm-fs-small); }
+.qb-tl-day ul > li.is-person .qb-tl-label { color: var(--adm-ink); font-weight: var(--adm-fw-bold); }
+.qb-tl-day ul > li.is-bad .qb-tl-label { color: var(--adm-danger); font-weight: var(--adm-fw-bold); }
+.qb-tl-day small { color: var(--adm-text-3); font-size: var(--adm-fs-caption); }
+
+@media (max-width: 760px) {
+  .qb-months, .qb-bulk { padding-inline: var(--adm-space-4); }
+  .qb-bulk-end { margin-left: 0; }
+  .qb-pay, .qb-c-name, .qb-c-log { min-width: 0; }
+  .qb-pay-line { grid-template-columns: auto minmax(0, 1fr); }
+  .qb-pay-line .adm-ui-select { grid-column: 1 / -1; }
+}

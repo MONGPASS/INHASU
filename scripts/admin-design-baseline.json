@@ -647,6 +647,15 @@
   "hex": 1,
   "nativeDialog": 0
  },
+ "src/pages/AdminQuoteBookings.tsx": {
+  "rawButton": 0,
+  "rawField": 0,
+  "rawTable": 0,
+  "inlineStyle": 0,
+  "px": 0,
+  "hex": 0,
+  "nativeDialog": 0
+ },
  "src/pages/AdminQuoteDesk.tsx": {
   "rawButton": 0,
   "rawField": 0,
@@ -913,6 +922,11 @@
   "rawPx": 0
  },
  "src/pages/AdminProductList.css": {
+  "hex": 0,
+  "important": 0,
+  "rawPx": 0
+ },
+ "src/pages/AdminQuoteBookings.css": {
   "hex": 0,
   "important": 0,
   "rawPx": 0
