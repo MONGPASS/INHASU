@@ -1,225 +1,130 @@
-/* 홈 화면 관리 — Admin Dashboard v3 "07-1 사이트 관리 - 홈 화면 관리". 이 화면 본문에만 적용합니다. */
+/*
+ * 홈 화면 관리(/admin/banners) — 입력·버튼·칩·배지는 우리 관리자 부품(당근 Seed).
+ * 이 파일은 상단 고정 줄, 접히는 카드, 이미지 미리보기(그 위 ‘바꾸기’ 버튼), 바로가기·테마 카드 격자 배치만 둔다. 값은 --adm-* 변수만 쓴다.
+ * 이벤트 배경색·색 견본만 고객 화면에 쓰이는 값을 style로 칠한다(디자인 문서 7절 예외).
+ */
 .admin-app-wrapper .hm-page { display: flex; flex-direction: column; min-width: 0; }
+.hm-line-icon { display: block; flex: none; }
 
-/* 상단 고정 줄: 구역 이동 · 상태 · 저장 */
+/* 상단 고정 줄: 구역 이동 · 상태 · 저장 (본문 여백만큼 끌어올려 카드 폭 전체에 걸친다) */
 .admin-app-wrapper .hm-bar {
-  position: sticky; top: var(--header-h, 72px); z-index: 20;
-  display: flex; align-items: center; gap: 16px; flex-wrap: wrap;
-  /* 본문 여백(.content padding)만큼 끌어올려 본문 카드 폭 전체에 걸친다. */
+  position: sticky; top: var(--header-h, 0); z-index: 20; display: flex; flex-wrap: wrap; align-items: center; gap: var(--adm-space-4);
   margin: calc(var(--adm-space-6) * -1) calc(var(--adm-pad-page) * -1) var(--adm-space-6); padding: var(--adm-space-3) var(--adm-pad-page);
-  background: var(--adm-surface); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
-  border-bottom: 1px solid var(--border-default);
+  border-bottom: var(--adm-border-width) solid var(--adm-line); background: var(--adm-surface);
 }
-@media (min-width: 761px) {
-  /* 데스크톱 본문 위 여백 --adm-space-6·좌우 --adm-pad-page(admin-montage), 상단 바는 고정되지 않음(--header-h: 0). */
-  .admin-app-wrapper .hm-bar { margin: calc(var(--adm-space-6) * -1) calc(var(--adm-pad-page) * -1) var(--adm-space-6); padding: var(--adm-space-3) var(--adm-pad-page); }
-}
-.admin-app-wrapper .hm-tabs { display: flex; gap: 4px; flex-wrap: wrap; min-width: 0; }
-.admin-app-wrapper .hm-tabs button {
-  display: inline-flex; align-items: center; gap: 6px; height: 32px; padding: 0 12px; border: 0; border-radius:var(--adm-radius-sm);
-  background: transparent; font: inherit; font-size: 13px; font-weight: 600; color: var(--text-secondary); cursor: pointer; white-space: nowrap;
-}
-.admin-app-wrapper .hm-tabs button:hover { background: var(--mrt-gray-50); color: var(--text-strong); }
-.admin-app-wrapper .hm-tabs button span { font-size: 12px; color: var(--text-tertiary); font-variant-numeric: tabular-nums; }
-.admin-app-wrapper .hm-bar-end { margin-left: auto; display: flex; align-items: center; gap: 10px; min-width: 0; }
-.admin-app-wrapper .hm-status { display: inline-flex; align-items: center; gap: 6px; min-width: 0; font-size: 13px; font-weight: 600; color: var(--text-tertiary); }
-.admin-app-wrapper .hm-dot { width: 7px; height: 7px; flex: none; border-radius: 999px; background: var(--adm-success); }
-.admin-app-wrapper .hm-status.is-dirty { color: var(--mrt-purple-2); }
-.admin-app-wrapper .hm-status.is-dirty .hm-dot { background: var(--mrt-purple-2); }
-.admin-app-wrapper .hm-status.is-busy .hm-dot { background: var(--mrt-blue); animation: hmPulse 1s ease-in-out infinite; }
-.admin-app-wrapper .hm-status.is-error { color: var(--mrt-red); }
-.admin-app-wrapper .hm-status.is-error .hm-dot { background: var(--mrt-red); }
+.hm-tabs { display: flex; flex-wrap: wrap; gap: var(--adm-space-1); min-width: 0; }
+.hm-bar-end { display: flex; align-items: center; gap: var(--adm-space-2); min-width: 0; margin-left: auto; }
+.hm-status { display: inline-flex; align-items: center; gap: var(--adm-space-1); min-width: 0; color: var(--adm-text-3); font-size: var(--adm-fs-small); font-weight: var(--adm-fw-bold); }
+.hm-dot { flex: none; width: var(--adm-space-2); height: var(--adm-space-2); border-radius: var(--adm-radius-pill); background: var(--adm-success); }
+.hm-status.is-dirty { color: var(--adm-warn-strong); }
+.hm-status.is-dirty .hm-dot { background: var(--adm-warn); }
+.hm-status.is-busy .hm-dot { background: var(--adm-accent); animation: hmPulse 1s ease-in-out infinite; }
+.hm-status.is-error { color: var(--adm-danger); }
+.hm-status.is-error .hm-dot { background: var(--adm-danger); }
 @keyframes hmPulse { 50% { opacity: .35; } }
-.admin-app-wrapper .hm-revert {
-  height: 40px; padding: 0 14px; border: 1px solid var(--border-default); border-radius: var(--adm-radius-md); background: var(--adm-surface);
-  font: inherit; font-size: 14px; font-weight: 600; color: var(--text-secondary); cursor: pointer; white-space: nowrap;
-}
-.admin-app-wrapper .hm-revert:hover:not(:disabled) { color: var(--text-strong); }
-.admin-app-wrapper .hm-save {
-  height: 40px; padding: 0 18px; border: 0; border-radius: var(--adm-radius-md); background: var(--mrt-blue); color: var(--adm-on-primary);
-  font: inherit; font-size: 14px; font-weight: 700; cursor: pointer; white-space: nowrap; transition: background 160ms;
-}
-.admin-app-wrapper .hm-save:hover:not(:disabled) { background: var(--mrt-blue-strong); }
-.admin-app-wrapper .hm-save:disabled { background: var(--mrt-gray-100); color: var(--text-tertiary); cursor: default; }
-.admin-app-wrapper .hm-revert:disabled { opacity: .5; cursor: default; }
-
-.admin-app-wrapper .hm-alert {
-  display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin: 0 0 16px; padding: 14px 18px;
-  border: 1px solid var(--adm-danger-line); border-radius: var(--adm-radius-md); background: var(--mrt-red-soft); color: var(--mrt-red); font-size: 14px; font-weight: 600;
-}
+.hm-alert { margin-bottom: var(--adm-space-4); }
 
 /* 본문 */
-.admin-app-wrapper .hm-body { display: flex; flex-direction: column; gap: 20px; min-width: 0; margin: 0; padding: 0; border: 0; }
-.admin-app-wrapper .hm-sec-head { display: flex; align-items: flex-end; gap: 12px; flex-wrap: wrap; }
-.admin-app-wrapper .hm-sec-head:not(:first-of-type) { margin-top: 12px; }
-.admin-app-wrapper .hm-sec-text { flex: 1; min-width: 240px; display: flex; flex-direction: column; gap: 4px; }
-.admin-app-wrapper .hm-sec-title { display: flex; align-items: center; gap: 8px; }
-.admin-app-wrapper .hm-sec-title h3 { margin: 0; font-size: 20px; font-weight: var(--adm-fw-bold); letter-spacing: -0.03em; color: var(--text-strong); }
-.admin-app-wrapper .hm-count { padding: 2px 8px; border-radius:var(--adm-radius-xs); background: var(--mrt-gray-100); color: var(--text-secondary); font-size: 12px; font-weight: 700; font-variant-numeric: tabular-nums; }
-.admin-app-wrapper .hm-sec-text p { margin: 0; font-size: 13px; color: var(--text-tertiary); }
-/* 구역별 '추가'는 보조(테두리) 버튼 — 채움(주요) 버튼은 '변경사항 저장' 하나 */
-.admin-app-wrapper .hm-add {
-  display: inline-flex; align-items: center; gap: 6px; height: var(--adm-control-h); padding: 0 var(--adm-control-pad-x); flex: none; border: 1px solid var(--adm-line-strong); border-radius: var(--adm-radius-sm);
-  background: var(--adm-surface); color: var(--adm-text); font: inherit; font-size: var(--adm-fs-body); font-weight: var(--adm-fw-semibold); cursor: pointer;
-}
-.admin-app-wrapper .hm-add:hover { background: var(--adm-gray-50); }
-.admin-app-wrapper .hm-toggle-all { display: flex; justify-content: flex-end; margin: -8px 0; }
-.admin-app-wrapper .hm-toggle-all button { height: 30px; padding: 0 8px; border: 0; background: transparent; font: inherit; font-size: 13px; font-weight: 600; color: var(--text-secondary); cursor: pointer; }
-.admin-app-wrapper .hm-toggle-all button:hover { color: var(--text-strong); }
+.hm-body { display: flex; flex-direction: column; gap: var(--adm-space-5); min-width: 0; margin: 0; padding: 0; border: 0; }
+.hm-sec-head { display: flex; flex-wrap: wrap; align-items: flex-end; gap: var(--adm-space-3); }
+.hm-sec-head:not(:first-of-type) { margin-top: var(--adm-space-3); }
+.hm-sec-text { display: flex; flex: 1; flex-direction: column; gap: var(--adm-space-1); min-width: calc(var(--adm-space-8) * 7.5); }
+.hm-sec-title { display: flex; align-items: center; gap: var(--adm-space-2); }
+.hm-sec-title h3 { margin: 0; color: var(--adm-ink); font-size: var(--adm-fs-title); font-weight: var(--adm-fw-bold); }
+.hm-sec-text p { margin: 0; color: var(--adm-text-3); font-size: var(--adm-fs-small); }
+.hm-toggle-all { display: flex; justify-content: flex-end; margin: calc(var(--adm-space-2) * -1) 0; }
 
 /* 접히는 카드 (메인·이벤트 배너) */
-.admin-app-wrapper .hm-card { display: flex; flex-direction: column; gap: 16px; padding: 20px; background: var(--adm-surface); border: 1px solid var(--border-default); border-radius: var(--adm-radius-md); min-width: 0; }
-.admin-app-wrapper .hm-card-head { display: flex; align-items: center; gap: 10px; min-width: 0; }
-.admin-app-wrapper .hm-card-toggle { flex: 1; min-width: 0; display: flex; align-items: center; gap: 12px; padding: 0; border: 0; background: transparent; font: inherit; color: inherit; cursor: pointer; text-align: left; }
-.admin-app-wrapper .hm-chev { display: flex; flex: none; color: var(--text-tertiary); transition: transform 200ms; }
-.admin-app-wrapper .hm-chev.is-open { transform: rotate(180deg); }
-.admin-app-wrapper .hm-thumb { width: 56px; height: 35px; flex: none; border-radius: var(--adm-radius-sm); background-color: var(--mrt-blue); }
-.admin-app-wrapper .hm-thumb-event { display: flex; align-items: center; justify-content: center; color: #fff; }
-.admin-app-wrapper .hm-num { flex: none; padding: 3px 8px; border-radius: var(--adm-radius-sm); background: var(--mrt-gray-100); color: var(--text-secondary); font-size: 12px; font-weight: var(--adm-fw-bold); font-variant-numeric: tabular-nums; }
-.admin-app-wrapper .hm-head-text { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
-.admin-app-wrapper .hm-name { min-width: 0; overflow: hidden; font-size: 15px; font-weight: var(--adm-fw-bold); letter-spacing: -0.02em; color: var(--text-strong); white-space: nowrap; text-overflow: ellipsis; }
-.admin-app-wrapper .hm-name.is-empty { color: var(--text-tertiary); }
-.admin-app-wrapper .hm-summary { overflow: hidden; font-size: 12px; color: var(--text-tertiary); white-space: nowrap; text-overflow: ellipsis; }
-.admin-app-wrapper .hm-tools { display: flex; align-items: center; gap: 6px; flex: none; }
-.admin-app-wrapper .hm-tool {
-  width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; padding: 0;
-  border: 1px solid var(--border-default); border-radius: var(--adm-radius-sm); background: var(--adm-surface); color: var(--text-secondary); cursor: pointer;
-}
-.admin-app-wrapper .hm-tool:hover:not(:disabled) { background: var(--mrt-gray-50); color: var(--text-strong); }
-.admin-app-wrapper .hm-tool.danger:hover:not(:disabled) { background: var(--adm-danger-soft); color: var(--adm-danger); border-color: var(--adm-danger-line); }
-.admin-app-wrapper .hm-tool:disabled { color: var(--mrt-gray-300); cursor: default; }
-.admin-app-wrapper .hm-card-body { display: flex; gap: 20px; flex-wrap: wrap; padding-top: 16px; border-top: 1px solid var(--border-subtle); }
+.hm-card { display: flex; flex-direction: column; gap: var(--adm-space-4); min-width: 0; padding: var(--adm-space-5); border: var(--adm-border-width) solid var(--adm-line); border-radius: var(--adm-radius-md); background: var(--adm-surface); }
+.hm-card-head { display: flex; align-items: center; gap: var(--adm-space-2); min-width: 0; }
+/* 카드 머리 전체가 펼침 버튼(AdminPickCard) — 테두리 없는 한 줄 */
+.hm-card-toggle.adm-ui-pick, .hm-pc-toggle.adm-ui-pick { flex: 1; flex-direction: row; align-items: center; gap: var(--adm-space-3); min-width: 0; padding: 0; border: 0; background: transparent; }
+.hm-card-toggle.adm-ui-pick:hover, .hm-pc-toggle.adm-ui-pick:hover { background: transparent; }
+.hm-chev { display: flex; flex: none; color: var(--adm-text-3); transition: transform var(--adm-dur) var(--adm-ease); }
+.hm-chev.is-open { transform: rotate(180deg); }
+.hm-thumb { position: relative; display: flex; flex: none; align-items: center; justify-content: center; overflow: hidden; width: calc(var(--adm-space-8) * 1.75); height: calc(var(--adm-space-8) * 1.1);
+  border-radius: var(--adm-radius-sm); background: var(--adm-gray-100); color: var(--adm-on-dark); }
+.hm-head-text { display: flex; flex-direction: column; gap: calc(var(--adm-space-1) / 2); min-width: 0; }
+.hm-name { overflow: hidden; min-width: 0; color: var(--adm-ink); font-size: var(--adm-fs-body); font-weight: var(--adm-fw-bold); text-overflow: ellipsis; white-space: nowrap; }
+.hm-name.is-empty { color: var(--adm-text-3); }
+.hm-summary { overflow: hidden; color: var(--adm-text-3); font-size: var(--adm-fs-caption); text-overflow: ellipsis; white-space: nowrap; }
+.hm-tools { display: flex; flex: none; align-items: center; gap: var(--adm-space-1); }
+.hm-card-body { display: flex; flex-wrap: wrap; gap: var(--adm-space-5); padding-top: var(--adm-space-4); border-top: var(--adm-border-width) solid var(--adm-line-subtle); }
 
-/* 이미지 미리보기 */
-.admin-app-wrapper .hm-media { display: flex; flex-direction: column; gap: 14px; flex: 0 0 220px; min-width: 0; }
-.admin-app-wrapper .hm-media-item { display: flex; flex-direction: column; gap: 6px; }
-.admin-app-wrapper .hm-media-label { display: flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 700; color: var(--text-secondary); }
-.admin-app-wrapper .hm-media-label em { margin-left: auto; font-style: normal; font-weight: 500; color: var(--text-tertiary); }
-.admin-app-wrapper .hm-mbox, .admin-app-wrapper .hm-ev-pv {
-  position: relative; display: block; width: 100%; aspect-ratio: 16 / 10; padding: 0; border: 0; border-radius: var(--adm-radius-md); overflow: hidden;
-  background-color: var(--mrt-blue); color: var(--adm-on-primary); font: inherit; text-align: left; cursor: pointer;
-}
-.admin-app-wrapper .hm-mov { position: absolute; inset: 0; display: flex; flex-direction: column; justify-content: flex-end; gap: 3px; padding: 12px; }
-.admin-app-wrapper .hm-mbox.has-image .hm-mov { background: rgba(0,0,0,.28); }
-.admin-app-wrapper .hm-mov-tag { font-size: 11px; font-weight: 700; opacity: .9; }
-.admin-app-wrapper .hm-mov-title { font-size: 14px; font-weight: var(--adm-fw-bold); line-height: 1.3; white-space: pre-line; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; }
-.admin-app-wrapper .hm-mov-sub { font-size: 11px; opacity: .85; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
-.admin-app-wrapper .hm-upload-pill {
-  position: absolute; top: 8px; right: 8px; display: flex; align-items: center; gap: 4px; height: 22px; padding: 0 8px;
-  border-radius:var(--adm-radius-sm); background: rgba(255,255,255,.22); font-size: 11px; font-weight: 700; color: #fff; backdrop-filter: blur(4px);
-}
-.admin-app-wrapper :is(.hm-mbox, .hm-ev-pv, .hm-theme-img).has-image .hm-upload-pill,
-.admin-app-wrapper .hm-theme-img .hm-upload-pill { background: rgba(0,0,0,.42); opacity: 0; transition: opacity 160ms; }
-.admin-app-wrapper :is(.hm-mbox, .hm-ev-pv, .hm-theme-img):is(:hover, :focus-visible) .hm-upload-pill { opacity: 1; }
-.admin-app-wrapper .hm-pbox {
-  display: flex; align-items: center; justify-content: center; width: 100%; aspect-ratio: 21 / 9; padding: 0; box-sizing: border-box;
-  border: 1.5px dashed var(--border-default); border-radius: var(--adm-radius-md); overflow: hidden; background-color: var(--mrt-gray-50); cursor: pointer; font: inherit;
-}
-.admin-app-wrapper .hm-pbox:hover { border-color: var(--mrt-gray-400); }
-.admin-app-wrapper .hm-pbox.has-image { border: 0; background-color: var(--mrt-gray-100); }
-.admin-app-wrapper .hm-pbox-empty { display: flex; flex-direction: column; align-items: center; gap: 2px; font-size: 11px; font-weight: 600; color: var(--text-tertiary); }
-.admin-app-wrapper .hm-btn-sm {
-  height: 30px; padding: 0 12px; border: 1px solid var(--border-default); border-radius: var(--adm-radius-sm); background: var(--adm-surface);
-  font: inherit; font-size: 12px; font-weight: 600; color: var(--text-secondary); cursor: pointer;
-}
-.admin-app-wrapper .hm-btn-sm:hover { color: var(--text-strong); }
+/* 이미지 미리보기: 사진은 <img class="hm-cover">, 위에 ‘바꾸기’ 버튼 */
+.hm-cover { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+.hm-media { display: flex; flex: 0 0 calc(var(--adm-space-8) * 7); flex-direction: column; gap: var(--adm-space-3); min-width: 0; }
+.hm-media-item { display: flex; flex-direction: column; gap: var(--adm-space-1); }
+.hm-media-label { display: flex; align-items: center; gap: var(--adm-space-1); color: var(--adm-text-2); font-size: var(--adm-fs-caption); font-weight: var(--adm-fw-bold); }
+.hm-media-label em { margin-left: auto; color: var(--adm-text-3); font-style: normal; font-weight: var(--adm-fw-regular); }
+.hm-mbox, .hm-ev-pv, .hm-pbox, .hm-theme-img { position: relative; overflow: hidden; width: 100%; border-radius: var(--adm-radius-md); }
+.hm-mbox { aspect-ratio: 16 / 10; background: var(--adm-accent-strong); color: var(--adm-on-dark); }
+.hm-mov { position: absolute; inset: 0; display: flex; flex-direction: column; justify-content: flex-end; gap: calc(var(--adm-space-1) / 2); padding: var(--adm-space-3); }
+.hm-mbox.has-image .hm-mov, .hm-ev-pv.has-image::before { background: var(--adm-scrim); }
+.hm-mov-tag { font-size: var(--adm-fs-caption); font-weight: var(--adm-fw-bold); opacity: .9; }
+.hm-mov-title { display: -webkit-box; overflow: hidden; font-size: var(--adm-fs-small); font-weight: var(--adm-fw-bold); line-height: var(--adm-lh); white-space: pre-line; -webkit-line-clamp: 3; -webkit-box-orient: vertical; }
+.hm-mov-sub { overflow: hidden; font-size: var(--adm-fs-caption); opacity: .85; text-overflow: ellipsis; white-space: nowrap; }
+.hm-upload-btn { position: absolute; top: var(--adm-space-2); right: var(--adm-space-2); z-index: 1; }
+.hm-pbox { display: flex; align-items: center; justify-content: center; aspect-ratio: 21 / 9; border: calc(var(--adm-border-width) * 1.5) dashed var(--adm-line); background: var(--adm-gray-50); }
+.hm-pbox.has-image { border: 0; background: var(--adm-gray-100); }
+.hm-pbox-empty { display: flex; flex-direction: column; align-items: center; gap: calc(var(--adm-space-1) / 2); color: var(--adm-text-3); font-size: var(--adm-fs-caption); }
 
 /* 입력 */
-.admin-app-wrapper .hm-fields { flex: 1 1 420px; min-width: 0; display: flex; flex-direction: column; gap: 14px; }
-.admin-app-wrapper .hm-basic { display: flex; flex-direction: column; gap: 12px; padding: 16px; border-radius: var(--adm-radius-md); background: var(--mrt-gray-50); }
-.admin-app-wrapper .hm-box-title { display: flex; align-items: center; gap: 6px; font-size: 14px; font-weight: var(--adm-fw-bold); color: var(--text-strong); }
-.admin-app-wrapper .hm-box-title small { font-size: 12px; font-weight: 500; color: var(--text-tertiary); }
-.admin-app-wrapper .hm-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(220px, 100%), 1fr)); gap: 12px; }
-.admin-app-wrapper .hm-grid-wide { grid-template-columns: repeat(auto-fit, minmax(min(300px, 100%), 1fr)); }
-.admin-app-wrapper .hm-field { display: flex; flex-direction: column; gap: 6px; min-width: 0; margin: 0; }
-.admin-app-wrapper .hm-field > span { font-size: 13px; font-weight: 700; color: var(--text-strong); }
-.admin-app-wrapper .hm-field > span small { font-size: 13px; font-weight: 500; color: var(--text-tertiary); }
-.admin-app-wrapper .hm-inp {
-  width: 100%; height: 44px; padding: 0 14px; box-sizing: border-box; border: 1px solid var(--border-default); border-radius: var(--adm-radius-md);
-  background: var(--adm-surface); font: inherit; font-size: 14px; color: var(--text-strong); outline: none; transition: border-color 160ms, box-shadow 160ms;
-}
-.admin-app-wrapper .hm-inp:focus { border-color: var(--mrt-ink); }
-.admin-app-wrapper .hm-inp::placeholder { color: var(--text-tertiary); }
-.admin-app-wrapper .hm-textarea { height: auto; min-height: 64px; padding: 12px 14px; line-height: 1.5; resize: vertical; }
-.admin-app-wrapper .hm-select { width: 130px; flex: none; cursor: pointer; }
-.admin-app-wrapper .hm-mono { font-variant-numeric: tabular-nums; }
-.admin-app-wrapper .hm-pc { display: flex; flex-direction: column; padding: 4px 16px; border: 1px solid var(--border-default); border-radius: var(--adm-radius-md); }
-.admin-app-wrapper .hm-pc-toggle { display: flex; align-items: center; gap: 6px; height: 44px; padding: 0; border: 0; background: transparent; font: inherit; color: var(--text-strong); cursor: pointer; text-align: left; }
-.admin-app-wrapper .hm-pc-toggle b { font-size: 14px; font-weight: var(--adm-fw-bold); }
-.admin-app-wrapper .hm-badge { padding: 2px 8px; border-radius:var(--adm-radius-xs); background: var(--mrt-gray-100); color: var(--text-tertiary); font-size: 11px; font-weight: 700; white-space: nowrap; }
-.admin-app-wrapper .hm-badge.is-on { background: var(--mrt-blue-50); color: var(--mrt-blue-strong); }
-.admin-app-wrapper .hm-pc-hint { margin-left: auto; font-size: 12px; color: var(--text-tertiary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.admin-app-wrapper .hm-pc-body { display: flex; flex-direction: column; gap: 12px; padding: 4px 0 16px; }
+.hm-fields { display: flex; flex: 1 1 calc(var(--adm-space-8) * 13); flex-direction: column; gap: var(--adm-space-3); min-width: 0; }
+.hm-basic { display: flex; flex-direction: column; gap: var(--adm-space-3); padding: var(--adm-space-4); border-radius: var(--adm-radius-md); background: var(--adm-gray-50); }
+.hm-box-title { display: flex; align-items: center; gap: var(--adm-space-1); color: var(--adm-ink); font-size: var(--adm-fs-small); font-weight: var(--adm-fw-bold); }
+.hm-box-title small { color: var(--adm-text-3); font-size: var(--adm-fs-caption); font-weight: var(--adm-fw-regular); }
+.hm-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(calc(var(--adm-space-8) * 7), 100%), 1fr)); gap: var(--adm-space-3); }
+.hm-grid-wide { grid-template-columns: repeat(auto-fit, minmax(min(calc(var(--adm-space-8) * 9.5), 100%), 1fr)); }
+.hm-pc { display: flex; flex-direction: column; padding: var(--adm-space-1) var(--adm-space-4); border: var(--adm-border-width) solid var(--adm-line); border-radius: var(--adm-radius-md); }
+.hm-pc-toggle.adm-ui-pick { gap: var(--adm-space-2); min-height: var(--adm-control-h); color: var(--adm-ink); }
+.hm-pc-toggle b { font-size: var(--adm-fs-small); }
+.hm-pc-hint { overflow: hidden; margin-left: auto; color: var(--adm-text-3); font-size: var(--adm-fs-caption); text-overflow: ellipsis; white-space: nowrap; }
+.hm-pc-body { display: flex; flex-direction: column; gap: var(--adm-space-3); padding: var(--adm-space-1) 0 var(--adm-space-4); }
 
 /* 바로가기 아이콘 */
-.admin-app-wrapper .hm-icon-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 12px; }
-.admin-app-wrapper .hm-icon-card { display: flex; flex-direction: column; gap: 12px; padding: 16px; background: var(--adm-surface); border: 1px solid var(--border-default); border-radius: var(--adm-radius-md); min-width: 0; }
-.admin-app-wrapper .hm-icon-top { display: flex; align-items: center; gap: 12px; min-width: 0; }
-.admin-app-wrapper .hm-icon-img {
-  width: 56px; height: 56px; flex: none; display: flex; align-items: center; justify-content: center; padding: 0; overflow: hidden;
-  border: 1.5px dashed var(--border-default); border-radius: var(--adm-radius-md); background: var(--mrt-gray-50); color: var(--text-strong); cursor: pointer;
-}
-.admin-app-wrapper .hm-icon-img:hover { border-color: var(--mrt-gray-400); }
-.admin-app-wrapper .hm-icon-img.has-image { border: 0; }
-.admin-app-wrapper .hm-icon-img img { width: 100%; height: 100%; object-fit: cover; display: block; }
-.admin-app-wrapper .hm-icon-img .material-symbols-outlined { font-size: 26px; }
-.admin-app-wrapper .hm-icon-meta { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
-.admin-app-wrapper .hm-icon-meta .hm-name { font-size: 14px; }
-.admin-app-wrapper .hm-icon-num { font-size: 12px; font-weight: var(--adm-fw-bold); color: var(--text-tertiary); font-variant-numeric: tabular-nums; }
-.admin-app-wrapper .hm-icon-tools { display: flex; gap: 6px; }
-.admin-app-wrapper .hm-icon-tools .danger { margin-left: auto; }
+.hm-icon-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(calc(var(--adm-space-8) * 7), 1fr)); gap: var(--adm-space-3); }
+.hm-icon-card { display: flex; flex-direction: column; gap: var(--adm-space-3); min-width: 0; padding: var(--adm-space-4); border: var(--adm-border-width) solid var(--adm-line); border-radius: var(--adm-radius-md); background: var(--adm-surface); }
+.hm-icon-top { display: flex; align-items: center; gap: var(--adm-space-3); min-width: 0; }
+.hm-icon-img { display: flex; flex: none; align-items: center; justify-content: center; overflow: hidden; width: calc(var(--adm-space-8) * 1.75); height: calc(var(--adm-space-8) * 1.75);
+  border: calc(var(--adm-border-width) * 1.5) dashed var(--adm-line); border-radius: var(--adm-radius-md); background: var(--adm-gray-50); color: var(--adm-ink); }
+.hm-icon-img.has-image { border: 0; }
+.hm-icon-img img { display: block; width: 100%; height: 100%; object-fit: cover; }
+.hm-icon-meta { display: flex; flex: 1; flex-direction: column; gap: calc(var(--adm-space-1) / 2); min-width: 0; }
+.hm-icon-num { color: var(--adm-text-3); font-size: var(--adm-fs-caption); font-weight: var(--adm-fw-bold); font-variant-numeric: tabular-nums; }
+.hm-icon-tools { display: flex; gap: var(--adm-space-1); }
+.hm-icon-tools .hm-push { margin-left: auto; }
 
 /* 이벤트 배너 */
-.admin-app-wrapper .hm-ev-pv { display: flex; align-items: center; justify-content: space-between; gap: 8px; aspect-ratio: auto; min-height: 84px; padding: 14px 16px; box-sizing: border-box; background-size: cover; background-position: center; }
-.admin-app-wrapper .hm-ev-pv.has-image::before { content: ''; position: absolute; inset: 0; background: rgba(0,0,0,.28); }
-.admin-app-wrapper .hm-ev-text { position: relative; display: flex; flex-direction: column; gap: 2px; min-width: 0; }
-.admin-app-wrapper .hm-ev-pv > .material-symbols-outlined { position: relative; font-size: 24px; opacity: .7; }
-.admin-app-wrapper .hm-color-row { display: flex; gap: 8px; align-items: center; }
-.admin-app-wrapper .hm-swatch { position: relative; width: 44px; height: 44px; flex: none; box-sizing: border-box; border: 1px solid var(--border-default); border-radius: var(--adm-radius-md); cursor: pointer; overflow: hidden; }
-.admin-app-wrapper .hm-swatch input { position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; border: 0; padding: 0; cursor: pointer; }
-.admin-app-wrapper .hm-presets { display: flex; gap: 6px; }
-.admin-app-wrapper .hm-preset { width: 22px; height: 22px; padding: 0; border: 0; border-radius:var(--adm-radius-sm); cursor: pointer; }
-.admin-app-wrapper .hm-preset.is-on { border: 2px solid var(--adm-surface); box-shadow: 0 0 0 2px var(--mrt-ink); }
-.admin-app-wrapper .hm-seg { display: flex; gap: 2px; padding: 3px; border: 1px solid var(--border-default); border-radius: var(--adm-radius-md); background: var(--adm-surface); }
-.admin-app-wrapper .hm-seg button {
-  flex: 1; min-width: 0; height: 36px; padding: 0 6px; border: 0; border-radius: var(--adm-radius-sm); background: transparent;
-  font: inherit; font-size: 13px; font-weight: 600; color: var(--text-body); cursor: pointer; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-}
-.admin-app-wrapper .hm-seg button:hover:not(.is-on) { background: var(--mrt-gray-50); }
-.admin-app-wrapper .hm-seg button.is-on { background: var(--mrt-ink); color: #fff; }
-.admin-app-wrapper .hm-link-row { display: flex; gap: 8px; }
+.hm-ev-pv { display: flex; align-items: center; justify-content: space-between; gap: var(--adm-space-2); min-height: calc(var(--adm-space-8) * 3.4); padding: var(--adm-space-4); color: var(--adm-on-dark); }
+.hm-ev-pv.has-image::before { content: ''; position: absolute; inset: 0; }
+.hm-ev-text { position: relative; display: flex; flex-direction: column; gap: calc(var(--adm-space-1) / 2); min-width: 0; }
+.hm-ev-pv > .material-symbols-outlined { position: relative; font-size: var(--adm-fs-title); opacity: .7; }
+.hm-color { display: flex; flex-direction: column; gap: var(--adm-space-2); }
+.hm-color-row { display: flex; align-items: center; gap: var(--adm-space-2); }
+.hm-color-pick { flex: none; width: var(--adm-control-h-lg); }
+.hm-mono input { font-variant-numeric: tabular-nums; }
+.hm-presets { display: flex; flex-wrap: wrap; gap: var(--adm-space-1); }
+.hm-preset-dot { display: block; width: var(--adm-space-4); height: var(--adm-space-4); border-radius: var(--adm-radius-pill); }
+.hm-link-row { display: flex; gap: var(--adm-space-2); }
+.hm-select { flex: none; width: calc(var(--adm-space-8) * 4.25); }
 
 /* 여행지 테마 배너 */
-.admin-app-wrapper .hm-theme-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 12px; }
-.admin-app-wrapper .hm-theme-card { display: flex; flex-direction: column; overflow: hidden; background: var(--adm-surface); border: 1px solid var(--border-default); border-radius: var(--adm-radius-md); min-width: 0; }
-.admin-app-wrapper .hm-theme-img { position: relative; display: block; width: 100%; aspect-ratio: 16 / 10; padding: 0; border: 0; background-color: var(--mrt-gray-100); cursor: pointer; }
-.admin-app-wrapper .hm-theme-name { position: absolute; top: 12px; left: 12px; padding: 3px 10px; border-radius: var(--adm-radius-xs); background: var(--adm-surface); color: var(--adm-ink); font-size: 12px; font-weight: var(--adm-fw-semibold); box-shadow: var(--adm-shadow-xs); }
-.admin-app-wrapper .hm-theme-fields { display: flex; flex-direction: column; gap: 12px; padding: 16px; }
-
-/* 비어 있을 때 */
-.admin-app-wrapper .hm-empty {
-  display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 36px; border: 1.5px dashed var(--border-default); border-radius: var(--adm-radius-md);
-  background: var(--adm-surface); font: inherit; font-size: 14px; font-weight: 600; color: var(--text-tertiary); cursor: pointer;
-}
-.admin-app-wrapper button.hm-empty:hover { border-color: var(--mrt-ink); color: var(--text-strong); }
-.admin-app-wrapper .hm-empty.is-static { gap: 12px; cursor: default; color: var(--mrt-gray-400); }
-.admin-app-wrapper .hm-empty strong { font-size: 14px; font-weight: 600; color: var(--text-secondary); }
-.admin-app-wrapper .hm-suggest { display: flex; gap: 6px; flex-wrap: wrap; justify-content: center; align-items: center; }
-.admin-app-wrapper .hm-suggest span { font-size: 12px; font-weight: 500; color: var(--text-tertiary); }
-.admin-app-wrapper .hm-suggest button { height: 30px; padding: 0 12px; border: 1px solid var(--border-default); border-radius:var(--adm-radius-sm); background: var(--adm-surface); font: inherit; font-size: 12px; font-weight: 700; color: var(--text-strong); cursor: pointer; }
-.admin-app-wrapper .hm-suggest button:hover { border-color: var(--mrt-ink); }
-
-.admin-app-wrapper .hm-page :is(button, input, textarea, select):focus-visible { outline: 2px solid var(--mrt-blue); outline-offset: 2px; }
+.hm-theme-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(calc(var(--adm-space-8) * 8), 1fr)); gap: var(--adm-space-3); }
+.hm-theme-card { display: flex; flex-direction: column; overflow: hidden; min-width: 0; border: var(--adm-border-width) solid var(--adm-line); border-radius: var(--adm-radius-md); background: var(--adm-surface); }
+.hm-theme-img { aspect-ratio: 16 / 10; border-radius: 0; background: var(--adm-gray-100); }
+.hm-theme-name { position: absolute; top: var(--adm-space-3); left: var(--adm-space-3); z-index: 1; padding: calc(var(--adm-space-1) / 2) var(--adm-space-2); border-radius: var(--adm-radius-xs);
+  background: var(--adm-surface); color: var(--adm-ink); font-size: var(--adm-fs-caption); font-weight: var(--adm-fw-bold); }
+.hm-theme-fields { display: flex; flex-direction: column; gap: var(--adm-space-3); padding: var(--adm-space-4); }
+.hm-suggest { display: flex; flex-wrap: wrap; justify-content: center; gap: var(--adm-space-1); }
 
 @media (max-width: 760px) {
-  /* 휴대폰 본문 여백(16px)에 맞춘다. 데스크톱 값(-32px)을 그대로 쓰면 화면이 옆으로 넘친다. */
-  .admin-app-wrapper .hm-bar { gap: 8px; top: var(--adm-topbar-h); margin: calc(var(--adm-space-4) * -1) calc(var(--adm-pad-page) * -1) var(--adm-space-4); padding: var(--adm-space-2) var(--adm-pad-page); }
-  .admin-app-wrapper .hm-tabs { flex-wrap: nowrap; overflow-x: auto; width: 100%; }
-  .admin-app-wrapper .hm-bar-end { margin-left: 0; width: 100%; }
-  .admin-app-wrapper .hm-status { flex: 1; }
-  .admin-app-wrapper .hm-card { padding: 16px; }
-  .admin-app-wrapper .hm-summary { display: none; }
-  .admin-app-wrapper .hm-media { flex: 1 1 100%; }
-  .admin-app-wrapper .hm-fields { flex-basis: 100%; }
-  .admin-app-wrapper .hm-pc-hint { display: none; }
+  /* 휴대폰 본문 여백에 맞춘다. 데스크톱 값을 그대로 쓰면 화면이 옆으로 넘친다. */
+  .admin-app-wrapper .hm-bar { top: var(--adm-topbar-h); gap: var(--adm-space-2); margin: calc(var(--adm-space-4) * -1) calc(var(--adm-pad-page) * -1) var(--adm-space-4); padding: var(--adm-space-2) var(--adm-pad-page); }
+  .hm-tabs { flex-wrap: nowrap; width: 100%; overflow-x: auto; }
+  .hm-bar-end { width: 100%; margin-left: 0; }
+  .hm-status { flex: 1; }
+  .hm-card { padding: var(--adm-space-4); }
+  .hm-summary, .hm-pc-hint { display: none; }
+  .hm-media, .hm-fields { flex-basis: 100%; }
 }

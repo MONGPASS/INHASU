@@ -1,0 +1,16 @@
+/*
+ * 관리자 로그인 — 왼쪽 소개 칸·오른쪽 카드 배치는 admin-console.css의 login-* 규칙, 폼은 우리 관리자 부품이 그린다.
+ * 이 파일은 소개 칸 머리(로고·이름)와 카드 안 제목·설명·칸 간격만 둔다. 값은 --adm-* 변수만 쓴다.
+ */
+.al-brand { display: flex; align-items: center; gap: var(--adm-space-3); }
+.al-brand-mark { display: inline-flex; align-items: center; justify-content: center; width: var(--adm-control-h-lg); height: var(--adm-control-h-lg);
+  border-radius: var(--adm-radius-md); background: var(--adm-accent); color: var(--adm-on-primary); font-size: var(--adm-fs-section); }
+.al-brand-name { font-size: var(--adm-fs-title); font-weight: var(--adm-fw-bold); }
+.al-brand-sub { font-size: var(--adm-fs-caption); font-weight: var(--adm-fw-bold); opacity: .7; }
+.al-grow { flex: 1; }
+
+.al-card { display: flex; flex-direction: column; gap: var(--adm-space-4); }
+.al-kicker { margin: 0; color: var(--adm-accent-strong); font-size: var(--adm-fs-caption); font-weight: var(--adm-fw-bold); }
+.al-title { margin: 0; color: var(--adm-ink); font-size: var(--adm-fs-title); font-weight: var(--adm-fw-bold); }
+.al-lead { margin: 0 0 var(--adm-space-2); color: var(--adm-text-3); font-size: var(--adm-fs-body); line-height: var(--adm-lh); }
+.al-links { display: flex; flex-direction: column; align-items: center; gap: var(--adm-space-1); }

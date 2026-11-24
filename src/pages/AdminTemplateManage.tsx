@@ -17,6 +17,11 @@ import { DOC_BLUE, DOC_NAVY } from '../components/document/TripDocParts';
 import { won } from '../components/desktop-primitives/mwTokens';
 import { adminConfirm, adminNotify } from '../components/admin/ui/adminFeedback';
 import { adminValidateRequired } from '../components/admin/ui/adminForm';
+import {
+    AdminBadge, AdminButton, AdminCard, AdminChip, AdminDialog, AdminEmpty, AdminError, AdminField, AdminFileButton, AdminIconButton, AdminLoading, AdminSegmented, AdminTextArea, AdminTextInput,
+    IconClose, IconCopy, IconDocumentText, IconHotel, IconPencil, IconPerson, IconPlus, IconTrash, IconUpload,
+} from '../components/admin/ui';
+import './AdminTemplateManage.css';
 
 // ─── Types ───────────────────────────────────────────────
 export type ActivityType = 'pickup' | 'transport' | 'meal' | 'sightseeing' | 'activity' | 'checkin' | 'free' | 'other';
@@ -841,458 +846,6 @@ export const TemplatePreview: React.FC<TemplatePreviewProps> = ({ name, descript
     );
 };
 
-type ProductStyleItineraryEditorProps = {
-    days: TemplateDay[];
-    quickDays: number;
-    onQuickDaysChange: (value: number) => void;
-    onCreateSkeleton: () => void;
-    onAddDay: () => void;
-    onUpdateDay: (dayIdx: number, field: keyof TemplateDay, value: any) => void;
-    onMoveDay: (dayIdx: number, direction: -1 | 1) => void;
-    onDuplicateDay: (dayIdx: number) => void;
-    onRemoveDay: (dayIdx: number) => void;
-    onAddActivity: (dayIdx: number, type: ActivityType) => void;
-    onUpdateActivity: (dayIdx: number, activityIdx: number, field: keyof Activity, value: any) => void;
-    onMoveActivity: (dayIdx: number, activityIdx: number, direction: -1 | 1) => void;
-    onRemoveActivity: (dayIdx: number, activityIdx: number) => void;
-    onRemoveActivityImage: (dayIdx: number, activityIdx: number, imageIdx: number) => void;
-    onUploadActivityImages: (dayIdx: number, activityIdx: number, files: FileList | null) => void;
-    onPickSpot: (dayIdx: number, activityIdx: number) => void;
-    onPickHotelActivity: (dayIdx: number, activityIdx: number) => void;
-    onPickDayHotel: (dayIdx: number) => void;
-};
-
-const ProductStyleItineraryEditor: React.FC<ProductStyleItineraryEditorProps> = ({
-    days,
-    quickDays,
-    onQuickDaysChange,
-    onCreateSkeleton,
-    onAddDay,
-    onUpdateDay,
-    onMoveDay,
-    onDuplicateDay,
-    onRemoveDay,
-    onAddActivity,
-    onUpdateActivity,
-    onMoveActivity,
-    onRemoveActivity,
-    onRemoveActivityImage,
-    onUploadActivityImages,
-    onPickSpot,
-    onPickHotelActivity,
-    onPickDayHotel,
-}) => {
-    const [selectedDayIndex, setSelectedDayIndex] = useState(0);
-
-    useEffect(() => {
-        setSelectedDayIndex(current => Math.max(0, Math.min(current, days.length - 1)));
-    }, [days.length]);
-
-    const selectedDay = days[selectedDayIndex];
-    const inputClass = 'w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm font-semibold text-slate-800 outline-none transition focus:border-[#287DFA] focus:ring-2 focus:ring-[#287DFA]/15';
-    const iconButtonClass = 'flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-400 transition hover:border-[#9CC5FF] hover:text-[#1656D6] disabled:cursor-not-allowed disabled:opacity-30';
-
-    return (
-        <div className="grid h-full grid-cols-[230px_minmax(580px,1fr)_260px] overflow-hidden bg-[#F7FAFA] max-xl:grid-cols-[210px_minmax(520px,1fr)] max-lg:block max-lg:overflow-y-auto">
-            <aside className="overflow-y-auto border-r border-slate-200 bg-white p-4 max-lg:border-b max-lg:border-r-0">
-                <div className="rounded-2xl border border-amber-200 bg-amber-50 p-3">
-                    <p className="text-xs font-black text-amber-900">N일 일정 골격 만들기</p>
-                    <p className="mt-1 text-[10px] font-semibold leading-relaxed text-amber-700">상품관리 일정탭과 같은 방식으로 DAY를 먼저 생성합니다.</p>
-                    <div className="mt-3 flex gap-2">
-                        <select
-                            value={quickDays}
-                            onChange={event => onQuickDaysChange(Number(event.target.value))}
-                            className="h-9 flex-1 rounded-lg border border-amber-200 bg-white px-2 text-xs font-black text-slate-700 outline-none"
-                        >
-                            {Array.from({ length: 14 }, (_, index) => index + 1).map(day => <option key={day} value={day}>{day}일</option>)}
-                        </select>
-                        <button type="button" onClick={onCreateSkeleton} className="h-9 rounded-lg bg-amber-500 px-3 text-xs font-black text-white hover:bg-amber-600">생성</button>
-                    </div>
-                </div>
-
-                <div className="mb-3 mt-5 flex items-center justify-between">
-                    <div>
-                        <p className="text-[10px] font-black uppercase tracking-[0.14em] text-slate-400">일정 구성</p>
-                        <p className="mt-1 text-base font-black text-slate-900">{days.length}일 일정</p>
-                    </div>
-                    <button type="button" onClick={onAddDay} className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#1656D6] text-white" title="DAY 추가">
-                        <span className="material-symbols-outlined text-[18px]">add</span>
-                    </button>
-                </div>
-
-                <div className="space-y-2">
-                    {days.map((day, index) => (
-                        <button
-                            key={`${day.day}-${index}`}
-                            type="button"
-                            onClick={() => setSelectedDayIndex(index)}
-                            className={`w-full rounded-xl border p-3 text-left transition ${selectedDayIndex === index ? 'border-[#287DFA] bg-[#EAF3FF] shadow-sm' : 'border-slate-200 bg-white hover:border-[#9CC5FF]'}`}
-                        >
-                            <div className="flex items-center justify-between">
-                                <span className="text-[10px] font-black text-[#1656D6]">DAY {day.day}</span>
-                                <span className="text-[9px] font-bold text-slate-400">{day.activities.length}개 일정</span>
-                            </div>
-                            <p className="mt-1 truncate text-xs font-black text-slate-800">{day.title || '일차 제목을 입력하세요'}</p>
-                            <p className="mt-1 truncate text-[10px] font-semibold text-slate-400">{[day.date, day.region].filter(Boolean).join(' · ') || '날짜·지역 미정'}</p>
-                        </button>
-                    ))}
-                    {days.length === 0 && (
-                        <button type="button" onClick={onCreateSkeleton} className="w-full rounded-xl border-2 border-dashed border-[#9CC5FF] px-3 py-8 text-xs font-black text-[#1656D6]">
-                            일정 골격 생성
-                        </button>
-                    )}
-                </div>
-            </aside>
-
-            <main className="min-w-0 overflow-y-auto p-5">
-                {!selectedDay ? (
-                    <div className="flex min-h-[420px] items-center justify-center rounded-2xl border-2 border-dashed border-[#9CC5FF] bg-white text-center">
-                        <div>
-                            <span className="material-symbols-outlined text-4xl text-[#287DFA]">calendar_add_on</span>
-                            <p className="mt-3 text-sm font-black text-slate-800">먼저 여행 일수를 선택해 일정 골격을 생성하세요.</p>
-                            <p className="mt-1 text-xs font-semibold text-slate-400">생성 후 일차별 제목, 일정, 식사와 숙소를 입력할 수 있습니다.</p>
-                        </div>
-                    </div>
-                ) : (
-                    <section className="overflow-hidden rounded-2xl border border-[#9CC5FF] bg-white shadow-sm">
-                        <header className="flex items-start gap-3 border-b border-[#9CC5FF] bg-[#EAF3FF]/50 p-4">
-                            <div className="flex h-14 w-16 flex-shrink-0 flex-col items-center justify-center rounded-xl bg-gradient-to-br from-[#1656D6] to-[#287DFA] text-white">
-                                <span className="text-xs font-black">DAY {selectedDay.day}</span>
-                                <span className="mt-0.5 text-[9px] font-bold text-white/80">{selectedDay.day}일차</span>
-                            </div>
-                            <div className="grid min-w-0 flex-1 gap-2 sm:grid-cols-[130px_170px_1fr]">
-                                <input value={selectedDay.date || ''} onChange={event => onUpdateDay(selectedDayIndex, 'date', event.target.value)} placeholder="날짜 (예: 06/10)" className={inputClass} />
-                                <input value={selectedDay.region || ''} onChange={event => onUpdateDay(selectedDayIndex, 'region', event.target.value)} placeholder="지역 (예: 울란바토르)" className={inputClass} />
-                                <input value={selectedDay.title} onChange={event => onUpdateDay(selectedDayIndex, 'title', event.target.value)} placeholder="일정 제목 (예: 공항 도착 및 시내 이동)" className={`${inputClass} font-black`} />
-                            </div>
-                            <div className="flex flex-shrink-0 gap-1">
-                                <button type="button" onClick={() => onMoveDay(selectedDayIndex, -1)} disabled={selectedDayIndex === 0} className={iconButtonClass} title="앞으로 이동"><Icon name="arrow_upward" /></button>
-                                <button type="button" onClick={() => onMoveDay(selectedDayIndex, 1)} disabled={selectedDayIndex === days.length - 1} className={iconButtonClass} title="뒤로 이동"><Icon name="arrow_downward" /></button>
-                                <button type="button" onClick={() => onDuplicateDay(selectedDayIndex)} className={iconButtonClass} title="일차 복제"><Icon name="content_copy" /></button>
-                                <button type="button" onClick={() => onRemoveDay(selectedDayIndex)} className={`${iconButtonClass} hover:border-rose-200 hover:text-rose-500`} title="일차 삭제"><Icon name="delete" /></button>
-                            </div>
-                        </header>
-
-                        <div className="p-5">
-                            <label className="text-[10px] font-black uppercase tracking-[0.14em] text-slate-400">여행 소개</label>
-                            <textarea
-                                value={selectedDay.summary || ''}
-                                onChange={event => onUpdateDay(selectedDayIndex, 'summary', event.target.value)}
-                                rows={3}
-                                placeholder="이날의 여행 흐름과 고객에게 전달할 설명을 입력하세요."
-                                className={`${inputClass} mt-2 resize-y leading-relaxed`}
-                            />
-
-                            <div className="mt-6 flex flex-wrap items-center justify-between gap-3">
-                                <div>
-                                    <p className="text-sm font-black text-slate-900">주요 일정</p>
-                                    <p className="mt-0.5 text-[10px] font-semibold text-slate-400">시간 없이 방문지와 이동 흐름을 순서대로 구성합니다.</p>
-                                </div>
-                                <div className="flex flex-wrap gap-2">
-                                    {([
-                                        ['sightseeing', 'add_location_alt', '관광 일정'],
-                                        ['transport', 'directions_car', '이동'],
-                                        ['activity', 'hiking', '체험'],
-                                        ['free', 'park', '자유 일정'],
-                                    ] as Array<[ActivityType, string, string]>).map(([type, icon, label]) => (
-                                        <button key={type} type="button" onClick={() => onAddActivity(selectedDayIndex, type)} className="inline-flex h-9 items-center gap-1 rounded-lg border border-slate-200 bg-white px-3 text-[11px] font-black text-slate-700 hover:border-[#287DFA] hover:text-[#1656D6]">
-                                            <span className="material-symbols-outlined text-[16px]">{icon}</span>{label}
-                                        </button>
-                                    ))}
-                                </div>
-                            </div>
-
-                            <div className="mt-4 space-y-3">
-                                {selectedDay.activities.map((activity, activityIdx) => (
-                                    <article key={activityIdx} className="rounded-2xl border border-slate-200 bg-[#F7FAFA] p-4">
-                                        <div className="flex items-start gap-3">
-                                            <div className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-xl bg-[#EAF3FF] text-[#1656D6]">
-                                                <span className="material-symbols-outlined text-[19px]">{TYPE_MAP[activity.type || 'sightseeing']?.icon || 'place'}</span>
-                                            </div>
-                                            <div className="min-w-0 flex-1">
-                                                <div className="grid gap-2 sm:grid-cols-[130px_1fr]">
-                                                    <select value={activity.type || 'sightseeing'} onChange={event => onUpdateActivity(selectedDayIndex, activityIdx, 'type', event.target.value as ActivityType)} className={inputClass}>
-                                                        {ACTIVITY_TYPES.map(type => <option key={type.id} value={type.id}>{type.label}</option>)}
-                                                    </select>
-                                                    <input value={activity.title} onChange={event => onUpdateActivity(selectedDayIndex, activityIdx, 'title', event.target.value)} placeholder="일정 제목" className={`${inputClass} font-black`} />
-                                                </div>
-                                                <textarea value={activity.description || ''} onChange={event => onUpdateActivity(selectedDayIndex, activityIdx, 'description', event.target.value)} rows={2} placeholder="상세 설명 (선택)" className={`${inputClass} mt-2 resize-y text-xs leading-relaxed`} />
-                                                <div className="mt-3 flex flex-wrap items-center gap-2">
-                                                    <button type="button" onClick={() => onPickSpot(selectedDayIndex, activityIdx)} className="inline-flex h-8 items-center gap-1 rounded-lg border border-[#9CC5FF] bg-white px-2.5 text-[10px] font-black text-[#1656D6]"><Icon name="location_on" />여행지에서 선택</button>
-                                                    <button type="button" onClick={() => onPickHotelActivity(selectedDayIndex, activityIdx)} className="inline-flex h-8 items-center gap-1 rounded-lg border border-slate-200 bg-white px-2.5 text-[10px] font-black text-slate-600"><Icon name="hotel" />등록 숙소에서 선택</button>
-                                                    <label className="inline-flex h-8 cursor-pointer items-center gap-1 rounded-lg border border-slate-200 bg-white px-2.5 text-[10px] font-black text-slate-600">
-                                                        <Icon name="add_photo_alternate" />사진 추가
-                                                        <input type="file" accept="image/*" multiple className="hidden" onChange={event => onUploadActivityImages(selectedDayIndex, activityIdx, event.target.files)} />
-                                                    </label>
-                                                </div>
-                                                {(activity.images || []).length > 0 && (
-                                                    <div className="mt-3 flex gap-2 overflow-x-auto pb-1">
-                                                        {(activity.images || []).map((image, imageIdx) => (
-                                                            <div key={`${image}-${imageIdx}`} className="relative flex-none">
-                                                                <img src={image} alt="" className="h-20 w-28 rounded-xl object-cover" />
-                                                                <button type="button" onClick={() => onRemoveActivityImage(selectedDayIndex, activityIdx, imageIdx)} className="absolute -right-1.5 -top-1.5 flex h-5 w-5 items-center justify-center rounded-full bg-rose-500 text-white"><Icon name="close" style={{ fontSize: 13 }} /></button>
-                                                            </div>
-                                                        ))}
-                                                    </div>
-                                                )}
-                                            </div>
-                                            <div className="flex flex-shrink-0 flex-col gap-1">
-                                                <button type="button" onClick={() => onMoveActivity(selectedDayIndex, activityIdx, -1)} disabled={activityIdx === 0} className={iconButtonClass} title="위로"><Icon name="arrow_upward" /></button>
-                                                <button type="button" onClick={() => onMoveActivity(selectedDayIndex, activityIdx, 1)} disabled={activityIdx === selectedDay.activities.length - 1} className={iconButtonClass} title="아래로"><Icon name="arrow_downward" /></button>
-                                                <button type="button" onClick={() => onRemoveActivity(selectedDayIndex, activityIdx)} className={`${iconButtonClass} hover:border-rose-200 hover:text-rose-500`} title="삭제"><Icon name="delete" /></button>
-                                            </div>
-                                        </div>
-                                    </article>
-                                ))}
-                                {selectedDay.activities.length === 0 && (
-                                    <button type="button" onClick={() => onAddActivity(selectedDayIndex, 'sightseeing')} className="w-full rounded-2xl border-2 border-dashed border-[#9CC5FF] py-8 text-xs font-black text-[#1656D6] hover:bg-[#EAF3FF]">
-                                        <Icon name="add_circle" /> 첫 일정 항목 추가
-                                    </button>
-                                )}
-                            </div>
-
-                            <div className="mt-6 grid gap-4 lg:grid-cols-2">
-                                <div className="rounded-2xl border border-slate-200 p-4">
-                                    <p className="flex items-center gap-1.5 text-sm font-black text-slate-900"><Icon name="restaurant" />식사 정보</p>
-                                    <div className="mt-3 grid grid-cols-3 gap-2">
-                                        {([
-                                            ['breakfast', '조식'],
-                                            ['lunch', '중식'],
-                                            ['dinner', '석식'],
-                                        ] as const).map(([key, label]) => (
-                                            <label key={key} className="rounded-xl bg-slate-50 p-2">
-                                                <span className="text-[9px] font-black text-slate-400">{label}</span>
-                                                <input value={selectedDay.meals?.[key] || ''} onChange={event => onUpdateDay(selectedDayIndex, 'meals', { ...(selectedDay.meals || {}), [key]: event.target.value })} placeholder="미정" className="mt-1 w-full bg-transparent text-xs font-bold text-slate-700 outline-none" />
-                                            </label>
-                                        ))}
-                                    </div>
-                                </div>
-                                <div className="rounded-2xl border border-slate-200 p-4">
-                                    <div className="flex items-center justify-between gap-3">
-                                        <p className="flex items-center gap-1.5 text-sm font-black text-slate-900"><Icon name="hotel" />숙소 정보</p>
-                                        <button type="button" onClick={() => onPickDayHotel(selectedDayIndex)} className="text-[10px] font-black text-[#1656D6]">등록 숙소에서 선택</button>
-                                    </div>
-                                    <input value={selectedDay.accommodation?.name || ''} onChange={event => onUpdateDay(selectedDayIndex, 'accommodation', { ...(selectedDay.accommodation || {}), name: event.target.value })} placeholder="호텔 또는 게르명" className={`${inputClass} mt-3`} />
-                                    {selectedDay.accommodation?.location && <p className="mt-2 text-[10px] font-semibold text-slate-400">{selectedDay.accommodation.location}</p>}
-                                </div>
-                            </div>
-                        </div>
-                    </section>
-                )}
-            </main>
-
-            <aside className="overflow-y-auto border-l border-slate-200 bg-white p-4 max-xl:hidden">
-                <p className="text-[10px] font-black uppercase tracking-[0.14em] text-slate-400">일정 요약</p>
-                <div className="mt-3 rounded-2xl border border-slate-200 p-4">
-                    <div className="flex items-center justify-between">
-                        <span className="text-xs font-black text-slate-800">전체 일정</span>
-                        <span className="rounded-full bg-[#EAF3FF] px-2 py-1 text-[10px] font-black text-[#1656D6]">{days.length}일</span>
-                    </div>
-                    <dl className="mt-4 space-y-3 text-[11px]">
-                        <div className="flex justify-between gap-3"><dt className="font-bold text-slate-400">주요 일정</dt><dd className="font-black text-slate-700">{days.reduce((sum, day) => sum + day.activities.length, 0)}개</dd></div>
-                        <div className="flex justify-between gap-3"><dt className="font-bold text-slate-400">숙소 입력</dt><dd className="font-black text-slate-700">{days.filter(day => day.accommodation?.name).length}일</dd></div>
-                        <div className="flex justify-between gap-3"><dt className="font-bold text-slate-400">식사 입력</dt><dd className="font-black text-slate-700">{days.filter(day => Object.values(day.meals || {}).some(Boolean)).length}일</dd></div>
-                    </dl>
-                </div>
-                {selectedDay && (
-                    <div className="mt-4 rounded-2xl border border-[#9CC5FF] bg-[#F7FAFA] p-4">
-                        <p className="text-[10px] font-black text-[#1656D6]">현재 DAY {selectedDay.day}</p>
-                        <p className="mt-2 text-sm font-black text-slate-900">{selectedDay.title || '제목 미입력'}</p>
-                        <p className="mt-1 text-[10px] font-semibold text-slate-400">{[selectedDay.date, selectedDay.region].filter(Boolean).join(' · ') || '날짜·지역 미정'}</p>
-                        <div className="mt-4 space-y-2">
-                            {selectedDay.activities.slice(0, 5).map((activity, index) => (
-                                <div key={index} className="flex items-start gap-2 text-[10px] font-semibold text-slate-600">
-                                    <span className="mt-1 h-1.5 w-1.5 flex-shrink-0 rounded-full bg-[#287DFA]" />
-                                    <span>{activity.title || '일정 제목 미입력'}</span>
-                                </div>
-                            ))}
-                        </div>
-                    </div>
-                )}
-            </aside>
-        </div>
-    );
-};
-
-const ProductDayInfoItineraryEditor: React.FC<ProductStyleItineraryEditorProps> = ({
-    days,
-    quickDays,
-    onQuickDaysChange,
-    onCreateSkeleton,
-    onAddDay,
-    onUpdateDay,
-    onMoveDay,
-    onDuplicateDay,
-    onRemoveDay,
-    onAddActivity,
-    onUpdateActivity,
-    onMoveActivity,
-    onRemoveActivity,
-    onRemoveActivityImage,
-    onUploadActivityImages,
-    onPickSpot,
-    onPickHotelActivity,
-    onPickDayHotel,
-}) => {
-    const [collapsedDays, setCollapsedDays] = useState<Set<number>>(new Set());
-    const toggleDayCollapsed = (day: number) => {
-        setCollapsedDays(previous => {
-            const next = new Set(previous);
-            if (next.has(day)) next.delete(day);
-            else next.add(day);
-            return next;
-        });
-    };
-
-    return (
-    <div className="h-full overflow-y-auto bg-[#F7FAFA] p-5">
-        <div className="mx-auto max-w-[980px]">
-            <div className="mb-4 rounded-2xl border border-[#B9ECE7] bg-white p-4 shadow-sm">
-                <div className="flex flex-wrap items-center gap-3">
-                    <div className="min-w-[230px] flex-1">
-                        <p className="text-sm font-black text-slate-900">여행 일수 먼저 만들기</p>
-                        <p className="mt-1 text-xs font-semibold text-slate-500">여행 일수를 선택하면 날짜별 카드가 한 번에 생성됩니다.</p>
-                    </div>
-                    <select value={quickDays} onChange={event => onQuickDaysChange(Number(event.target.value))} className="select h-10 min-w-[100px]">
-                        {Array.from({ length: 14 }, (_, index) => index + 1).map(day => <option key={day} value={day}>{day}일</option>)}
-                    </select>
-                    <button type="button" onClick={onCreateSkeleton} className="btn btn-ink"><Icon name="calendar_add_on" />일정 생성</button>
-                    <button type="button" onClick={onAddDay} className="btn btn-ghost"><Icon name="add" />DAY 추가</button>
-                </div>
-            </div>
-
-            <div className="stack" style={{ gap: 18 }}>
-                {days.map((day, dayIdx) => {
-                    const collapsed = collapsedDays.has(day.day);
-                    return (
-                    <section key={`${day.day}-${dayIdx}`} className="overflow-hidden rounded-2xl border border-[#B9ECE7] bg-white shadow-sm">
-                        <div className="flex flex-wrap items-center gap-2 border-b border-[#DDF4F1] bg-[#F1FBFA] px-4 py-3" data-template-day={day.day}>
-                            <button type="button" onClick={() => toggleDayCollapsed(day.day)} className="act-btn" title={collapsed ? '펼치기' : '접기'}>
-                                <Icon name={collapsed ? 'expand_more' : 'expand_less'} />
-                            </button>
-                            <span className="inline-flex min-w-[68px] items-center justify-center rounded-lg bg-[var(--adm-accent-strong)] px-3 py-2 text-xs font-black text-white">DAY {day.day}</span>
-                            <div className="min-w-[260px] flex-1">
-                                <input className="inp font-bold" value={day.title || ''} onChange={event => onUpdateDay(dayIdx, 'title', event.target.value)} placeholder="일정 제목 (예: 울란바토르 → 테를지)" />
-                            </div>
-                            <input className="inp w-full sm:w-[130px]" value={day.date || ''} onChange={event => onUpdateDay(dayIdx, 'date', event.target.value)} placeholder="날짜 (05/26)" />
-                            {collapsed && <span className="whitespace-nowrap text-xs font-bold text-slate-500">일정 {day.activities.length}개</span>}
-                            <div className="edit-move">
-                                <button type="button" onClick={() => onMoveDay(dayIdx, -1)} disabled={dayIdx === 0}><Icon name="expand_less" /></button>
-                                <button type="button" onClick={() => onMoveDay(dayIdx, 1)} disabled={dayIdx === days.length - 1}><Icon name="expand_more" /></button>
-                            </div>
-                            <button type="button" onClick={() => onDuplicateDay(dayIdx)} className="act-btn" title="일차 복제"><Icon name="content_copy" /></button>
-                            <button type="button" onClick={() => onRemoveDay(dayIdx)} className="act-btn danger" title="일차 삭제"><Icon name="delete" /></button>
-                        </div>
-
-                        {!collapsed && (
-                            <div className="p-4">
-                                <div className="mt-3">
-                                    <label className="muted mb-1 block text-xs">주요 일정 요약</label>
-                                    <textarea className="inp min-h-[76px] resize-y" value={day.summary || ''} onChange={event => onUpdateDay(dayIdx, 'summary', event.target.value)} placeholder="이날의 이동 동선과 고객에게 전달할 핵심 내용을 입력하세요." />
-                                </div>
-
-                                <div className="mt-4 grid gap-4 lg:grid-cols-2">
-                                    <div>
-                                        <label className="cell-strong mb-2 block text-xs"><Icon name="restaurant" style={{ fontSize: 16 }} /> 식사 정보</label>
-                                        <div className="meal-grid" style={{ gridTemplateColumns: 'repeat(3, 1fr)' }}>
-                                            {([['breakfast', '조식'], ['lunch', '중식'], ['dinner', '석식']] as const).map(([key, label]) => (
-                                                <div key={key} className="inp-mini">
-                                                    <span className="pre text-[11px]">{label}</span>
-                                                    <input value={day.meals?.[key] || ''} onChange={event => onUpdateDay(dayIdx, 'meals', { ...(day.meals || {}), [key]: event.target.value })} placeholder="미정" />
-                                                </div>
-                                            ))}
-                                        </div>
-                                    </div>
-                                    <div>
-                                        <div className="row mb-2">
-                                            <label className="cell-strong text-xs"><Icon name="hotel" style={{ fontSize: 16 }} /> 숙소 정보</label>
-                                            <span className="spacer" />
-                                            <button type="button" onClick={() => onPickDayHotel(dayIdx)} className="btn btn-ghost btn-sm"><Icon name="hotel" />등록 숙소에서 선택</button>
-                                        </div>
-                                        <div className="inp-mini">
-                                            <span className="pre"><Icon name="hotel" style={{ fontSize: 14 }} /></span>
-                                            <input value={day.accommodation?.name || ''} onChange={event => onUpdateDay(dayIdx, 'accommodation', { ...(day.accommodation || {}), name: event.target.value })} placeholder="숙소명 또는 등록 숙소 선택" />
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <div className="mt-5 border-t border-slate-100 pt-4">
-                                    <div className="mb-3 flex flex-wrap items-center gap-2">
-                                        <span className="mr-auto text-xs font-black text-slate-900">주요 일정</span>
-                                        {([
-                                            ['sightseeing', 'add_location', '관광'],
-                                            ['transport', 'directions_car', '이동'],
-                                            ['activity', 'hiking', '체험'],
-                                            ['free', 'park', '자유 일정'],
-                                        ] as const).map(([type, icon, label]) => (
-                                            <button key={type} type="button" onClick={() => onAddActivity(dayIdx, type)} className="btn btn-ghost btn-sm">
-                                                <Icon name={icon} />{label}
-                                            </button>
-                                        ))}
-                                    </div>
-
-                                    <div className="stack" style={{ gap: 10 }}>
-                                        {day.activities.map((activity, activityIdx) => (
-                                            <div key={activityIdx} className="edit-row bg-slate-50" data-template-activity={`${day.day}-${activityIdx}`}>
-                                                <div className="edit-move">
-                                                    <button type="button" onClick={() => onMoveActivity(dayIdx, activityIdx, -1)} disabled={activityIdx === 0}><Icon name="expand_less" /></button>
-                                                    <button type="button" onClick={() => onMoveActivity(dayIdx, activityIdx, 1)} disabled={activityIdx === day.activities.length - 1}><Icon name="expand_more" /></button>
-                                                </div>
-                                                <div className="min-w-0 flex-1">
-                                                    <div className="row mb-3 flex-wrap" style={{ gap: 8 }}>
-                                                        <span className="badge b-gray">일정 {activityIdx + 1}</span>
-                                                        <span className="spacer" />
-                                                        <button type="button" onClick={() => onPickSpot(dayIdx, activityIdx)} className="btn btn-blue btn-sm"><Icon name="location_on" />여행지 선택</button>
-                                                        <button type="button" onClick={() => onPickHotelActivity(dayIdx, activityIdx)} className="btn btn-ghost btn-sm"><Icon name="hotel" />숙소 선택</button>
-                                                        <label className="btn btn-ghost btn-sm cursor-pointer">
-                                                            <Icon name="add_photo_alternate" />사진 추가
-                                                            <input type="file" accept="image/*" multiple className="hidden" onChange={event => onUploadActivityImages(dayIdx, activityIdx, event.target.files)} />
-                                                        </label>
-                                                    </div>
-                                                    <div className="row" style={{ gap: 8 }}>
-                                                        <select className="select w-[140px]" value={activity.type || 'sightseeing'} onChange={event => onUpdateActivity(dayIdx, activityIdx, 'type', event.target.value as ActivityType)}>
-                                                            {ACTIVITY_TYPES.map(type => <option key={type.id} value={type.id}>{type.label}</option>)}
-                                                        </select>
-                                                        <input className="inp flex-1 font-bold" value={activity.title || ''} onChange={event => onUpdateActivity(dayIdx, activityIdx, 'title', event.target.value)} placeholder="일정 제목" />
-                                                    </div>
-                                                    <textarea className="inp mt-2" rows={2} value={activity.description || ''} onChange={event => onUpdateActivity(dayIdx, activityIdx, 'description', event.target.value)} placeholder="고객에게 보여줄 상세 설명" />
-                                                    {(activity.images || []).length > 0 && (
-                                                        <div className="row mt-3 overflow-x-auto pb-2" style={{ gap: 8 }}>
-                                                            {(activity.images || []).map((image, imageIdx) => (
-                                                                <div key={`${image}-${imageIdx}`} className="relative flex-none">
-                                                                    <img src={image} alt="" className="h-20 w-20 rounded-lg border border-slate-200 object-cover" />
-                                                                    <button type="button" onClick={() => onRemoveActivityImage(dayIdx, activityIdx, imageIdx)} className="absolute -right-1.5 -top-1.5 grid h-5 w-5 place-items-center rounded-full border-0 bg-rose-500 text-white"><Icon name="close" style={{ fontSize: 13 }} /></button>
-                                                                </div>
-                                                            ))}
-                                                        </div>
-                                                    )}
-                                                </div>
-                                                <button type="button" onClick={() => onRemoveActivity(dayIdx, activityIdx)} className="act-btn danger" title="일정 삭제"><Icon name="delete" /></button>
-                                            </div>
-                                        ))}
-                                    </div>
-
-                                    <button type="button" onClick={() => onAddActivity(dayIdx, 'sightseeing')} className="add-line mt-3">
-                                        <Icon name="add_circle" />일정 항목 추가
-                                    </button>
-                                </div>
-                            </div>
-                        )}
-                    </section>
-                    );
-                })}
-
-                {days.length === 0 && (
-                    <button type="button" onClick={onCreateSkeleton} className="min-h-[280px] w-full rounded-2xl border-2 border-dashed border-[color:var(--adm-accent-line)] bg-white text-sm font-black text-[color:var(--adm-accent-strong)]">
-                        <Icon name="calendar_add_on" /> 일정 골격 생성
-                    </button>
-                )}
-            </div>
-        </div>
-    </div>
-    );
-};
-
 // ─── Tab: Itinerary Templates ────────────────────────────
 const TemplatesTab: React.FC = () => {
     const [templates, setTemplates] = useState<ItineraryTemplate[]>([]);
@@ -1550,86 +1103,54 @@ const TemplatesTab: React.FC = () => {
     const editorInitial = useMemo<ReservationDocContent>(() => ({ name: form.name, description: form.description, days: form.days, documentSettings: form.documentSettings }), [isModalOpen]);
 
     return (
-        <div>
-            <div className="toolbar">
-                <div style={{ minWidth: 0 }}>
-                    <div className="cell-strong" style={{ fontSize: 14 }}>일정 프리셋(템플릿)을 만들어 견적·예약 문서에 재사용합니다.</div>
-                    <div className="cell-muted" style={{ fontSize: 12, marginTop: 2 }}>편집 화면은 예약 상세의 문서 편집기와 동일합니다. 문서 디자인은 브랜드 1벌로 고정되고, 여기서는 일정·포함사항·계약 조건을 편집합니다.</div>
+        <div className="tm-tab">
+            <div className="tm-toolbar">
+                <div className="tm-toolbar-text">
+                    <b>일정 프리셋(템플릿)을 만들어 견적·예약 문서에 재사용합니다.</b>
+                    <small>편집 화면은 예약 상세의 문서 편집기와 같습니다. 문서 디자인은 브랜드 1벌로 고정되고, 여기서는 일정·포함사항·계약 조건을 편집합니다.</small>
                 </div>
-                <div className="spacer" />
-                <button className="btn btn-ink" onClick={() => { resetForm(); setIsModalOpen(true); }}>
-                    <Icon name="add" /> 일정 프리셋 추가
-                </button>
+                <AdminButton variant="primary" leading={<IconPlus />} onClick={() => { resetForm(); setIsModalOpen(true); }}>일정 프리셋 추가</AdminButton>
             </div>
 
             {templates.length === 0 ? (
-                <div className="empty">
-                    <Icon name="event_note" />
-                    {listState === 'loading' ? <p role="status">템플릿을 불러오는 중…</p>
-                        : listState === 'error' ? <><p role="alert">템플릿을 불러오지 못했습니다.</p><button type="button" className="btn btn-ghost btn-sm" onClick={() => { setListState('loading'); void load(); }}>다시 시도</button></>
-                        : <p>등록된 템플릿이 없습니다</p>}
-                </div>
+                listState === 'loading' ? <AdminLoading label="템플릿을 불러오는 중…" />
+                    : listState === 'error' ? <AdminError reason="템플릿을 불러오지 못했습니다." onRetry={() => { setListState('loading'); void load(); }} />
+                    : <AdminEmpty icon={<IconDocumentText />} title="등록된 템플릿이 없습니다" />
             ) : (
-                <div className="grid-2" style={{ gridTemplateColumns: 'repeat(2, 1fr)' }}>
+                <div className="tm-grid">
                     {templates.map(t => (
-                        <div key={t.id} className="card" style={{ overflow: 'hidden' }}>
-                            <div className="relative h-36 overflow-hidden">
-                                <img src={mongoliaHero} alt="" className="h-full w-full object-cover" />
-                                <div className="absolute inset-0 bg-gradient-to-r from-[#0B1B45]/95 via-[#16275F]/70 to-transparent" />
-                                <div className="absolute left-5 top-4 text-white">
-                                    <div className="flex items-center gap-2">
-                                        <span className="material-symbols-outlined text-[24px]">nights_stay</span>
-                                        <div>
-                                            <p className="text-[11px] font-black">몽골리아 은하수</p>
-                                            <p className="text-[8px] font-bold tracking-widest text-white/70">DOCUMENT PACKAGE</p>
-                                        </div>
-                                    </div>
-                                    <h3 className="mt-4 max-w-[420px] truncate text-xl font-black tracking-tight">{t.name}</h3>
-                                    {t.description && <p className="mt-1 max-w-[420px] truncate text-xs font-semibold text-white/80">{t.description}</p>}
+                        <AdminCard key={t.id} flush className="tm-card">
+                            <div className="tm-cover">
+                                <img src={mongoliaHero} alt="" />
+                                <div className="tm-cover-text">
+                                    <span className="tm-brand">몽골리아 은하수 · DOCUMENT PACKAGE</span>
+                                    <h3>{t.name}</h3>
+                                    {t.description && <p>{t.description}</p>}
                                 </div>
-                                <span className="absolute right-4 top-4 rounded-xl bg-white/90 px-3 py-1 text-xs font-black text-[color:var(--adm-accent-strong)] shadow-sm">{Math.max(0, t.days.length - 1)}박{t.days.length}일</span>
+                                <AdminBadge className="tm-nights" tone="info">{Math.max(0, t.days.length - 1)}박{t.days.length}일</AdminBadge>
                             </div>
-
-                            <div className="card-pad">
-                                <div className="mb-4 grid grid-cols-4 gap-2">
-                                    {[
-                                        { icon: 'article', label: '개요' },
-                                        { icon: 'contract', label: '계약서' },
-                                        { icon: 'route', label: '상세일정' },
-                                        { icon: 'qr_code_2', label: '안내/QR' },
-                                    ].map(item => (
-                                        <div key={item.label} className="rounded-xl border border-[#9CC5FF]/80 bg-[#F7FAFA] px-2 py-2 text-center text-[#1656D6]">
-                                            <span className="material-symbols-outlined text-[20px]">{item.icon}</span>
-                                            <p className="mt-1 text-[10px] font-black">{item.label}</p>
-                                        </div>
+                            <div className="tm-card-body">
+                                <ul className="tm-pages" aria-label="문서 구성">
+                                    {['개요', '계약서', '상세일정', '안내/QR'].map(label => <li key={label}>{label}</li>)}
+                                </ul>
+                                <div className="tm-days">
+                                    <small>문서에 들어갈 일정 내용</small>
+                                    {t.days.slice(0, 3).map(d => (
+                                        <span key={d.day} className="tm-day">
+                                            <AdminBadge tone="info">{d.day}일</AdminBadge>
+                                            <span className="tm-day-title">{d.region ? `${d.region} · ` : ''}{d.title || '제목 없음'}</span>
+                                            <small>({d.activities.length})</small>
+                                        </span>
                                     ))}
+                                    {t.days.length > 3 && <small>+ {t.days.length - 3}일 더...</small>}
                                 </div>
-
-                                <div className="mb-4 rounded-xl border border-slate-100 bg-slate-50 p-3">
-                                    <p className="mb-2 text-[11px] font-black uppercase tracking-wide text-slate-400">문서에 들어갈 일정 내용</p>
-                                    <div className="space-y-1">
-                                        {t.days.slice(0, 3).map(d => (
-                                            <div key={d.day} className="flex items-center gap-2 text-xs text-slate-500">
-                                                <span className="flex h-7 w-9 flex-shrink-0 items-center justify-center rounded-lg bg-[#287DFA]/15 text-[11px] font-black text-[#1656D6]">{d.day}일</span>
-                                                <span className="truncate font-semibold">{d.region ? `${d.region} · ` : ''}{d.title || '제목 없음'}</span>
-                                                <span className="flex-shrink-0 text-slate-300">({d.activities.length})</span>
-                                            </div>
-                                        ))}
-                                        {t.days.length > 3 && <p className="pl-11 text-xs text-slate-400">+ {t.days.length - 3}일 더...</p>}
-                                    </div>
-                                </div>
-
-                                <div className="row" style={{ gap: 8 }}>
-                                    <button onClick={() => handleEdit(t)} className="btn btn-ink" style={{ flex: 1 }}>프리셋 편집</button>
-                                    <button onClick={() => handleDuplicate(t)} className="act-btn" title="이 템플릿 복제">
-                                        <Icon name="content_copy" />
-                                    </button>
-                                    <button onClick={() => handleDelete(t.id)} className="act-btn danger" title="삭제">
-                                        <Icon name="delete" />
-                                    </button>
+                                <div className="tm-actions">
+                                    <AdminButton variant="primary" fullWidth onClick={() => handleEdit(t)}>프리셋 편집</AdminButton>
+                                    <AdminIconButton variant="outlined" label="이 템플릿 복제" onClick={() => handleDuplicate(t)}><IconCopy /></AdminIconButton>
+                                    <AdminIconButton variant="outlined" label="삭제" onClick={() => void handleDelete(t.id)}><IconTrash /></AdminIconButton>
                                 </div>
                             </div>
-                        </div>
+                        </AdminCard>
                     ))}
                 </div>
             )}
@@ -1663,6 +1184,7 @@ const GuidesTab: React.FC = () => {
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editing, setEditing] = useState<Guide | null>(null);
     const [form, setForm] = useState({ name: '', image: '', introduction: '', phone: '', experienceYears: 0, languages: [] as string[], specialties: [] as string[] });
+    const [uploading, setUploading] = useState(false);
 
     const load = async () => {
         try {
@@ -1681,9 +1203,11 @@ const GuidesTab: React.FC = () => {
     const resetForm = () => { setForm({ name: '', image: '', introduction: '', phone: '', experienceYears: 0, languages: [], specialties: [] }); setEditing(null); };
     const toggle = (field: 'languages' | 'specialties', val: string) => setForm(f => ({ ...f, [field]: f[field].includes(val) ? f[field].filter(v => v !== val) : [...f[field], val] }));
 
-    const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-        const file = e.target.files?.[0]; if (!file) return;
+    const handleImageUpload = async (files: File[]) => {
+        const file = files[0]; if (!file) return;
+        setUploading(true);
         try { const url = await uploadImage(file, 'guides'); setForm(f => ({ ...f, image: url })); } catch { adminNotify('이미지 업로드 실패'); }
+        finally { setUploading(false); }
     };
 
     const handleSubmit = async () => {
@@ -1698,7 +1222,7 @@ const GuidesTab: React.FC = () => {
 
     const handleApprove = async (g: Guide) => {
         try { await api.tourGuides.update(g.id, { name: g.name, bio: g.introduction, phone: g.phone, image: g.image, experience_years: g.experienceYears, languages: g.languages, specialties: g.specialties, status: 'active' }); await load(); }
-        catch (e: any) { adminNotify('승인 실패'); }
+        catch { adminNotify('승인 실패'); }
     };
 
     const handleDelete = async (id: string) => { if (!await adminConfirm('삭제하시겠습니까?')) return; try { await api.tourGuides.delete(id); await load(); } catch { adminNotify('삭제 실패'); } };
@@ -1706,78 +1230,52 @@ const GuidesTab: React.FC = () => {
     const pendingCount = guides.filter(g => g.status === 'pending').length;
 
     return (
-        <div>
-            <div className="toolbar">
-                <div className="row" style={{ minWidth: 0 }}>
-                    <div className="cell-muted" style={{ fontSize: 13 }}>가이드를 등록하고 관리합니다.</div>
-                    {pendingCount > 0 && <span className="badge b-amber">승인대기 {pendingCount}</span>}
-                </div>
-                <div className="spacer" />
-                <button onClick={() => { resetForm(); setIsModalOpen(true); }} className="btn btn-ink">
-                    <Icon name="add" /> 가이드 등록
-                </button>
+        <div className="tm-tab">
+            <div className="tm-toolbar">
+                <span className="tm-toolbar-text"><small>가이드를 등록하고 관리합니다.</small>{pendingCount > 0 && <AdminBadge tone="warn">승인대기 {pendingCount}</AdminBadge>}</span>
+                <AdminButton variant="primary" leading={<IconPlus />} onClick={() => { resetForm(); setIsModalOpen(true); }}>가이드 등록</AdminButton>
             </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
-                {guides.map(g => (
-                    <div key={g.id} className="card card-pad grid grid-cols-[72px_1fr_auto] gap-4 items-center" style={{ padding: 14 }}>
-                        <div className="avatar flex-shrink-0" style={{ width: 72, height: 72, borderRadius: 'var(--r-md)', position: 'relative' }}>
-                            {g.image ? <img src={g.image} alt={g.name} className="w-full h-full object-cover" /> : <Icon name="person" style={{ fontSize: 30, color: 'var(--mrt-gray-300)' }} />}
-                            {g.status === 'pending' && <span className="badge b-amber" style={{ position: 'absolute', top: 4, left: 4, padding: '1px 6px', fontSize: 11 }}>대기</span>}
-                        </div>
-                        <div className="min-w-0">
-                            <div className="flex items-center gap-2 mb-1 flex-wrap">
-                                <h3 className="cell-strong truncate" style={{ fontSize: 15 }}>{g.name}</h3>
-                                {g.experienceYears > 0 && <span className="cell-muted inline-flex items-center gap-0.5" style={{ fontSize: 11 }}><Icon name="workspace_premium" style={{ fontSize: 14 }} />{g.experienceYears}년</span>}
-                                <span className="cell-muted inline-flex items-center gap-0.5" style={{ fontSize: 11 }}><Icon name="phone" style={{ fontSize: 14 }} />{g.phone}</span>
-                            </div>
-                            <p className="cell-muted line-clamp-1 mb-1.5" style={{ fontSize: 12 }}>{g.introduction || '소개글 없음'}</p>
-                            {g.languages.length > 0 && <div className="flex flex-wrap gap-1">{g.languages.map(l => <span key={l} className="badge b-blue" style={{ padding: '2px 7px', fontSize: 11 }}>{l}</span>)}</div>}
-                        </div>
-                        <div className="row-actions items-center" style={{ alignItems: 'center' }}>
-                            {g.status === 'pending' && <button onClick={() => handleApprove(g)} className="btn btn-sm btn-blue">승인</button>}
-                            <button onClick={() => { setEditing(g); setForm({ name: g.name, image: g.image, introduction: g.introduction, phone: g.phone, experienceYears: g.experienceYears, languages: g.languages, specialties: g.specialties }); setIsModalOpen(true); }} className="act-btn" title="수정"><Icon name="edit" /></button>
-                            <button onClick={() => handleDelete(g.id)} className="act-btn danger" title="삭제"><Icon name="delete" /></button>
-                        </div>
-                    </div>
-                ))}
-                {guides.length === 0 && <div className="col-span-full empty"><Icon name="person_off" /><p>등록된 가이드가 없습니다</p></div>}
-            </div>
-
-            {isModalOpen && (
-                <div className="picker-scrim">
-                    <div className="picker" style={{ width: 520, maxHeight: '90vh' }}>
-                        <div className="card-head" style={{ flexShrink: 0 }}>
-                            <h2>{editing ? '가이드 수정' : '가이드 등록'}</h2>
-                            <div className="spacer" />
-                            <button className="act-btn" onClick={() => { setIsModalOpen(false); resetForm(); }} title="닫기"><Icon name="close" /></button>
-                        </div>
-                        <div className="picker-list" style={{ padding: '20px 22px' }}>
-                            <div className="field">
-                                <label>프로필 사진</label>
-                                <div className="row" style={{ gap: 16 }}>
-                                    <div className="avatar round" style={{ width: 64, height: 64 }}>
-                                        {form.image ? <img src={form.image} className="w-full h-full object-cover" /> : <Icon name="person" style={{ fontSize: 28, color: 'var(--mrt-gray-300)' }} />}
-                                    </div>
-                                    <label className="btn btn-ghost btn-sm" style={{ cursor: 'pointer' }}>
-                                        사진 선택 <input type="file" accept="image/*" onChange={handleImageUpload} className="hidden" />
-                                    </label>
-                                </div>
-                            </div>
-                            <div className="field"><label className="adm-req">이름</label><input value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} className="inp" /></div>
-                            <div className="field"><label className="adm-req">연락처</label><input value={form.phone} onChange={e => setForm(f => ({ ...f, phone: e.target.value }))} className="inp" /></div>
-                            <div className="field"><label>경력 연수</label><div className="row"><input type="number" min={0} value={form.experienceYears} onChange={e => setForm(f => ({ ...f, experienceYears: Number(e.target.value) }))} className="inp" style={{ width: 110, textAlign: 'center' }} /><span className="cell-muted" style={{ fontSize: 13 }}>년</span></div></div>
-                            <div className="field"><label>소개글</label><textarea value={form.introduction} onChange={e => setForm(f => ({ ...f, introduction: e.target.value }))} rows={3} className="inp" /></div>
-                            <div className="field"><label>언어</label><div className="chip-row">{LANGUAGES.map(l => <button key={l} type="button" onClick={() => toggle('languages', l)} className={`chip${form.languages.includes(l) ? ' active' : ''}`}>{l}</button>)}</div></div>
-                            <div className="field"><label>전문 분야</label><div className="chip-row">{SPECIALTIES.map(s => <button key={s} type="button" onClick={() => toggle('specialties', s)} className={`chip${form.specialties.includes(s) ? ' active' : ''}`}>{s}</button>)}</div></div>
-                            <div className="row" style={{ gap: 10, paddingTop: 4 }}>
-                                <button onClick={() => { setIsModalOpen(false); resetForm(); }} className="btn btn-ghost" style={{ flex: 1 }}>취소</button>
-                                <button onClick={handleSubmit} className="btn btn-ink" style={{ flex: 1 }}>{editing ? '수정' : '등록'}</button>
-                            </div>
-                        </div>
-                    </div>
+            {guides.length > 0 ? (
+                <div className="tm-rows">
+                    {guides.map(g => (
+                        <AdminCard key={g.id} className="tm-row">
+                            <span className="tm-photo is-round">{g.image ? <img src={g.image} alt={g.name} /> : <IconPerson aria-hidden="true" />}</span>
+                            <span className="tm-row-text">
+                                <span className="tm-row-head">
+                                    <b>{g.name}</b>
+                                    {g.status === 'pending' && <AdminBadge tone="warn">대기</AdminBadge>}
+                                    {g.experienceYears > 0 && <small>경력 {g.experienceYears}년</small>}
+                                    <small>{g.phone}</small>
+                                </span>
+                                <small className="tm-clamp">{g.introduction || '소개글 없음'}</small>
+                                {g.languages.length > 0 && <span className="tm-badges">{g.languages.map(l => <AdminBadge key={l} tone="info">{l}</AdminBadge>)}</span>}
+                            </span>
+                            <span className="tm-row-actions">
+                                {g.status === 'pending' && <AdminButton size="sm" variant="primary" onClick={() => void handleApprove(g)}>승인</AdminButton>}
+                                <AdminIconButton size="sm" label="수정" onClick={() => { setEditing(g); setForm({ name: g.name, image: g.image, introduction: g.introduction, phone: g.phone, experienceYears: g.experienceYears, languages: g.languages, specialties: g.specialties }); setIsModalOpen(true); }}><IconPencil /></AdminIconButton>
+                                <AdminIconButton size="sm" label="삭제" onClick={() => void handleDelete(g.id)}><IconTrash /></AdminIconButton>
+                            </span>
+                        </AdminCard>
+                    ))}
                 </div>
-            )}
+            ) : <AdminEmpty icon={<IconPerson />} title="등록된 가이드가 없습니다" />}
+
+            <AdminDialog open={isModalOpen} onClose={() => { setIsModalOpen(false); resetForm(); }} title={editing ? '가이드 수정' : '가이드 등록'}
+                onSubmit={() => void handleSubmit()} submitLabel={editing ? '수정' : '등록'} submitDisabled={uploading}>
+                <AdminField label="프로필 사진">
+                    <span className="tm-upload">
+                        <span className="tm-photo is-round">{form.image ? <img src={form.image} alt="" /> : <IconPerson aria-hidden="true" />}</span>
+                        <AdminFileButton size="sm" accept="image/*" leading={<IconUpload />} loading={uploading} onFiles={(files) => void handleImageUpload(files)}>사진 선택</AdminFileButton>
+                    </span>
+                </AdminField>
+                <AdminField label="이름" required>{(id) => <AdminTextInput id={id} value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} />}</AdminField>
+                <AdminField label="연락처" required>{(id) => <AdminTextInput id={id} value={form.phone} onChange={e => setForm(f => ({ ...f, phone: e.target.value }))} />}</AdminField>
+                <AdminField label="경력 연수">{(id) => <AdminTextInput id={id} className="tm-years" type="number" min={0} trailing="년" value={String(form.experienceYears)} onChange={e => setForm(f => ({ ...f, experienceYears: Number(e.target.value) }))} />}</AdminField>
+                <AdminField label="소개글">{(id) => <AdminTextArea id={id} minRows={3} value={form.introduction} onChange={e => setForm(f => ({ ...f, introduction: e.target.value }))} />}</AdminField>
+                <AdminField label="언어"><span className="tm-chips" role="group" aria-label="언어">{LANGUAGES.map(l => <AdminChip key={l} active={form.languages.includes(l)} onClick={() => toggle('languages', l)}>{l}</AdminChip>)}</span></AdminField>
+                <AdminField label="전문 분야"><span className="tm-chips" role="group" aria-label="전문 분야">{SPECIALTIES.map(s => <AdminChip key={s} active={form.specialties.includes(s)} onClick={() => toggle('specialties', s)}>{s}</AdminChip>)}</span></AdminField>
+            </AdminDialog>
         </div>
     );
 };
@@ -1788,6 +1286,7 @@ const AccommodationsTab: React.FC = () => {
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editing, setEditing] = useState<Accommodation | null>(null);
     const [form, setForm] = useState({ name: '', images: [] as string[], description: '', type: '3성급 호텔', location: '' });
+    const [uploading, setUploading] = useState(false);
 
     const load = async () => {
         try {
@@ -1803,10 +1302,12 @@ const AccommodationsTab: React.FC = () => {
 
     const resetForm = () => { setForm({ name: '', images: [], description: '', type: '3성급 호텔', location: '' }); setEditing(null); };
 
-    const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-        const files = e.target.files; if (!files) return;
-        try { const urls = await Promise.all(Array.from(files).map(f => uploadImage(f, 'accommodations'))); setForm(f => ({ ...f, images: [...f.images, ...urls] })); }
+    const handleImageUpload = async (files: File[]) => {
+        if (!files.length) return;
+        setUploading(true);
+        try { const urls = await Promise.all(files.map(f => uploadImage(f, 'accommodations'))); setForm(f => ({ ...f, images: [...f.images, ...urls] })); }
         catch { adminNotify('이미지 업로드 실패'); }
+        finally { setUploading(false); }
     };
 
     const handleSubmit = async () => {
@@ -1822,101 +1323,81 @@ const AccommodationsTab: React.FC = () => {
     const handleDelete = async (id: string) => { if (!await adminConfirm('삭제하시겠습니까?')) return; try { await api.accommodations.delete(id); await load(); } catch { adminNotify('삭제 실패'); } };
 
     return (
-        <div>
-            <div className="toolbar">
-                <div className="cell-muted" style={{ fontSize: 13, minWidth: 0 }}>숙소를 등록하고 예약에 배정합니다.</div>
-                <div className="spacer" />
-                <button onClick={() => { resetForm(); setIsModalOpen(true); }} className="btn btn-ink">
-                    <Icon name="add" /> 숙소 등록
-                </button>
+        <div className="tm-tab">
+            <div className="tm-toolbar">
+                <span className="tm-toolbar-text"><small>숙소를 등록하고 예약에 배정합니다.</small></span>
+                <AdminButton variant="primary" leading={<IconPlus />} onClick={() => { resetForm(); setIsModalOpen(true); }}>숙소 등록</AdminButton>
             </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
-                {accommodations.map(a => (
-                    <div key={a.id} className="card card-pad grid grid-cols-[96px_1fr_auto] gap-4 items-center" style={{ padding: 14 }}>
-                        <div className="flex-shrink-0 overflow-hidden" style={{ width: 96, height: 72, borderRadius: 'var(--r-md)', background: 'var(--mrt-gray-100)' }}>
-                            {a.images.length > 0 ? <img src={a.images[0]} alt={a.name} className="w-full h-full object-cover" /> : <div className="w-full h-full flex items-center justify-center"><Icon name="hotel" style={{ fontSize: 30, color: 'var(--mrt-gray-300)' }} /></div>}
-                        </div>
-                        <div className="min-w-0">
-                            <div className="flex items-center gap-2 mb-1 flex-wrap">
-                                <h3 className="cell-strong truncate" style={{ fontSize: 15 }}>{a.name}</h3>
-                                {a.type && <span className="badge b-gray" style={{ padding: '2px 7px', fontSize: 11 }}>{a.type}</span>}
-                            </div>
-                            <div className="cell-muted mb-1 inline-flex items-center gap-0.5" style={{ fontSize: 11 }}><Icon name="location_on" style={{ fontSize: 14 }} />{a.location}</div>
-                            <p className="cell-muted line-clamp-1" style={{ fontSize: 12 }}>{a.description || '설명 없음'}</p>
-                        </div>
-                        <div className="row-actions items-center" style={{ alignItems: 'center' }}>
-                            <button onClick={() => { setEditing(a); setForm({ name: a.name, images: a.images, description: a.description, type: a.type, location: a.location }); setIsModalOpen(true); }} className="act-btn" title="수정"><Icon name="edit" /></button>
-                            <button onClick={() => handleDelete(a.id)} className="act-btn danger" title="삭제"><Icon name="delete" /></button>
-                        </div>
-                    </div>
-                ))}
-                {accommodations.length === 0 && <div className="col-span-full empty"><Icon name="hotel" /><p>등록된 숙소가 없습니다</p></div>}
-            </div>
-
-            {isModalOpen && (
-                <div className="picker-scrim">
-                    <div className="picker" style={{ width: 520, maxHeight: '90vh' }}>
-                        <div className="card-head" style={{ flexShrink: 0 }}>
-                            <h2>{editing ? '숙소 수정' : '숙소 등록'}</h2>
-                            <div className="spacer" />
-                            <button className="act-btn" onClick={() => { setIsModalOpen(false); resetForm(); }} title="닫기"><Icon name="close" /></button>
-                        </div>
-                        <div className="picker-list" style={{ padding: '20px 22px' }}>
-                            <div className="field">
-                                <label>이미지</label>
-                                {form.images.length > 0 && <div className="grid grid-cols-3 gap-2 mb-2">{form.images.map((img, i) => <div key={i} className="relative aspect-video"><img src={img} className="w-full h-full object-cover rounded-lg" /><button onClick={() => setForm(f => ({ ...f, images: f.images.filter((_, j) => j !== i) }))} className="absolute top-1 right-1 bg-red-500 text-white rounded-full p-0.5"><span className="material-symbols-outlined text-xs">close</span></button></div>)}</div>}
-                                <label className="btn btn-ghost btn-sm" style={{ cursor: 'pointer' }}>
-                                    <Icon name="add_photo_alternate" /> 이미지 추가 <input type="file" accept="image/*" multiple onChange={handleImageUpload} className="hidden" />
-                                </label>
-                            </div>
-                            <div className="field"><label className="adm-req">숙소명</label><input value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} className="inp" /></div>
-                            <div className="field"><label className="adm-req">위치</label><input value={form.location} onChange={e => setForm(f => ({ ...f, location: e.target.value }))} className="inp" placeholder="예: 울란바토르 시내, 테를지 국립공원" /></div>
-                            <div className="field">
-                                <label>숙소 타입</label>
-                                {Object.entries(ACCOM_TYPES).map(([cat, subs]) => (
-                                    <div key={cat} style={{ marginBottom: 12 }}>
-                                        <p className="cell-muted" style={{ fontSize: 12, fontWeight: 600, marginBottom: 8 }}>{cat}</p>
-                                        <div className="chip-row">{subs.map(s => <button key={s} type="button" onClick={() => setForm(f => ({ ...f, type: s }))} className={`chip${form.type === s ? ' active' : ''}`}>{s}</button>)}</div>
-                                    </div>
-                                ))}
-                            </div>
-                            <div className="field"><label>설명</label><textarea value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))} rows={3} className="inp" /></div>
-                            <div className="row" style={{ gap: 10, paddingTop: 4 }}>
-                                <button onClick={() => { setIsModalOpen(false); resetForm(); }} className="btn btn-ghost" style={{ flex: 1 }}>취소</button>
-                                <button onClick={handleSubmit} className="btn btn-ink" style={{ flex: 1 }}>{editing ? '수정' : '등록'}</button>
-                            </div>
-                        </div>
-                    </div>
+            {accommodations.length > 0 ? (
+                <div className="tm-rows">
+                    {accommodations.map(a => (
+                        <AdminCard key={a.id} className="tm-row">
+                            <span className="tm-photo is-wide">{a.images.length > 0 ? <img src={a.images[0]} alt={a.name} /> : <IconHotel aria-hidden="true" />}</span>
+                            <span className="tm-row-text">
+                                <span className="tm-row-head"><b>{a.name}</b>{a.type && <AdminBadge>{a.type}</AdminBadge>}</span>
+                                <small>{a.location}</small>
+                                <small className="tm-clamp">{a.description || '설명 없음'}</small>
+                            </span>
+                            <span className="tm-row-actions">
+                                <AdminIconButton size="sm" label="수정" onClick={() => { setEditing(a); setForm({ name: a.name, images: a.images, description: a.description, type: a.type, location: a.location }); setIsModalOpen(true); }}><IconPencil /></AdminIconButton>
+                                <AdminIconButton size="sm" label="삭제" onClick={() => void handleDelete(a.id)}><IconTrash /></AdminIconButton>
+                            </span>
+                        </AdminCard>
+                    ))}
                 </div>
-            )}
+            ) : <AdminEmpty icon={<IconHotel />} title="등록된 숙소가 없습니다" />}
+
+            <AdminDialog open={isModalOpen} onClose={() => { setIsModalOpen(false); resetForm(); }} title={editing ? '숙소 수정' : '숙소 등록'}
+                onSubmit={() => void handleSubmit()} submitLabel={editing ? '수정' : '등록'} submitDisabled={uploading}>
+                <AdminField label="이미지">
+                    <span className="tm-images">
+                        {form.images.map((img, i) => (
+                            <span key={i} className="tm-image">
+                                <img src={img} alt={`사진 ${i + 1}`} />
+                                <AdminIconButton size="sm" variant="background" className="tm-image-off" label={`사진 ${i + 1} 빼기`} onClick={() => setForm(f => ({ ...f, images: f.images.filter((_, j) => j !== i) }))}><IconClose /></AdminIconButton>
+                            </span>
+                        ))}
+                    </span>
+                    <AdminFileButton size="sm" accept="image/*" multiple leading={<IconUpload />} loading={uploading} onFiles={(files) => void handleImageUpload(files)}>이미지 추가</AdminFileButton>
+                </AdminField>
+                <AdminField label="숙소명" required>{(id) => <AdminTextInput id={id} value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} />}</AdminField>
+                <AdminField label="위치" required>{(id) => <AdminTextInput id={id} value={form.location} onChange={e => setForm(f => ({ ...f, location: e.target.value }))} placeholder="예: 울란바토르 시내, 테를지 국립공원" />}</AdminField>
+                <AdminField label="숙소 타입">
+                    <span className="tm-type-groups">
+                        {Object.entries(ACCOM_TYPES).map(([cat, subs]) => (
+                            <span key={cat} className="tm-type-group">
+                                <small>{cat}</small>
+                                <span className="tm-chips" role="group" aria-label={cat}>{subs.map(s => <AdminChip key={s} active={form.type === s} onClick={() => setForm(f => ({ ...f, type: s }))}>{s}</AdminChip>)}</span>
+                            </span>
+                        ))}
+                    </span>
+                </AdminField>
+                <AdminField label="설명">{(id) => <AdminTextArea id={id} minRows={3} value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))} />}</AdminField>
+            </AdminDialog>
         </div>
     );
 };
 
 // ─── Main Page ───────────────────────────────────────────
-const TABS = [
-    { id: 'templates', label: '일정 템플릿', icon: 'event_note' },
-    { id: 'guides', label: '가이드 관리', icon: 'badge' },
-    { id: 'accommodations', label: '숙소 관리', icon: 'hotel' },
+type TemplateTabKey = 'templates' | 'guides' | 'accommodations';
+const TABS: Array<{ value: TemplateTabKey; label: string }> = [
+    { value: 'templates', label: '일정 템플릿' },
+    { value: 'guides', label: '가이드 관리' },
+    { value: 'accommodations', label: '숙소 관리' },
 ];
 
 export const AdminTemplateManage: React.FC = () => {
-    const [activeTab, setActiveTab] = useState('templates');
+    const [activeTab, setActiveTab] = useState<TemplateTabKey>('templates');
 
     return (
         <AdminLayout activePage="templates" title="템플릿 관리">
-            <div className="seg" style={{ marginBottom: 18 }}>
-                {TABS.map(tab => (
-                    <button key={tab.id} onClick={() => setActiveTab(tab.id)} className={activeTab === tab.id ? 'active' : ''}>
-                        {tab.label}
-                    </button>
-                ))}
+            <div className="tm-page">
+                <AdminSegmented label="템플릿 관리 화면" value={activeTab} onChange={setActiveTab} items={TABS} />
+                {activeTab === 'templates' && <TemplatesTab />}
+                {activeTab === 'guides' && <GuidesTab />}
+                {activeTab === 'accommodations' && <AccommodationsTab />}
             </div>
-
-            {activeTab === 'templates' && <TemplatesTab />}
-            {activeTab === 'guides' && <GuidesTab />}
-            {activeTab === 'accommodations' && <AccommodationsTab />}
         </AdminLayout>
     );
 };

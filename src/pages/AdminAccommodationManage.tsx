@@ -1,38 +1,48 @@
 import React, { useState, useEffect } from 'react';
-import { AdminLayout } from '../components/admin/AdminLayout';
-import { Icon } from '../components/admin/console/Icon';
+import {
+    AdminBadge, AdminButton, AdminChip, AdminDataTable, AdminDialog, AdminEmpty, AdminField, AdminFileButton, AdminIconButton, AdminSearch, AdminTextArea, AdminTextInput,
+    IconClose, IconHotel, IconImages, IconPencil, IconPlus, IconTrash, IconUpload, type AdminColumn,
+} from '../components/admin/ui';
+import { AdminFilterBar, ListPage } from '../components/admin/ui/AdminPage';
 import { api } from '../lib/api';
 import { uploadImage } from '../utils/upload';
 import { adminConfirm, adminNotify } from '../components/admin/ui/adminFeedback';
 import { adminValidateRequired } from '../components/admin/ui/adminForm';
+import './AdminGuideManage.css';
 
+/**
+ * 상품용 숙소(`/admin/accommodations`) — 상품 상세의 숙소 소개에 쓰는 숙소 목록(`/api/accommodations`, 목록 전체를 한 번에 저장).
+ * 견적·배정의 숙소 등록 정보(`/admin/quote-desk/resources`)와는 다른 자료다. 우리 관리자 부품(당근 Seed)으로 그린다.
+ */
 interface Accommodation {
     id: string;
     name: string;
     images: string[];
     description: string;
-    type: string; // Changed from union to string to support subtypes
+    type: string;
     location: string;
     facilities: string[];
     createdAt: string;
 }
+
+type AccommodationForm = Omit<Accommodation, 'id' | 'createdAt'>;
+const EMPTY_FORM: AccommodationForm = { name: '', images: [], description: '', type: '3성급 호텔', location: '', facilities: [] };
+const AVAILABLE_FACILITIES = ['Wi-Fi', '조식 포함', '주차장', '에어컨', '난방', '온수', '세탁 서비스', '픽업 서비스'];
+const ACCOMMODATION_TYPES: Record<string, string[]> = {
+    '호텔': ['2성급 호텔', '3성급 호텔', '4성급 호텔', '5성급 호텔'],
+    '게르': ['일반 게르', '고급 게르', '럭셔리 게르'],
+    '게스트하우스': ['게스트하우스'],
+};
 
 export const AdminAccommodationManage: React.FC = () => {
     const [accommodations, setAccommodations] = useState<Accommodation[]>([]);
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingAccommodation, setEditingAccommodation] = useState<Accommodation | null>(null);
     const [searchTerm, setSearchTerm] = useState('');
+    const [formData, setFormData] = useState<AccommodationForm>(EMPTY_FORM);
+    const [saving, setSaving] = useState(false);
+    const [uploading, setUploading] = useState(false);
 
-    const [formData, setFormData] = useState<Omit<Accommodation, 'id' | 'createdAt'>>({
-        name: '',
-        images: [],
-        description: '',
-        type: '3성급 호텔',
-        location: '',
-        facilities: []
-    });
-
-    // Load accommodations from API
     useEffect(() => {
         const fetchAccommodations = async () => {
             try {
@@ -56,20 +66,12 @@ export const AdminAccommodationManage: React.FC = () => {
         fetchAccommodations();
     }, []);
 
-    // Save accommodations via API
+    // 목록 전체를 한 번에 저장한다(옛 화면과 같은 API)
     const saveAccommodations = async (updated: Accommodation[]) => {
         try {
-            const inserts = updated.map(a => ({
-                id: a.id,
-                name: a.name,
-                images: a.images,
-                description: a.description,
-                type: a.type,
-                location: a.location,
-                facilities: a.facilities,
-                created_at: a.createdAt
-            }));
-            await api.accommodations.save(inserts);
+            await api.accommodations.save(updated.map(a => ({
+                id: a.id, name: a.name, images: a.images, description: a.description, type: a.type, location: a.location, facilities: a.facilities, created_at: a.createdAt,
+            })));
             setAccommodations(updated);
             return true;
         } catch (e) {
@@ -79,364 +81,118 @@ export const AdminAccommodationManage: React.FC = () => {
         }
     };
 
-    const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-        const files = e.target.files;
-        if (files) {
-            try {
-                const uploadPromises = Array.from(files).map(file => uploadImage(file, 'accommodations'));
-                const urls = await Promise.all(uploadPromises);
-                setFormData({ ...formData, images: [...formData.images, ...urls] });
-            } catch (error) {
-                console.error('Accommodation image upload failed:', error);
-                adminNotify('이미지 업로드 실패');
-            }
+    const handleImageUpload = async (files: File[]) => {
+        if (!files.length) return;
+        setUploading(true);
+        try {
+            const urls = await Promise.all(files.map(file => uploadImage(file, 'accommodations')));
+            setFormData(f => ({ ...f, images: [...f.images, ...urls] }));
+        } catch (error) {
+            console.error('Accommodation image upload failed:', error);
+            adminNotify('이미지 업로드 실패');
+        } finally {
+            setUploading(false);
         }
     };
 
-    const removeImage = (index: number) => {
-        setFormData({
-            ...formData,
-            images: formData.images.filter((_, i) => i !== index)
-        });
-    };
-
-    const handleFacilityToggle = (facility: string) => {
-        const updated = formData.facilities.includes(facility)
-            ? formData.facilities.filter(f => f !== facility)
-            : [...formData.facilities, facility];
-        setFormData({ ...formData, facilities: updated });
-    };
+    const toggleFacility = (facility: string) => setFormData(f => ({
+        ...f, facilities: f.facilities.includes(facility) ? f.facilities.filter(x => x !== facility) : [...f.facilities, facility],
+    }));
 
     const handleSubmit = async () => {
         if (!adminValidateRequired() || !formData.name || !formData.location) return;
-
-        if (editingAccommodation) {
-            // Update existing accommodation
-            const updated = accommodations.map(a =>
-                a.id === editingAccommodation.id ? { ...formData, id: a.id, createdAt: a.createdAt } : a
-            );
-            if (await saveAccommodations(updated)) {
-                setIsModalOpen(false);
-                resetForm();
-            }
-        } else {
-            // Create new accommodation
-            const newAccommodation: Accommodation = {
-                ...formData,
-                id: `ACCOM-${Date.now()}`,
-                createdAt: new Date().toISOString()
-            };
-            if (await saveAccommodations([...accommodations, newAccommodation])) {
-                setIsModalOpen(false);
-                resetForm();
-            }
+        setSaving(true);
+        try {
+            const updated = editingAccommodation
+                ? accommodations.map(a => a.id === editingAccommodation.id ? { ...formData, id: a.id, createdAt: a.createdAt } : a)
+                : [...accommodations, { ...formData, id: `ACCOM-${Date.now()}`, createdAt: new Date().toISOString() }];
+            if (await saveAccommodations(updated)) closeModal();
+        } finally {
+            setSaving(false);
         }
     };
 
+    const openNew = () => { setEditingAccommodation(null); setFormData(EMPTY_FORM); setIsModalOpen(true); };
     const handleEdit = (accommodation: Accommodation) => {
         setEditingAccommodation(accommodation);
-        setFormData({
-            name: accommodation.name,
-            images: accommodation.images,
-            description: accommodation.description,
-            type: accommodation.type,
-            location: accommodation.location,
-            facilities: accommodation.facilities
-        });
+        setFormData({ name: accommodation.name, images: accommodation.images, description: accommodation.description, type: accommodation.type, location: accommodation.location, facilities: accommodation.facilities });
         setIsModalOpen(true);
     };
+    const closeModal = () => { setIsModalOpen(false); setEditingAccommodation(null); setFormData(EMPTY_FORM); };
 
     const handleDelete = async (id: string) => {
-        if (await adminConfirm('정말 삭제하시겠습니까?')) {
-            saveAccommodations(accommodations.filter(a => a.id !== id));
-        }
+        if (await adminConfirm('정말 삭제하시겠습니까?')) void saveAccommodations(accommodations.filter(a => a.id !== id));
     };
 
-    const resetForm = () => {
-        setFormData({
-            name: '',
-            images: [],
-            description: '',
-            type: '3성급 호텔',
-            location: '',
-            facilities: []
-        });
-        setEditingAccommodation(null);
-    };
+    const filteredAccommodations = accommodations.filter(a => a.name.toLowerCase().includes(searchTerm.toLowerCase()));
 
-    const filteredAccommodations = accommodations.filter(a =>
-        a.name.toLowerCase().includes(searchTerm.toLowerCase())
-    );
-
-    const availableFacilities = ['Wi-Fi', '조식 포함', '주차장', '에어컨', '난방', '온수', '세탁 서비스', '픽업 서비스'];
-
-    const accommodationTypes = {
-        '호텔': ['2성급 호텔', '3성급 호텔', '4성급 호텔', '5성급 호텔'],
-        '게르': ['일반 게르', '고급 게르', '럭셔리 게르'],
-        '게스트하우스': ['게스트하우스']
-    };
+    const columns: AdminColumn<Accommodation>[] = [
+        { key: 'photo', header: '대표', render: a => <span className="ag-thumb">{a.images.length > 0 ? <img src={a.images[0]} alt={a.name} /> : <IconHotel aria-hidden="true" />}</span> },
+        { key: 'name', header: '숙소명', render: a => <b className="ag-strong">{a.name}</b> },
+        { key: 'type', header: '타입', nowrap: true, render: a => <AdminBadge tone="info">{a.type}</AdminBadge> },
+        { key: 'location', header: '위치', render: a => <span className="ag-muted">{a.location}</span> },
+        { key: 'count', header: '사진', align: 'center', nowrap: true, render: a => <AdminBadge icon={<IconImages />}>{a.images.length}</AdminBadge> },
+        { key: 'manage', header: '관리', align: 'right', nowrap: true, render: a => (
+            <span className="ag-row-actions">
+                <AdminIconButton size="sm" label="수정" onClick={() => handleEdit(a)}><IconPencil /></AdminIconButton>
+                <AdminIconButton size="sm" label="삭제" onClick={() => void handleDelete(a.id)}><IconTrash /></AdminIconButton>
+            </span>
+        ) },
+    ];
 
     return (
-        <AdminLayout
+        <ListPage
             activePage="hotels"
             title="숙소 관리"
-            actions={
-                <button
-                    className="btn btn-ink"
-                    onClick={() => {
-                        resetForm();
-                        setIsModalOpen(true);
-                    }}
-                >
-                    <Icon name="add" />숙소 추가
-                </button>
-            }
+            actions={<AdminButton variant="primary" leading={<IconPlus />} onClick={openNew}>숙소 추가</AdminButton>}
+            filters={<AdminFilterBar search={<AdminSearch value={searchTerm} onChange={setSearchTerm} placeholder="숙소명 검색" aria-label="숙소 검색" />} />}
         >
-            <div className="route-anim">
-                {/* Toolbar */}
-                <div className="toolbar">
-                    <label className="tb-search">
-                        <Icon name="search" />
-                        <input
-                            placeholder="숙소명 검색"
-                            value={searchTerm}
-                            onChange={(e) => setSearchTerm(e.target.value)}
-                        />
-                    </label>
-                    <div className="spacer" />
-                    <button
-                        className="btn btn-ink"
-                        onClick={() => {
-                            resetForm();
-                            setIsModalOpen(true);
-                        }}
-                    >
-                        <Icon name="add" />숙소 추가
-                    </button>
+            <AdminDataTable label="숙소 목록" columns={columns} rows={filteredAccommodations} rowKey={a => a.id}
+                empty={<AdminEmpty title="등록된 숙소가 없습니다" />} />
+
+            <AdminDialog open={isModalOpen} onClose={closeModal} title={editingAccommodation ? '숙소 수정' : '숙소 등록'}
+                onSubmit={() => void handleSubmit()} submitLabel={editingAccommodation ? '수정' : '등록'} submitting={saving} submitDisabled={uploading}>
+                <AdminField label="숙소 이미지">
+                    <span className="ag-images">
+                        {formData.images.map((img, idx) => (
+                            <span key={idx} className="ag-image">
+                                <img src={img} alt={`사진 ${idx + 1}`} />
+                                <AdminIconButton size="sm" variant="background" className="ag-image-off" label={`사진 ${idx + 1} 빼기`}
+                                    onClick={() => setFormData(f => ({ ...f, images: f.images.filter((_, i) => i !== idx) }))}><IconClose /></AdminIconButton>
+                            </span>
+                        ))}
+                    </span>
+                    <AdminFileButton size="sm" accept="image/*" multiple leading={<IconUpload />} loading={uploading} onFiles={(files) => void handleImageUpload(files)}>사진 올리기</AdminFileButton>
+                </AdminField>
+                <div className="ag-two">
+                    <AdminField label="숙소명" required>
+                        {(id) => <AdminTextInput id={id} value={formData.name} onChange={(e) => setFormData({ ...formData, name: e.target.value })} placeholder="숙소 이름" />}
+                    </AdminField>
+                    <AdminField label="위치" required>
+                        {(id) => <AdminTextInput id={id} value={formData.location} onChange={(e) => setFormData({ ...formData, location: e.target.value })} placeholder="예: 울란바토르 시내, 테를지 국립공원" />}
+                    </AdminField>
                 </div>
-
-                {/* Accommodation table */}
-                <div className="card">
-                    <div className="tbl-wrap">
-                        <table className="tbl">
-                            <thead>
-                                <tr>
-                                    <th style={{ width: 80 }}>대표</th>
-                                    <th>숙소명</th>
-                                    <th>타입</th>
-                                    <th>위치</th>
-                                    <th className="c">사진</th>
-                                    <th className="r">관리</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {filteredAccommodations.map(accommodation => (
-                                    <tr key={accommodation.id}>
-                                        <td>
-                                            {accommodation.images.length > 0 ? (
-                                                <img
-                                                    className="thumb sq"
-                                                    src={accommodation.images[0]}
-                                                    alt={accommodation.name}
-                                                />
-                                            ) : (
-                                                <span
-                                                    className="thumb sq"
-                                                    style={{ display: 'grid', placeItems: 'center', color: 'var(--mrt-gray-400)' }}
-                                                >
-                                                    <Icon name="hotel" style={{ fontSize: 20 }} />
-                                                </span>
-                                            )}
-                                        </td>
-                                        <td className="cell-strong">{accommodation.name}</td>
-                                        <td><span className="badge b-blue">{accommodation.type}</span></td>
-                                        <td className="cell-muted">{accommodation.location}</td>
-                                        <td className="c">
-                                            <span className="badge b-gray">
-                                                <Icon name="photo_library" />{accommodation.images.length}
-                                            </span>
-                                        </td>
-                                        <td className="r">
-                                            <span className="row-actions">
-                                                <button
-                                                    className="act-btn"
-                                                    title="수정"
-                                                    onClick={() => handleEdit(accommodation)}
-                                                >
-                                                    <Icon name="edit" />
-                                                </button>
-                                                <button
-                                                    className="act-btn danger"
-                                                    title="삭제"
-                                                    onClick={() => handleDelete(accommodation.id)}
-                                                >
-                                                    <Icon name="delete" />
-                                                </button>
-                                            </span>
-                                        </td>
-                                    </tr>
-                                ))}
-                            </tbody>
-                        </table>
-                    </div>
-
-                    {filteredAccommodations.length === 0 && (
-                        <div className="empty">
-                            <Icon name="hotel" />
-                            <p>등록된 숙소가 없습니다.</p>
-                        </div>
-                    )}
-                </div>
-            </div>
-
-            {/* Add / Edit modal */}
-            {isModalOpen && (
-                <div className="picker-scrim" onClick={() => { setIsModalOpen(false); resetForm(); }}>
-                    <div
-                        className="picker"
-                        style={{ width: 640, maxHeight: '90vh' }}
-                        onClick={(e) => e.stopPropagation()}
-                    >
-                        <div className="card-head">
-                            <h2>{editingAccommodation ? '숙소 수정' : '숙소 등록'}</h2>
-                            <div className="spacer" />
-                            <button
-                                className="act-btn"
-                                title="닫기"
-                                onClick={() => { setIsModalOpen(false); resetForm(); }}
-                            >
-                                <Icon name="close" />
-                            </button>
-                        </div>
-
-                        <div className="card-pad" style={{ overflowY: 'auto' }}>
-                            {/* Images Upload */}
-                            <div className="field">
-                                <label>숙소 이미지</label>
-                                {formData.images.length > 0 && (
-                                    <div className="grid-3" style={{ marginBottom: 12 }}>
-                                        {formData.images.map((img, idx) => (
-                                            <div key={idx} style={{ position: 'relative' }}>
-                                                <img
-                                                    src={img}
-                                                    alt={`Preview ${idx + 1}`}
-                                                    style={{ width: '100%', aspectRatio: '16 / 9', objectFit: 'cover', borderRadius: 'var(--r-md)' }}
-                                                />
-                                                <button
-                                                    type="button"
-                                                    onClick={() => removeImage(idx)}
-                                                    className="act-btn danger"
-                                                    title="삭제"
-                                                    style={{ position: 'absolute', top: 6, right: 6, width: 28, height: 28, background: 'var(--adm-surface)' }}
-                                                >
-                                                    <Icon name="close" />
-                                                </button>
-                                            </div>
-                                        ))}
-                                    </div>
-                                )}
-                                <input
-                                    type="file"
-                                    accept="image/*"
-                                    multiple
-                                    onChange={handleImageUpload}
-                                    style={{ fontSize: 13, color: 'var(--text-tertiary)' }}
-                                />
-                            </div>
-
-                            {/* Name + Location */}
-                            <div className="field-row">
-                                <div className="field" style={{ marginBottom: 0 }}>
-                                    <label className="adm-req">숙소명</label>
-                                    <input
-                                        type="text"
-                                        className="inp"
-                                        value={formData.name}
-                                        onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                                        placeholder="숙소 이름"
-                                    />
-                                </div>
-                                <div className="field" style={{ marginBottom: 0 }}>
-                                    <label className="adm-req">위치</label>
-                                    <input
-                                        type="text"
-                                        className="inp"
-                                        value={formData.location}
-                                        onChange={(e) => setFormData({ ...formData, location: e.target.value })}
-                                        placeholder="예: 울란바토르 시내, 테를지 국립공원"
-                                    />
-                                </div>
-                            </div>
-
-                            {/* Type */}
-                            <div className="field" style={{ marginTop: 18 }}>
-                                <label>숙소 타입</label>
-                                <div className="stack" style={{ gap: 12 }}>
-                                    {Object.entries(accommodationTypes).map(([category, subtypes]) => (
-                                        <div key={category}>
-                                            <p className="cell-muted" style={{ fontSize: 12, fontWeight: 700, margin: '0 0 6px' }}>{category}</p>
-                                            <div className="chip-row">
-                                                {subtypes.map(subtype => (
-                                                    <button
-                                                        key={subtype}
-                                                        type="button"
-                                                        onClick={() => setFormData({ ...formData, type: subtype })}
-                                                        className={`chip ${formData.type === subtype ? 'active' : ''}`}
-                                                    >
-                                                        {subtype}
-                                                    </button>
-                                                ))}
-                                            </div>
-                                        </div>
-                                    ))}
-                                </div>
-                            </div>
-
-                            {/* Facilities */}
-                            <div className="field">
-                                <label>편의시설</label>
-                                <div className="chip-row">
-                                    {availableFacilities.map(facility => (
-                                        <button
-                                            key={facility}
-                                            type="button"
-                                            onClick={() => handleFacilityToggle(facility)}
-                                            className={`chip ${formData.facilities.includes(facility) ? 'active' : ''}`}
-                                        >
-                                            {facility}
-                                        </button>
-                                    ))}
-                                </div>
-                            </div>
-
-                            {/* Description */}
-                            <div className="field" style={{ marginBottom: 0 }}>
-                                <label>숙소 설명</label>
-                                <textarea
-                                    className="inp"
-                                    value={formData.description}
-                                    onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                                    rows={4}
-                                    placeholder="숙소에 대한 설명을 입력하세요"
-                                />
-                            </div>
-                        </div>
-
-                        <div className="drawer-foot">
-                            <div className="spacer" style={{ flex: 1 }} />
-                            <button
-                                className="btn btn-ghost"
-                                onClick={() => { setIsModalOpen(false); resetForm(); }}
-                            >
-                                취소
-                            </button>
-                            <button className="btn btn-ink" onClick={handleSubmit}>
-                                {editingAccommodation ? '수정' : '등록'}
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            )}
-        </AdminLayout>
+                <AdminField label="숙소 타입">
+                    <span className="ag-type-groups">
+                        {Object.entries(ACCOMMODATION_TYPES).map(([category, subtypes]) => (
+                            <span key={category} className="ag-type-group">
+                                <small className="ag-muted">{category}</small>
+                                <span className="ag-chips" role="group" aria-label={category}>
+                                    {subtypes.map(subtype => <AdminChip key={subtype} active={formData.type === subtype} onClick={() => setFormData({ ...formData, type: subtype })}>{subtype}</AdminChip>)}
+                                </span>
+                            </span>
+                        ))}
+                    </span>
+                </AdminField>
+                <AdminField label="편의시설">
+                    <span className="ag-chips" role="group" aria-label="편의시설">
+                        {AVAILABLE_FACILITIES.map(facility => <AdminChip key={facility} active={formData.facilities.includes(facility)} onClick={() => toggleFacility(facility)}>{facility}</AdminChip>)}
+                    </span>
+                </AdminField>
+                <AdminField label="숙소 설명">
+                    {(id) => <AdminTextArea id={id} minRows={4} value={formData.description} onChange={(e) => setFormData({ ...formData, description: e.target.value })} placeholder="숙소에 대한 설명을 입력하세요" />}
+                </AdminField>
+            </AdminDialog>
+        </ListPage>
     );
 };

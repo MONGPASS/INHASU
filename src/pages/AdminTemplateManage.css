@@ -1,0 +1,54 @@
+/*
+ * 템플릿 관리(/admin/templates) — 탭·템플릿 카드·가이드/숙소 줄과 편집 창은 우리 관리자 부품(당근 Seed).
+ * 이 파일은 그 배치만 둔다(값은 --adm-* 변수). 고객 문서 모양 미리보기(TemplatePreview)는 고객 PDF와 같아야 해서 이 규칙 밖이다(디자인 문서 7절 예외).
+ */
+.tm-page, .tm-tab { display: flex; flex-direction: column; gap: var(--adm-space-4); min-width: 0; }
+.tm-toolbar { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--adm-space-3); }
+.tm-toolbar-text { display: flex; flex: 1; flex-wrap: wrap; align-items: center; gap: var(--adm-space-1) var(--adm-space-2); min-width: 0; }
+.tm-toolbar-text b { flex-basis: 100%; color: var(--adm-ink); font-size: var(--adm-fs-small); }
+.tm-toolbar-text small, .tm-tab small { color: var(--adm-text-3); font-size: var(--adm-fs-caption); }
+.tm-chips, .tm-badges { display: flex; flex-wrap: wrap; gap: var(--adm-space-1); }
+
+/* 일정 템플릿 카드 */
+.tm-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--adm-space-4); }
+.tm-card { overflow: hidden; }
+.tm-cover { position: relative; overflow: hidden; height: calc(var(--adm-space-8) * 4.5); background: var(--adm-ink); }
+.tm-cover img { width: 100%; height: 100%; object-fit: cover; opacity: .45; }
+.tm-cover-text { position: absolute; top: var(--adm-space-4); left: var(--adm-space-5); right: calc(var(--adm-space-8) * 3); display: flex; flex-direction: column; gap: var(--adm-space-1); color: var(--adm-on-dark); }
+.tm-brand { font-size: var(--adm-fs-caption); font-weight: var(--adm-fw-bold); opacity: .8; }
+.tm-cover-text h3 { overflow: hidden; margin: var(--adm-space-2) 0 0; font-size: var(--adm-fs-title); font-weight: var(--adm-fw-bold); text-overflow: ellipsis; white-space: nowrap; }
+.tm-cover-text p { overflow: hidden; margin: 0; font-size: var(--adm-fs-caption); opacity: .85; text-overflow: ellipsis; white-space: nowrap; }
+.tm-nights { position: absolute; top: var(--adm-space-4); right: var(--adm-space-4); }
+.tm-card-body { display: flex; flex-direction: column; gap: var(--adm-space-3); padding: var(--adm-space-4) var(--adm-space-5) var(--adm-space-5); }
+.tm-pages { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: var(--adm-space-2); margin: 0; padding: 0; list-style: none; }
+.tm-pages li { padding: var(--adm-space-2); border: var(--adm-border-width) solid var(--adm-accent-line); border-radius: var(--adm-radius-sm); background: var(--adm-accent-soft); color: var(--adm-accent-strong); font-size: var(--adm-fs-caption); font-weight: var(--adm-fw-bold); text-align: center; }
+.tm-days { display: flex; flex-direction: column; gap: var(--adm-space-1); padding: var(--adm-space-3); border-radius: var(--adm-radius-md); background: var(--adm-gray-50); }
+.tm-day { display: flex; align-items: center; gap: var(--adm-space-2); min-width: 0; }
+.tm-day-title { overflow: hidden; min-width: 0; color: var(--adm-text-2); font-size: var(--adm-fs-caption); font-weight: var(--adm-fw-bold); text-overflow: ellipsis; white-space: nowrap; }
+.tm-actions { display: flex; align-items: center; gap: var(--adm-space-2); }
+
+/* 가이드·숙소 줄 */
+.tm-rows { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--adm-space-3); }
+.tm-row.adm-ui-card { display: flex; flex-direction: row; align-items: center; gap: var(--adm-space-4); min-width: 0; }
+.tm-photo { display: inline-flex; flex: none; align-items: center; justify-content: center; overflow: hidden; width: calc(var(--adm-space-8) * 2.25); height: calc(var(--adm-space-8) * 2.25);
+  border-radius: var(--adm-radius-md); background: var(--adm-gray-100); color: var(--adm-text-3); font-size: var(--adm-fs-title); }
+.tm-photo.is-round { border-radius: var(--adm-radius-pill); }
+.tm-photo.is-wide { width: calc(var(--adm-space-8) * 3); }
+.tm-photo img, .tm-image img { width: 100%; height: 100%; object-fit: cover; }
+.tm-row-text { display: flex; flex: 1; flex-direction: column; gap: var(--adm-space-1); min-width: 0; }
+.tm-row-head { display: flex; flex-wrap: wrap; align-items: center; gap: var(--adm-space-2); }
+.tm-row-head b { color: var(--adm-ink); font-size: var(--adm-fs-body); }
+.tm-clamp { display: -webkit-box; overflow: hidden; -webkit-line-clamp: 1; -webkit-box-orient: vertical; }
+.tm-row-actions { display: flex; flex: none; align-items: center; gap: calc(var(--adm-space-1) / 2); }
+.tm-upload { display: flex; align-items: center; gap: var(--adm-space-4); }
+.tm-years { max-width: calc(var(--adm-space-8) * 4); }
+.tm-images { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--adm-space-2); margin-bottom: var(--adm-space-2); }
+.tm-images:empty { display: none; }
+.tm-image { position: relative; overflow: hidden; aspect-ratio: 16 / 9; border-radius: var(--adm-radius-sm); }
+.tm-image-off { position: absolute; top: var(--adm-space-1); right: var(--adm-space-1); }
+.tm-type-groups { display: flex; flex-direction: column; gap: var(--adm-space-3); }
+.tm-type-group { display: flex; flex-direction: column; gap: var(--adm-space-1); }
+
+@media (max-width: 900px) {
+  .tm-grid, .tm-rows { grid-template-columns: minmax(0, 1fr); }
+}

@@ -1,7 +1,12 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { AdminLayout } from '../components/admin/AdminLayout';
-import { Icon } from '../components/admin/console/Icon';
-import { MW_FONT, isUsableImage, won } from '../components/desktop-primitives/mwTokens';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import {
+    AdminBadge, AdminButton, AdminChip, AdminFileButton, AdminDataTable, AdminDialog, AdminEmpty, AdminError, AdminField, AdminIconButton, AdminLoading, AdminMessage,
+    AdminSearch, AdminSegmented, AdminSwitch, AdminTextArea, AdminTextButton, AdminTextInput,
+    IconArrowDown, IconArrowUp, IconClose, IconExternal, IconPencil, IconPlus, IconTranslate, IconTrash, IconUpload,
+    type AdminColumn, type AdminTone,
+} from '../components/admin/ui';
+import { ListPage } from '../components/admin/ui/AdminPage';
+import { isUsableImage, won } from '../components/desktop-primitives/mwTokens';
 import { PromoCard } from '../components/promotions/PromoCard';
 import { promoItemOf, themeOf } from '../components/promotions/promotionsData';
 import { PROMO_THEME_KEYS, type Promotion, type PromoThemeKey } from '../components/promotions/promotionTypes';
@@ -9,7 +14,12 @@ import { api } from '../lib/api';
 import { uploadImage } from '../utils/upload';
 import { adminConfirm, adminNotify } from '../components/admin/ui/adminFeedback';
 import { adminValidateRequired } from '../components/admin/ui/adminForm';
+import './AdminPromotionManage.css';
 
+/**
+ * 여행기획전(`/admin/promotions`) — 고객 화면 ‘여행 기획전’(/promotions)에 위에서부터 순서대로 나오는 기획전 목록과 편집 창.
+ * 우리 관리자 부품(당근 Seed)으로 그린다. 테마 색 칸·견본만 고객 화면과 같은 색(promotionsData.themeOf)을 그대로 칠한다(디자인 문서 7절 예외).
+ */
 interface ProductLite {
     id: string;
     name: string;
@@ -34,16 +44,17 @@ const THEME_LABELS: Record<PromoThemeKey, string> = {
     mint: '민트', navy: '네이비', jade: '그린', deep: '딥 그린', light: '연민트', paper: '화이트', night: '나이트', soft: '소프트 민트',
 };
 
-const PREVIEWS: { variant: PreviewVariant; label: string; width: number }[] = [
-    { variant: 'desktop', label: 'PC', width: 280 },
-    { variant: 'wide', label: '모바일 · 큰 카드', width: 300 },
-    { variant: 'small', label: '모바일 · 작은 카드', width: 160 },
+/** 고객 화면 카드 크기(PC 280 · 모바일 큰 카드 300 · 작은 카드 160) — 폭은 CSS(pm-preview-card.is-*) */
+const PREVIEWS: { variant: PreviewVariant; label: string }[] = [
+    { variant: 'desktop', label: 'PC' },
+    { variant: 'wide', label: '모바일 · 큰 카드' },
+    { variant: 'small', label: '모바일 · 작은 카드' },
 ];
 
-const PRODUCT_STATUS: Record<string, { label: string; tone: string }> = {
-    active: { label: '판매중', tone: 'b-green' },
-    inactive: { label: '비활성', tone: 'b-gray' },
-    soldout: { label: '품절', tone: 'b-red' },
+const PRODUCT_STATUS: Record<string, { label: string; tone: AdminTone }> = {
+    active: { label: '판매중', tone: 'success' },
+    inactive: { label: '비활성', tone: 'neutral' },
+    soldout: { label: '품절', tone: 'danger' },
 };
 
 const MIGRATION_TEXT = '기획전 테이블이 아직 없습니다. /api/migrate-db 를 한 번 열어 마이그레이션을 실행해 주세요.';
@@ -93,52 +104,32 @@ const toPreviewItem = (form: PromoForm, tourCount: number) => promoItemOf({
     sort_order: 0,
 }, tourCount);
 
-const hintStyle: React.CSSProperties = { fontSize: 12, marginTop: 6, lineHeight: 1.5 };
+const openTab = (href: string) => window.open(href, '_blank', 'noopener,noreferrer');
 
-const Toggle: React.FC<{ on: boolean; onToggle: () => void; title?: string; disabled?: boolean }> = ({ on, onToggle, title, disabled }) => (
-    <button type="button" className={`switch${on ? ' on' : ''}`} onClick={onToggle} title={title} aria-pressed={on} disabled={disabled}>
-        <span className="knob" />
-    </button>
-);
-
-/** Theme colour with the photo on top, as a small stand-in for the card. */
-const Swatch: React.FC<{ theme: PromoThemeKey; image?: string; size?: [number, number] }> = ({ theme, image, size = [56, 42] }) => (
-    <span
-        style={{
-            display: 'block', width: size[0], height: size[1], borderRadius: 'var(--adm-radius-sm)', flex: 'none', overflow: 'hidden',
-            background: themeOf(theme).bg, border: '1px solid var(--border-default)',
-        }}
-    >
-        {isUsableImage(image) && <img src={image} alt="" loading="lazy" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />}
+/** Theme colour with the photo on top, as a small stand-in for the card. 색은 고객 화면 테마 값(7절 예외). */
+const Swatch: React.FC<{ theme: PromoThemeKey; image?: string; large?: boolean }> = ({ theme, image, large }) => (
+    <span className={`pm-swatch${large ? ' is-large' : ''}`} style={{ background: themeOf(theme).bg }}>
+        {isUsableImage(image) && <img src={image} alt="" loading="lazy" />}
     </span>
 );
 
 const ProductStatus: React.FC<{ status: string }> = ({ status }) => {
-    const s = PRODUCT_STATUS[status] ?? { label: status, tone: 'b-gray' };
-    return <span className={`badge ${s.tone}`}>{s.label}</span>;
+    const s = PRODUCT_STATUS[status] ?? { label: status, tone: 'neutral' as AdminTone };
+    return <AdminBadge tone={s.tone}>{s.label}</AdminBadge>;
 };
 
+const ProductThumb: React.FC<{ image?: string }> = ({ image }) => (
+    <span className="pm-thumb">{isUsableImage(image) && <img src={image} alt="" loading="lazy" />}</span>
+);
+
 const MigrationNotice: React.FC<{ onRetry?: () => void }> = ({ onRetry }) => (
-    <div
-        style={{
-            display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap', padding: '14px 16px', marginBottom: 16,
-            background: 'var(--adm-warn-soft)', border: '1px solid var(--adm-warn-line)', borderRadius: 'var(--r-md)', color: 'var(--adm-warn-strong)', fontSize: 13, fontWeight: 600, lineHeight: 1.55,
-        }}
-    >
-        <Icon name="warning" style={{ fontSize: 20, flex: 'none' }} />
-        <div style={{ flex: 1, minWidth: 240 }}>
-            {MIGRATION_TEXT}
-            <div style={{ fontWeight: 500 }}>열린 화면에 결과(JSON)가 나오면 완료입니다. 한 번만 하면 됩니다.</div>
-        </div>
-        <a className="btn btn-ink btn-sm" href="/api/migrate-db" target="_blank" rel="noopener noreferrer" style={{ textDecoration: 'none' }}>
-            <Icon name="open_in_new" />/api/migrate-db 열기
-        </a>
-        {onRetry && (
-            <button type="button" className="btn btn-ghost btn-sm" onClick={onRetry}>
-                <Icon name="refresh" />다시 확인
-            </button>
-        )}
-    </div>
+    <AdminMessage tone="cautionary" role="alert" title={MIGRATION_TEXT}
+        actions={<>
+            <AdminButton size="sm" variant="primary" leading={<IconExternal />} onClick={() => openTab('/api/migrate-db')}>/api/migrate-db 열기</AdminButton>
+            {onRetry && <AdminButton size="sm" variant="secondary" onClick={onRetry}>다시 확인</AdminButton>}
+        </>}>
+        열린 화면에 결과(JSON)가 나오면 완료입니다. 한 번만 하면 됩니다.
+    </AdminMessage>
 );
 
 interface EditorProps {
@@ -158,16 +149,10 @@ const PromotionEditor: React.FC<EditorProps> = ({ initial, products, groups, onC
     const [error, setError] = useState('');
     const [query, setQuery] = useState('');
     const [variant, setVariant] = useState<PreviewVariant>(PREVIEWS[0].variant);
-    const fileRef = useRef<HTMLInputElement>(null);
 
     const patch = (changes: Partial<PromoForm>) => {
         setForm((f) => ({ ...f, ...changes }));
         setDirty(true);
-    };
-
-    const close = async () => {
-        if (dirty && !await adminConfirm('저장하지 않은 내용이 있습니다. 닫으시겠습니까?')) return;
-        onClose();
     };
 
     const productById = useMemo(() => new Map(products.map((p) => [p.id, p])), [products]);
@@ -185,9 +170,8 @@ const PromotionEditor: React.FC<EditorProps> = ({ initial, products, groups, onC
         patch({ product_ids: ids });
     };
 
-    const pickImage = async (e: React.ChangeEvent<HTMLInputElement>) => {
-        const file = e.target.files?.[0];
-        e.target.value = '';
+    const pickImage = async (files: File[]) => {
+        const file = files[0];
         if (!file) return;
         setUploading(true);
         setError('');
@@ -227,260 +211,122 @@ const PromotionEditor: React.FC<EditorProps> = ({ initial, products, groups, onC
         }
     };
 
-    const preview = PREVIEWS.find((p) => p.variant === variant) ?? PREVIEWS[0];
     const onSaleCount = form.product_ids.filter((id) => { const p = productById.get(id); return !!p && isOnSale(p); }).length;
 
     return (
-        <div className="picker-scrim">
-            <div className="picker" style={{ width: 1060, maxWidth: '96vw', maxHeight: '92vh' }}>
-                <div className="card-head">
-                    <h2>{initial ? '기획전 수정' : '기획전 추가'}</h2>
-                    <div className="spacer" />
-                    <button type="button" className="act-btn" title="닫기" onClick={close}>
-                        <Icon name="close" />
-                    </button>
+        <AdminDialog open onClose={onClose} title={initial ? '기획전 수정' : '기획전 추가'} size="lg" flush dirty={dirty}
+            onSubmit={() => void save()} submitting={saving} submitDisabled={uploading}
+            footStart={error ? <span className="pm-foot-error" role="alert">{error}
+                {error === MIGRATION_TEXT && <AdminTextButton size="sm" onClick={() => openTab('/api/migrate-db')}>/api/migrate-db 열기</AdminTextButton>}</span> : undefined}>
+            <div className="pm-split">
+                <div className="pm-form">
+                    <AdminMessage tone="info"><span className="pm-note"><IconTranslate aria-hidden="true" />제목 · 설명 · 분류 · 배지 문구는 고객에게 그대로 보입니다. 한국어로 입력해 주세요.</span></AdminMessage>
+
+                    <AdminField label="제목" required>
+                        {(id) => <AdminTextInput id={id} maxLength={120} value={form.title} onChange={(e) => patch({ title: e.target.value })} placeholder="예: 고비사막 별밤 캠프" />}
+                    </AdminField>
+                    <AdminField label="설명 (한 줄)">
+                        {(id) => <AdminTextInput id={id} maxLength={200} value={form.subtitle} onChange={(e) => patch({ subtitle: e.target.value })} placeholder="예: 쏟아지는 별 아래에서 보내는 특별한 3일" />}
+                    </AdminField>
+
+                    <div className="pm-two">
+                        <AdminField label="분류" hint="고객 화면 상단의 탭으로 쓰입니다. 비워 두면 '특집'으로 표시됩니다.">
+                            {(id, describedBy) => <>
+                                <AdminTextInput id={id} aria-describedby={describedBy} maxLength={40} value={form.group_name} onChange={(e) => patch({ group_name: e.target.value })} placeholder="예: 시즌 한정" />
+                                <span className="pm-chips" role="group" aria-label="분류 고르기">
+                                    {groups.map((g) => <AdminChip key={g} active={form.group_name.trim() === g} onClick={() => patch({ group_name: g })}>{g}</AdminChip>)}
+                                </span>
+                            </>}
+                        </AdminField>
+                        <AdminField label="배지 문구 (선택)" hint="카드 가운데의 작은 알약 모양 라벨입니다.">
+                            {(id, describedBy) => <AdminTextInput id={id} aria-describedby={describedBy} maxLength={40} value={form.badge} onChange={(e) => patch({ badge: e.target.value })} placeholder="예: 최대 20% OFF" />}
+                        </AdminField>
+                    </div>
+
+                    <AdminField label="큰 영문 문구 (선택)" hint="카드 가운데에 크게 들어가는 영문 장식 글자입니다. Enter로 줄바꿈 (최대 3줄), 한 줄에 7자 이내가 보기 좋습니다.">
+                        {(id, describedBy) => <AdminTextArea id={id} aria-describedby={describedBy} minRows={2} maxRows={3} maxLength={40} value={form.art_text} onChange={(e) => patch({ art_text: e.target.value })} placeholder={'GO\nNOW'} />}
+                    </AdminField>
+
+                    <AdminField label="색 테마">
+                        <span className="pm-themes" role="group" aria-label="색 테마">
+                            {PROMO_THEME_KEYS.map((key) => {
+                                const t = themeOf(key);
+                                return (
+                                    <AdminChip key={key} active={form.theme === key} className="pm-theme" onClick={() => patch({ theme: key })}
+                                        leading={<span className="pm-theme-dot" style={{ background: t.bg }} />}>{THEME_LABELS[key]}</AdminChip>
+                                );
+                            })}
+                        </span>
+                    </AdminField>
+
+                    <AdminField label="이미지 (선택)" hint="카드 아래쪽에 사진이 깔립니다. 비워 두면 색 테마만으로 표시됩니다.">
+                        <span className="pm-image">
+                            <Swatch theme={form.theme} image={form.image} large />
+                            <AdminFileButton size="sm" accept="image/*" leading={<IconUpload />} loading={uploading} onFiles={(files) => void pickImage(files)}>
+                                {uploading ? '업로드 중…' : form.image ? '이미지 변경' : '이미지 업로드'}
+                            </AdminFileButton>
+                            {form.image && <AdminTextButton size="sm" tone="assistive" disabled={uploading} onClick={() => patch({ image: '' })}>이미지 제거</AdminTextButton>}
+                        </span>
+                    </AdminField>
+
+                    <AdminField label="상품 선택" aside={`${form.product_ids.length}개 선택 · 위에서부터 순서대로 노출`}>
+                        <span className="pm-picked">
+                            {form.product_ids.map((id, index) => {
+                                const p = productById.get(id);
+                                return (
+                                    <span key={id} className="pm-product">
+                                        <span className="pm-move">
+                                            <AdminIconButton size="sm" label="위로" disabled={index === 0} onClick={() => moveProduct(index, -1)}><IconArrowUp /></AdminIconButton>
+                                            <AdminIconButton size="sm" label="아래로" disabled={index === form.product_ids.length - 1} onClick={() => moveProduct(index, 1)}><IconArrowDown /></AdminIconButton>
+                                        </span>
+                                        <AdminBadge>{index + 1}</AdminBadge>
+                                        <ProductThumb image={p?.image} />
+                                        <span className="pm-product-text">
+                                            <b>{p ? p.name : '삭제된 상품'}</b>
+                                            <small>{p ? `${p.category || '카테고리 없음'} · ${won(p.price)}` : id}</small>
+                                        </span>
+                                        {p ? <ProductStatus status={p.status} /> : <AdminBadge tone="danger">없음</AdminBadge>}
+                                        <AdminIconButton size="sm" label="선택 해제" onClick={() => patch({ product_ids: form.product_ids.filter((x) => x !== id) })}><IconClose /></AdminIconButton>
+                                    </span>
+                                );
+                            })}
+                            {form.product_ids.length > onSaleCount && <small className="pm-muted">「판매중」 상품만 고객 화면에 나옵니다. 비활성 · 품절 · 삭제된 상품은 자동으로 숨겨집니다.</small>}
+                            {form.product_ids.length === 0 && <small className="pm-muted">아직 선택한 상품이 없습니다. 아래 목록에서 추가하세요.</small>}
+                        </span>
+                        <span className="pm-candidates">
+                            <AdminSearch value={query} onChange={setQuery} placeholder="상품명 · 카테고리로 검색" aria-label="상품 검색" wide />
+                            <span className="pm-candidate-list">
+                                {candidates.map((p) => (
+                                    <span key={p.id} className="pm-product">
+                                        <ProductThumb image={p.image} />
+                                        <span className="pm-product-text"><b>{p.name}</b><small>{p.category || '카테고리 없음'} · {won(p.price)}</small></span>
+                                        <ProductStatus status={p.status} />
+                                        <AdminButton size="sm" variant="secondary" leading={<IconPlus />} aria-label={`${p.name} 추가`} onClick={() => patch({ product_ids: [...form.product_ids, p.id] })}>추가</AdminButton>
+                                    </span>
+                                ))}
+                                {candidates.length === 0 && <small className="pm-muted pm-center">
+                                    {products.length === 0 ? '등록된 상품이 없습니다.' : query.trim() ? '검색 결과가 없습니다.' : '모든 상품을 선택했습니다.'}
+                                </small>}
+                            </span>
+                        </span>
+                    </AdminField>
+
+                    <AdminSwitch checked={form.is_active} onChange={(on) => patch({ is_active: on })} label="노출 여부"
+                        description={form.is_active ? '고객 화면에 노출' : '숨김 (관리자만 확인 가능)'} />
                 </div>
 
-                <div className="pm-split" style={{ display: 'flex', minHeight: 0, flex: 1 }}>
-                    {/* Form */}
-                    <div className="pm-form" style={{ flex: 1, minWidth: 0, overflowY: 'auto', padding: '20px 22px' }}>
-                        <div className="card-muted-note" style={{ marginBottom: 18 }}>
-                            <Icon name="translate" />
-                            <span>제목 · 설명 · 분류 · 배지 문구는 고객에게 그대로 보입니다. 한국어로 입력해 주세요.</span>
-                        </div>
-
-                        <div className="field">
-                            <label className="adm-req">제목</label>
-                            <input
-                                className="inp"
-                                type="text"
-                                maxLength={120}
-                                value={form.title}
-                                onChange={(e) => patch({ title: e.target.value })}
-                                placeholder="예: 고비사막 별밤 캠프"
-                            />
-                        </div>
-                        <div className="field">
-                            <label>설명 (한 줄)</label>
-                            <input
-                                className="inp"
-                                type="text"
-                                maxLength={200}
-                                value={form.subtitle}
-                                onChange={(e) => patch({ subtitle: e.target.value })}
-                                placeholder="예: 쏟아지는 별 아래에서 보내는 특별한 3일"
-                            />
-                        </div>
-
-                        <div className="field-row">
-                            <div className="field">
-                                <label>분류</label>
-                                <input
-                                    className="inp"
-                                    type="text"
-                                    maxLength={40}
-                                    value={form.group_name}
-                                    onChange={(e) => patch({ group_name: e.target.value })}
-                                    placeholder="예: 시즌 한정"
-                                />
-                                <div className="row" style={{ gap: 6, flexWrap: 'wrap', marginTop: 8 }}>
-                                    {groups.map((g) => (
-                                        <button
-                                            key={g}
-                                            type="button"
-                                            className={`badge ${form.group_name.trim() === g ? 'b-ink' : 'b-gray'}`}
-                                            style={{ border: 'none', cursor: 'pointer', font: 'inherit', fontSize: 12, fontWeight: 700 }}
-                                            onClick={() => patch({ group_name: g })}
-                                        >
-                                            {g}
-                                        </button>
-                                    ))}
-                                </div>
-                                <div className="cell-muted" style={hintStyle}>고객 화면 상단의 탭으로 쓰입니다. 비워 두면 '특집'으로 표시됩니다.</div>
-                            </div>
-                            <div className="field">
-                                <label>배지 문구 (선택)</label>
-                                <input
-                                    className="inp"
-                                    type="text"
-                                    maxLength={40}
-                                    value={form.badge}
-                                    onChange={(e) => patch({ badge: e.target.value })}
-                                    placeholder="예: 최대 20% OFF"
-                                />
-                                <div className="cell-muted" style={hintStyle}>카드 가운데의 작은 알약 모양 라벨입니다.</div>
-                            </div>
-                        </div>
-
-                        <div className="field">
-                            <label>큰 영문 문구 (선택)</label>
-                            <textarea
-                                className="inp"
-                                rows={2}
-                                maxLength={40}
-                                value={form.art_text}
-                                onChange={(e) => patch({ art_text: e.target.value })}
-                                placeholder={'GO\nNOW'}
-                            />
-                            <div className="cell-muted" style={hintStyle}>카드 가운데에 크게 들어가는 영문 장식 글자입니다. Enter로 줄바꿈 (최대 3줄), 한 줄에 7자 이내가 보기 좋습니다.</div>
-                        </div>
-
-                        <div className="field">
-                            <label>색 테마</label>
-                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 8 }}>
-                                {PROMO_THEME_KEYS.map((key) => {
-                                    const t = themeOf(key);
-                                    const picked = form.theme === key;
-                                    return (
-                                        <button
-                                            key={key}
-                                            type="button"
-                                            onClick={() => patch({ theme: key })}
-                                            aria-pressed={picked}
-                                            style={{
-                                                display: 'flex', alignItems: 'flex-end', height: 54, padding: '7px 10px', borderRadius: 'var(--adm-radius-md)', cursor: 'pointer',
-                                                background: t.bg, color: t.fg, font: 'inherit', fontSize: 12, fontWeight: 700, textAlign: 'left',
-                                                border: '1px solid var(--border-default)',
-                                                boxShadow: picked ? '0 0 0 2px #fff, 0 0 0 4px var(--mrt-blue)' : 'none',
-                                            }}
-                                        >
-                                            {THEME_LABELS[key]}
-                                        </button>
-                                    );
-                                })}
-                            </div>
-                        </div>
-
-                        <div className="field">
-                            <label>이미지 (선택)</label>
-                            <input ref={fileRef} type="file" accept="image/*" style={{ display: 'none' }} onChange={pickImage} />
-                            <div className="row" style={{ gap: 12 }}>
-                                <Swatch theme={form.theme} image={form.image} size={[96, 64]} />
-                                <button type="button" className="btn btn-ghost btn-sm" onClick={() => fileRef.current?.click()} disabled={uploading}>
-                                    <Icon name="upload" />{uploading ? '업로드 중…' : form.image ? '이미지 변경' : '이미지 업로드'}
-                                </button>
-                                {form.image && (
-                                    <button type="button" className="btn btn-ghost btn-sm" onClick={() => patch({ image: '' })} disabled={uploading}>
-                                        이미지 제거
-                                    </button>
-                                )}
-                            </div>
-                            <div className="cell-muted" style={hintStyle}>카드 아래쪽에 사진이 깔립니다. 비워 두면 색 테마만으로 표시됩니다.</div>
-                        </div>
-
-                        <div className="field">
-                            <label>상품 선택 <span className="cell-muted" style={{ fontWeight: 600 }}>· {form.product_ids.length}개 선택 · 위에서부터 순서대로 노출</span></label>
-                            <div className="stack" style={{ gap: 6 }}>
-                                {form.product_ids.map((id, index) => {
-                                    const p = productById.get(id);
-                                    return (
-                                        <div key={id} className="edit-row" style={{ alignItems: 'center', padding: '8px 10px' }}>
-                                            <span className="edit-move">
-                                                <button type="button" onClick={() => moveProduct(index, -1)} disabled={index === 0} title="위로">
-                                                    <Icon name="arrow_upward" />
-                                                </button>
-                                                <button type="button" onClick={() => moveProduct(index, 1)} disabled={index === form.product_ids.length - 1} title="아래로">
-                                                    <Icon name="arrow_downward" />
-                                                </button>
-                                            </span>
-                                            <span className="badge b-gray">{index + 1}</span>
-                                            {p && isUsableImage(p.image)
-                                                ? <img className="thumb" src={p.image} alt="" loading="lazy" />
-                                                : <span className="thumb" />}
-                                            <div style={{ flex: 1, minWidth: 0 }}>
-                                                <div className="cell-strong" style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>{p ? p.name : '삭제된 상품'}</div>
-                                                <div className="cell-muted" style={{ fontSize: 12 }}>{p ? `${p.category || '카테고리 없음'} · ${won(p.price)}` : id}</div>
-                                            </div>
-                                            {p ? <ProductStatus status={p.status} /> : <span className="badge b-red">없음</span>}
-                                            <button
-                                                type="button"
-                                                className="act-btn danger"
-                                                title="선택 해제"
-                                                style={{ margin: 0 }}
-                                                onClick={() => patch({ product_ids: form.product_ids.filter((x) => x !== id) })}
-                                            >
-                                                <Icon name="close" />
-                                            </button>
-                                        </div>
-                                    );
-                                })}
-                                {form.product_ids.length > onSaleCount && (
-                                    <div className="cell-muted" style={{ fontSize: 12 }}>「판매중」 상품만 고객 화면에 나옵니다. 비활성 · 품절 · 삭제된 상품은 자동으로 숨겨집니다.</div>
-                                )}
-                                {form.product_ids.length === 0 && (
-                                    <div className="cell-muted" style={{ fontSize: 13, padding: '10px 2px' }}>아직 선택한 상품이 없습니다. 아래 목록에서 눌러 추가하세요.</div>
-                                )}
-                            </div>
-
-                            <div style={{ marginTop: 12, border: '1px solid var(--border-default)', borderRadius: 'var(--r-md)', overflow: 'hidden' }}>
-                                <div className="tb-search" style={{ border: 'none', borderBottom: '1px solid var(--border-subtle)', borderRadius: 0, boxShadow: 'none' }}>
-                                    <Icon name="search" />
-                                    <input type="text" placeholder="상품명 · 카테고리로 검색" value={query} onChange={(e) => setQuery(e.target.value)} />
-                                </div>
-                                <div className="picker-list" style={{ maxHeight: 232 }}>
-                                    {candidates.map((p) => (
-                                        <button key={p.id} type="button" className="picker-item" onClick={() => patch({ product_ids: [...form.product_ids, p.id] })}>
-                                            {isUsableImage(p.image)
-                                                ? <img className="thumb" src={p.image} alt="" loading="lazy" />
-                                                : <span className="thumb" />}
-                                            <div style={{ flex: 1 }}>
-                                                <div className="cell-strong" style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>{p.name}</div>
-                                                <div className="cell-muted" style={{ fontSize: 12 }}>{p.category || '카테고리 없음'} · {won(p.price)}</div>
-                                            </div>
-                                            <ProductStatus status={p.status} />
-                                            <Icon name="add" style={{ fontSize: 18, color: 'var(--mrt-blue-strong)', flex: 'none' }} />
-                                        </button>
-                                    ))}
-                                    {candidates.length === 0 && (
-                                        <div className="cell-muted" style={{ fontSize: 13, padding: '14px 12px', textAlign: 'center' }}>
-                                            {products.length === 0 ? '등록된 상품이 없습니다.' : query.trim() ? '검색 결과가 없습니다.' : '모든 상품을 선택했습니다.'}
-                                        </div>
-                                    )}
-                                </div>
-                            </div>
-                        </div>
-
-                        <div className="field" style={{ marginBottom: 0 }}>
-                            <label>노출 여부</label>
-                            <div className="row" style={{ gap: 10 }}>
-                                <Toggle on={form.is_active} onToggle={() => patch({ is_active: !form.is_active })} />
-                                <span className="cell-muted">{form.is_active ? '고객 화면에 노출' : '숨김 (관리자만 확인 가능)'}</span>
-                            </div>
-                        </div>
+                {/* Live preview */}
+                <div className="pm-preview">
+                    <b className="pm-preview-title">고객 화면 미리보기</b>
+                    <AdminSegmented label="미리보기 크기" value={variant} onChange={setVariant} items={PREVIEWS.map((p) => ({ value: p.variant, label: p.label }))} />
+                    {/* The card is a link on the public page; here it is display only. */}
+                    <div className={`pm-preview-card is-${variant}`} aria-hidden="true" inert>
+                        <PromoCard item={toPreviewItem(form, onSaleCount)} variant={variant} />
                     </div>
-
-                    {/* Live preview */}
-                    <div className="pm-preview" style={{ width: 348, flex: 'none', overflowY: 'auto', padding: '20px 22px', background: 'var(--mrt-gray-50)', borderLeft: '1px solid var(--border-subtle)' }}>
-                        <div className="cell-strong" style={{ fontSize: 13, marginBottom: 10 }}>고객 화면 미리보기</div>
-                        <div className="seg" style={{ marginBottom: 16 }}>
-                            {PREVIEWS.map((p) => (
-                                <button key={p.variant} type="button" className={p.variant === variant ? 'active' : ''} style={{ padding: '6px 10px', fontSize: 12 }} onClick={() => setVariant(p.variant)}>
-                                    {p.label}
-                                </button>
-                            ))}
-                        </div>
-                        {/* The card is a link on the public page; here it is display only. */}
-                        <div style={{ width: preview.width, maxWidth: '100%', margin: '0 auto', display: 'grid', fontFamily: MW_FONT, pointerEvents: 'none' }} aria-hidden="true" inert>
-                            <PromoCard item={toPreviewItem(form, onSaleCount)} variant={variant} />
-                        </div>
-                        <div className="cell-muted" style={{ ...hintStyle, marginTop: 14 }}>
-                            모바일에서는 목록의 첫 번째 기획전이 큰 카드, 나머지는 작은 카드로 보입니다. 작은 카드는 제목 · 설명이 한 줄로 잘립니다.
-                        </div>
-                    </div>
-                </div>
-
-                <div className="drawer-foot">
-                    <div style={{ flex: 1, minWidth: 0, fontSize: 13, fontWeight: 600, color: 'var(--mrt-red)' }}>
-                        {error}
-                        {error === MIGRATION_TEXT && (
-                            <a href="/api/migrate-db" target="_blank" rel="noopener noreferrer" style={{ marginLeft: 8, color: 'var(--mrt-blue-strong)' }}>/api/migrate-db 열기</a>
-                        )}
-                    </div>
-                    <button type="button" className="btn btn-ghost" onClick={close} disabled={saving}>취소</button>
-                    <button type="button" className="btn btn-ink" onClick={save} disabled={saving || uploading}>{saving ? '저장 중…' : '저장'}</button>
+                    <small className="pm-muted">모바일에서는 목록의 첫 번째 기획전이 큰 카드, 나머지는 작은 카드로 보입니다. 작은 카드는 제목 · 설명이 한 줄로 잘립니다.</small>
                 </div>
             </div>
-        </div>
+        </AdminDialog>
     );
 };
 
@@ -492,8 +338,6 @@ export const AdminPromotionManage: React.FC = () => {
     const [needsMigration, setNeedsMigration] = useState(false);
     /** `null` = closed, `{ promotion: null }` = new. */
     const [editor, setEditor] = useState<{ promotion: Promotion | null } | null>(null);
-    const [toast, setToast] = useState('');
-    const toastTimer = useRef<number | undefined>(undefined);
 
     const load = useCallback(async () => {
         try {
@@ -526,14 +370,6 @@ export const AdminPromotionManage: React.FC = () => {
     useEffect(() => {
         void load();
     }, [load]);
-
-    useEffect(() => () => window.clearTimeout(toastTimer.current), []);
-
-    const showToast = (message: string) => {
-        setToast(message);
-        window.clearTimeout(toastTimer.current);
-        toastTimer.current = window.setTimeout(() => setToast(''), 2600);
-    };
 
     const fail = (e: unknown) => {
         if (isMigrationError(e)) setNeedsMigration(true);
@@ -578,133 +414,62 @@ export const AdminPromotionManage: React.FC = () => {
         try {
             await api.promotions.delete(promotion.id);
             setPromos((rows) => rows.filter((p) => p.id !== promotion.id));
-            showToast('기획전이 삭제되었습니다.');
+            adminNotify('기획전이 삭제되었습니다.', 'success');
         } catch (e) {
             fail(e);
         }
     };
 
-    const stop = (e: React.MouseEvent) => e.stopPropagation();
-
-    const headerActions = (
-        <>
-            <a className="btn btn-ghost" href="/promotions" target="_blank" rel="noopener noreferrer" style={{ textDecoration: 'none' }}>
-                <Icon name="open_in_new" />고객 화면 보기
-            </a>
-            <button type="button" className="btn btn-ink" onClick={() => setEditor({ promotion: null })}>
-                <Icon name="add" />기획전 추가
-            </button>
-        </>
-    );
+    const columns: AdminColumn<Promotion>[] = [
+        { key: 'order', header: '순서', nowrap: true, render: (promotion, index) => (
+            <span className="pm-move">
+                <AdminIconButton size="sm" label="위로" disabled={index === 0} onClick={() => void move(index, -1)}><IconArrowUp /></AdminIconButton>
+                <AdminIconButton size="sm" label="아래로" disabled={index === promos.length - 1} onClick={() => void move(index, 1)}><IconArrowDown /></AdminIconButton>
+            </span>
+        ) },
+        { key: 'promo', header: '기획전', render: (promotion) => (
+            <span className="pm-promo">
+                <Swatch theme={promotion.theme} image={promotion.image} />
+                <span className="pm-product-text"><b>{promotion.title}</b><small>{promotion.subtitle || `${THEME_LABELS[promotion.theme]} 테마`}</small></span>
+            </span>
+        ) },
+        { key: 'group', header: '분류', nowrap: true, render: (promotion) => promotion.group_name ? <AdminBadge tone="info">{promotion.group_name}</AdminBadge> : <span className="pm-muted">특집 (기본)</span> },
+        { key: 'count', header: '상품 수', align: 'center', nowrap: true, render: (promotion) => {
+            const hidden = promotion.product_ids.filter((id) => !onSaleIds.has(id)).length;
+            return <span className="pm-count">{promotion.product_ids.length}개
+                {products.length > 0 && hidden > 0 && <AdminBadge tone="warn" title="판매중이 아니거나 삭제된 상품은 고객 화면에 나오지 않습니다.">미노출 {hidden}</AdminBadge>}</span>;
+        } },
+        { key: 'active', header: '노출', align: 'center', render: (promotion) => (
+            <AdminSwitch checked={promotion.is_active} onChange={() => void toggleActive(promotion)} aria-label={`${promotion.title} ${promotion.is_active ? '노출 중' : '숨김'}`} />
+        ) },
+        { key: 'manage', header: '관리', align: 'right', nowrap: true, render: (promotion) => (
+            <span className="pm-actions">
+                <AdminIconButton size="sm" label={promotion.is_active ? '고객 화면에서 보기 (새 탭)' : '고객 화면에서 보기 (숨김 상태 — 관리자만 보입니다)'}
+                    onClick={() => openTab(`/promotions/${encodeURIComponent(promotion.id)}`)}><IconExternal /></AdminIconButton>
+                <AdminIconButton size="sm" label="수정" onClick={() => setEditor({ promotion })}><IconPencil /></AdminIconButton>
+                <AdminIconButton size="sm" label="삭제" onClick={() => void remove(promotion)}><IconTrash /></AdminIconButton>
+            </span>
+        ) },
+    ];
 
     return (
-        <AdminLayout activePage="promotions" title="여행기획전 관리" eyebrow="사이트 설정" showSearch={false} actions={headerActions}>
-            <div className="route-anim">
-                {needsMigration && <MigrationNotice onRetry={() => void load()} />}
-
-                <div className="sec-head">
-                    <div>
-                        <h3>기획전 목록</h3>
-                        <div className="cell-muted" style={{ fontSize: 13 }}>고객 화면 '여행 기획전'(/promotions)에 위에서부터 순서대로 노출됩니다.</div>
-                    </div>
-                    <div className="spacer" />
-                    <span className="cell-muted" style={{ fontSize: 13 }}>전체 {promos.length}개 · 노출 {promos.filter((p) => p.is_active).length}개</span>
-                </div>
-
-                <div className="card">
-                    {promos.length > 0 && (
-                        <div className="tbl-wrap">
-                            <table className="tbl">
-                                <thead>
-                                    <tr>
-                                        <th style={{ width: 70 }}>순서</th>
-                                        <th>기획전</th>
-                                        <th>분류</th>
-                                        <th className="c">상품 수</th>
-                                        <th className="c">노출</th>
-                                        <th className="r">관리</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {promos.map((promotion, index) => {
-                                        const hidden = promotion.product_ids.filter((id) => !onSaleIds.has(id)).length;
-                                        return (
-                                            <tr key={promotion.id} onClick={() => setEditor({ promotion })}>
-                                                <td onClick={stop}>
-                                                    <span className="edit-move">
-                                                        <button type="button" onClick={() => void move(index, -1)} disabled={index === 0} title="위로">
-                                                            <Icon name="arrow_upward" />
-                                                        </button>
-                                                        <button type="button" onClick={() => void move(index, 1)} disabled={index === promos.length - 1} title="아래로">
-                                                            <Icon name="arrow_downward" />
-                                                        </button>
-                                                    </span>
-                                                </td>
-                                                <td>
-                                                    <div className="row" style={{ gap: 12 }}>
-                                                        <Swatch theme={promotion.theme} image={promotion.image} />
-                                                        <div style={{ minWidth: 0, maxWidth: 420 }}>
-                                                            <div className="cell-strong" style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>{promotion.title}</div>
-                                                            <div className="cell-muted" style={{ fontSize: 12, overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                                                                {promotion.subtitle || `${THEME_LABELS[promotion.theme]} 테마`}
-                                                            </div>
-                                                        </div>
-                                                    </div>
-                                                </td>
-                                                <td>
-                                                    {promotion.group_name
-                                                        ? <span className="badge b-blue">{promotion.group_name}</span>
-                                                        : <span className="cell-muted">특집 (기본)</span>}
-                                                </td>
-                                                <td className="c">
-                                                    <span className="cell-mono">{promotion.product_ids.length}개</span>
-                                                    {products.length > 0 && hidden > 0 && (
-                                                        <span className="badge b-amber" style={{ marginLeft: 6 }} title="판매중이 아니거나 삭제된 상품은 고객 화면에 나오지 않습니다.">미노출 {hidden}</span>
-                                                    )}
-                                                </td>
-                                                <td className="c" onClick={stop}>
-                                                    <Toggle on={promotion.is_active} onToggle={() => void toggleActive(promotion)} title={promotion.is_active ? '노출 중' : '숨김'} />
-                                                </td>
-                                                <td className="r" onClick={stop}>
-                                                    <span className="row-actions">
-                                                        <a
-                                                            className="act-btn"
-                                                            href={`/promotions/${encodeURIComponent(promotion.id)}`}
-                                                            target="_blank"
-                                                            rel="noopener noreferrer"
-                                                            title={promotion.is_active ? '고객 화면에서 보기 (새 탭)' : '고객 화면에서 보기 (숨김 상태 — 관리자만 보입니다)'}
-                                                        >
-                                                            <Icon name="open_in_new" />
-                                                        </a>
-                                                        <button type="button" className="act-btn" title="수정" onClick={() => setEditor({ promotion })}>
-                                                            <Icon name="edit" />
-                                                        </button>
-                                                        <button type="button" className="act-btn danger" title="삭제" onClick={() => void remove(promotion)}>
-                                                            <Icon name="delete" />
-                                                        </button>
-                                                    </span>
-                                                </td>
-                                            </tr>
-                                        );
-                                    })}
-                                </tbody>
-                            </table>
-                        </div>
-                    )}
-
-                    {promos.length === 0 && (
-                        <div className="empty">
-                            <Icon name={loadError ? 'error' : 'campaign'} />
-                            <p>{loading ? '불러오는 중…' : loadError ? `목록을 불러오지 못했습니다: ${loadError}` : '등록된 기획전이 없습니다.'}</p>
-                            {!loading && !loadError && !needsMigration && (
-                                <button type="button" className="btn btn-ink btn-sm" style={{ marginTop: 14 }} onClick={() => setEditor({ promotion: null })}>
-                                    <Icon name="add" style={{ fontSize: 17, color: 'inherit' }} />첫 기획전 만들기
-                                </button>
-                            )}
-                        </div>
-                    )}
-                </div>
-            </div>
+        <ListPage
+            activePage="promotions"
+            title="여행기획전 관리"
+            description="고객 화면 ‘여행 기획전’(/promotions)에 위에서부터 순서대로 노출됩니다."
+            showSearch={false}
+            notice={needsMigration ? <MigrationNotice onRetry={() => void load()} /> : undefined}
+            actions={<>
+                <AdminButton variant="secondary" leading={<IconExternal />} onClick={() => openTab('/promotions')}>고객 화면 보기</AdminButton>
+                <AdminButton variant="primary" leading={<IconPlus />} onClick={() => setEditor({ promotion: null })}>기획전 추가</AdminButton>
+            </>}
+            filters={promos.length > 0 ? <span className="pm-total">전체 {promos.length}개 · 노출 {promos.filter((p) => p.is_active).length}개</span> : undefined}
+        >
+            {loading ? <AdminLoading />
+                : loadError ? <AdminError reason={`목록을 불러오지 못했습니다: ${loadError}`} onRetry={() => { setLoading(true); void load(); }} />
+                : <AdminDataTable label="기획전 목록" columns={columns} rows={promos} rowKey={(p) => p.id} onRowClick={(promotion) => setEditor({ promotion })}
+                    empty={<AdminEmpty title="등록된 기획전이 없습니다"
+                        action={!needsMigration ? <AdminButton size="sm" variant="primary" leading={<IconPlus />} onClick={() => setEditor({ promotion: null })}>첫 기획전 만들기</AdminButton> : undefined} />} />}
 
             {editor && (
                 <PromotionEditor
@@ -716,18 +481,11 @@ export const AdminPromotionManage: React.FC = () => {
                     onMigrationNeeded={() => setNeedsMigration(true)}
                     onSaved={(message) => {
                         setEditor(null);
-                        showToast(message);
+                        adminNotify(message, 'success');
                         void load();
                     }}
                 />
             )}
-
-            {toast && (
-                <div className="page-toast">
-                    <Icon name="check_circle" />
-                    <span>{toast}</span>
-                </div>
-            )}
-        </AdminLayout>
+        </ListPage>
     );
 };

@@ -33,10 +33,13 @@ const result = await build({ stdin: { contents: `
 });
 const deferred = () => { let resolve, reject; const promise = new Promise((a, b) => { resolve = a; reject = b; }); return { promise, resolve, reject }; };
 const tick = () => new Promise(setImmediate);
-const nodes = root => !root || typeof root !== 'object' ? [] : Array.isArray(root) ? root.flatMap(nodes) : [root, ...nodes(root.props?.children)];
+// 안내 상자의 버튼(actions)도 찾을 수 있게 그 칸까지 내려간다.
+const nodes = root => !root || typeof root !== 'object' ? [] : Array.isArray(root) ? root.flatMap(nodes) : [root, ...nodes(root.props?.children), ...nodes(root.props?.actions)];
 const find = (root, predicate) => { const node = nodes(root).find(predicate); assert.ok(node, 'requested control is rendered'); return node; };
-// 홈 화면 관리의 '변경사항 저장'은 본문 상단 고정 줄에 있다.
-const saveButton = root => find(root, n => n.type === 'button' && n.props.className === 'hm-save');
+// 홈 화면 관리의 '변경사항 저장'은 본문 상단 고정 줄에 있다(우리 관리자 부품 AdminButton).
+const saveButton = root => find(root, n => n.type === 'AdminButton' && ['변경사항 저장', '저장 중…'].includes(n.props.children));
+const mobilePicker = root => find(root, n => n.type === 'AdminFileButton' && n.props['aria-label'] === '모바일 이미지 변경');
+const titleArea = (root, value) => find(root, n => n.type === 'AdminTextArea' && n.props.value === value);
 const initialBanner = () => ({ banners: [
     { id: 'a', image: '/img/a.webp', title: '첫 배너', subtitle: '', tag: '' },
     { id: 'b', image: '/img/b.webp', title: '둘째 배너', subtitle: '', tag: '' },
@@ -70,16 +73,15 @@ test('실제 배너 업로드·저장 handler는 동기 잠금과 최신 상태 
     const app = setup({ api: { banners: { get: async () => initialBanner(), save: data => { saves++; sent = structuredClone(data); return save.promise; } } },
         upload: () => { uploads++; return upload.promise; } });
     const h = app.mount(app.AdminBannerManage); await tick(); h.render();
-    find(h.tree, n => n.props?.title === '모바일 이미지 변경').props.onClick(); h.render();
-    const fileInput = find(h.tree, n => n.type === 'input' && n.props.type === 'file');
-    const request = fileInput.props.onChange({ target: { files: [{ name: 'new.jpg' }], value: 'new.jpg' } });
+    const picker = mobilePicker(h.tree);
+    const request = picker.props.onFiles([{ name: 'new.jpg' }]);
     assert.equal(uploads, 1); assert.equal(readBusy(h), true);
-    await fileInput.props.onChange({ target: { files: [{ name: 'duplicate.jpg' }], value: '' } });
+    await picker.props.onFiles([{ name: 'duplicate.jpg' }]);
     assert.equal(uploads, 1); h.render();
     assert.equal(find(h.tree, n => n.type === 'fieldset').props.disabled, true);
     await saveButton(h.tree).props.onClick(); assert.equal(saves, 0);
     // Defensive late merge: an intervening state update must survive as well.
-    find(h.tree, n => n.type === 'textarea' && n.props.value === '첫 배너').props.onChange({ target: { value: '업로드 중 최신 문구' } });
+    titleArea(h.tree, '첫 배너').props.onChange({ target: { value: '업로드 중 최신 문구' } });
     upload.resolve('/img/new.webp'); await request; h.render();
     assert.ok(nodes(h.tree).some(n => n.props?.value === '업로드 중 최신 문구'));
     const firstSave = saveButton(h.tree).props.onClick();
@@ -96,9 +98,8 @@ test('메인 배너 순서가 저장 payload에 반영되고 업로드 실패 �
     let sent;
     const app = setup({ api: { banners: { get: async () => initialBanner(), save: async data => { sent = structuredClone(data); } } }, upload: async () => { throw new Error('로컬 업로드 실패'); } });
     const h = app.mount(app.AdminBannerManage); await tick(); h.render();
-    find(h.tree, n => n.props?.['aria-label'] === '메인 배너 아래로').props.onClick(); h.render();
-    find(h.tree, n => n.props?.title === '모바일 이미지 변경').props.onClick(); h.render();
-    await find(h.tree, n => n.type === 'input' && n.props.type === 'file').props.onChange({ target: { files: [{ name: 'fail.jpg' }], value: '' } });
+    find(h.tree, n => n.type === 'AdminIconButton' && n.props.label === '메인 배너 아래로').props.onClick(); h.render();
+    await mobilePicker(h.tree).props.onFiles([{ name: 'fail.jpg' }]);
     h.render(); await saveButton(h.tree).props.onClick();
     assert.deepEqual(Array.from(sent.banners, row => row.id), ['b', 'a']); assert.equal(sent.banners[0].image, '/img/b.webp');
 });
@@ -107,15 +108,15 @@ test('되돌리기는 서버 호출 없이 마지막으로 불러온 내용으�
     let saves = 0, sent;
     const app = setup({ api: { banners: { get: async () => initialBanner(), save: async data => { saves++; sent = structuredClone(data); } } } });
     const h = app.mount(app.AdminBannerManage); await tick(); h.render();
-    find(h.tree, n => n.type === 'textarea' && n.props.value === '첫 배너').props.onChange({ target: { value: '되돌릴 문구' } }); h.render();
+    titleArea(h.tree, '첫 배너').props.onChange({ target: { value: '되돌릴 문구' } }); h.render();
     app.context.window.confirm = () => true;
-    find(h.tree, n => n.type === 'button' && n.props.className === 'hm-revert').props.onClick(); await tick(); h.render();
+    find(h.tree, n => n.type === 'AdminButton' && n.props.children === '되돌리기').props.onClick(); await tick(); h.render();
     assert.equal(saves, 0); assert.equal(readBusy(h), false);
-    assert.ok(nodes(h.tree).some(n => n.type === 'textarea' && n.props.value === '첫 배너'));
+    assert.ok(nodes(h.tree).some(n => n.type === 'AdminTextArea' && n.props.value === '첫 배너'));
     assert.equal(saveButton(h.tree).props.disabled, true);
-    find(h.tree, n => n.type === 'button' && n.props['aria-label'] === '메인 배너 #1 접기').props.onClick(); h.render();
-    assert.ok(!nodes(h.tree).some(n => n.type === 'textarea' && n.props.value === '첫 배너'), 'collapsed card hides its fields');
-    find(h.tree, n => n.props?.['aria-label'] === '메인 배너 아래로').props.onClick(); h.render();
+    find(h.tree, n => n.type === 'AdminPickCard' && n.props['aria-label'] === '메인 배너 #1 접기').props.onClick(); h.render();
+    assert.ok(!nodes(h.tree).some(n => n.type === 'AdminTextArea' && n.props.value === '첫 배너'), 'collapsed card hides its fields');
+    find(h.tree, n => n.type === 'AdminIconButton' && n.props.label === '메인 배너 아래로').props.onClick(); h.render();
     await saveButton(h.tree).props.onClick();
     assert.equal(saves, 1); assert.deepEqual(Array.from(sent.banners, row => row.id), ['b', 'a']);
     assert.deepEqual(Object.keys(sent.banners[1]).sort(), ['id', 'image', 'link', 'pcImage', 'pcSubtitle', 'pcTag', 'pcTitle', 'subtitle', 'tag', 'title']);
@@ -128,7 +129,7 @@ test('배너 읽기 실패에는 빈 자료를 저장하지 못하며 다시 읽
     assert.equal(find(h.tree, n => n.type === 'fieldset').props.disabled, true);
     await saveButton(h.tree).props.onClick(); assert.equal(saves, 0);
     app.context.adapters.api.banners.get = async () => initialBanner();
-    find(h.tree, n => n.type === 'button' && n.props.children === '다시 불러오기').props.onClick(); h.render(); await tick(); h.render();
+    find(h.tree, n => n.type === 'AdminButton' && n.props.children === '다시 불러오기').props.onClick(); h.render(); await tick(); h.render();
     assert.equal(find(h.tree, n => n.type === 'fieldset').props.disabled, false);
 });
 
@@ -208,19 +209,18 @@ test('닫힌 배너 편집기의 늦은 업로드는 다시 열린 새 화면을
     const upload = deferred();
     const app = setup({ api: { banners: { get: async () => initialBanner() } }, upload: () => upload.promise });
     const previous = app.mount(app.AdminBannerManage); await tick(); previous.render();
-    find(previous.tree, n => n.props?.title === '모바일 이미지 변경').props.onClick(); previous.render();
-    const request = find(previous.tree, n => n.type === 'input' && n.props.type === 'file').props.onChange({ target: { files: [{ name: 'late.jpg' }], value: '' } });
+    const request = mobilePicker(previous.tree).props.onFiles([{ name: 'late.jpg' }]);
     previous.unmount();
     const current = app.mount(app.AdminBannerManage); await tick(); current.render();
     upload.resolve('/img/late.webp'); await request; current.render();
     assert.equal(readBusy(current), false);
-    assert.ok(!nodes(current.tree).some(n => String(n.props?.style?.backgroundImage || '').includes('/img/late.webp')));
+    assert.ok(!nodes(current.tree).some(n => String(n.props?.src || '').includes('/img/late.webp')));
 });
 
 test('실제 이동 guard는 미저장 배너의 Back·메뉴 이동과 새로고침을 확인한다', async () => {
     const app = setup({ api: { banners: { get: async () => initialBanner() } } });
     const h = app.mount(app.AdminBannerManage); await tick(); h.render();
-    find(h.tree, n => n.type === 'textarea' && n.props.value === '첫 배너').props.onChange({ target: { value: '미저장' } });
+    titleArea(h.tree, '첫 배너').props.onChange({ target: { value: '미저장' } });
     assert.equal(readBusy(h), true);
     let prevented = 0; app.listeners.get('beforeunload')({ preventDefault() { prevented++; } }); assert.equal(prevented, 1);
     let resets = 0, proceeds = 0;

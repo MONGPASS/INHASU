@@ -4,31 +4,20 @@ import 'react-quill-new/dist/quill.snow.css';
 import { api } from '../lib/api';
 import { uploadImage } from '../utils/upload';
 import { AdminLayout } from '../components/admin/AdminLayout';
-import { Icon } from '../components/admin/console/Icon';
-import { DashboardIcon } from '../components/admin/dashboard/DashboardIcon';
 import { SimpleSlider } from '../components/ui/SimpleSlider';
 import { isPublishedMagazine } from '../constants/seo';
 import { useBlocker } from 'react-router-dom';
 import { useUser } from '../contexts/UserContext';
 import { magazineDraftFingerprint, readMagazineDraft, writeMagazineDraft, removeMagazineDraft, type MagazineDraftScope, type MagazineDraftRead, type MagazineDraftResult, type MagazineDraftForm } from '../utils/adminMagazineDraft';
 import './AdminContentManage.css';
+import './AdminMagazineManage.css';
 import { adminConfirm, adminNotify } from '../components/admin/ui/adminFeedback';
-import { IconBook, IconChevronUp, IconImage, IconWrite } from '../components/admin/ui/AdminIcons';
+import {
+    AdminButton, AdminCard, AdminChip, AdminDialog, AdminEmpty, AdminError, AdminField, AdminFileButton, AdminIconButton, AdminLoading, AdminMessage,
+    AdminSearch, AdminSelect, AdminSwitch, AdminTabs, AdminTextArea, AdminTextButton, AdminTextInput,
+    IconBook, IconCheck, IconChevronDown, IconChevronLeft, IconChevronRight, IconChevronUp, IconImage, IconPencil, IconPerson, IconTrash, IconUpload, IconWrite,
+} from '../components/admin/ui';
 import { adminConfirmLeave } from '../components/admin/ui/adminLeaveConfirm';
-
-/** 이 화면 아이콘 → 당근 Seed(2026-11-24, 예전 Lucide 선 대신). `lc-` 키는 Material 아이콘 검사에 걸리지 않게 하려는 것이다. */
-const MAGAZINE_ICONS = {
-    'lc-square-pen': IconWrite,
-    'lc-image': IconImage,
-    'lc-chevron-up': IconChevronUp,
-    'lc-book-open': IconBook,
-} as const;
-
-const magazineGlyphStyle: React.CSSProperties = { flex: 'none', display: 'block' };
-const MagazineIcon: React.FC<{ name: keyof typeof MAGAZINE_ICONS; size?: number }> = ({ name, size = 16 }) => {
-    const Glyph = MAGAZINE_ICONS[name];
-    return <Glyph width={size} height={size} focusable="false" style={magazineGlyphStyle} />;
-};
 
 interface Magazine {
     id: string;
@@ -80,16 +69,15 @@ class SliderBlot extends BlockEmbed {
 
         // Container
         const container = document.createElement('div');
-        container.style.cssText = 'padding: 1rem; border: 2px dashed #cbd5e1; border-radius: 0.75rem; background-color: #f8fafc; text-align: center; margin: 1rem 0; position: relative;';
+        container.className = 'mg-blot is-slider';
 
         // Remove Button
         const removeBtn = document.createElement('div');
         const removeBtnIcon = document.createElement('span');
         removeBtnIcon.className = 'material-symbols-outlined';
-        removeBtnIcon.style.fontSize = '16px';
         removeBtnIcon.textContent = 'close';
         removeBtn.appendChild(removeBtnIcon);
-        removeBtn.style.cssText = 'position: absolute; top: -10px; right: -10px; width: 24px; height: 24px; background-color: #ef4444; color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer; box-shadow: 0 2px 5px rgba(0,0,0,0.2); z-index: 10;';
+        removeBtn.className = 'mg-blot-remove';
 
         // Add click listener to remove the blot
         removeBtn.addEventListener('click', (e) => {
@@ -105,10 +93,9 @@ class SliderBlot extends BlockEmbed {
         const content = document.createElement('div');
 
         const label = document.createElement('div');
-        label.style.cssText = 'font-weight: bold; color: #64748b; margin-bottom: 0.5rem; display: flex; align-items: center; justify-content: center; gap: 0.5rem;';
+        label.className = 'mg-blot-label';
         const labelIcon = document.createElement('span');
         labelIcon.className = 'material-symbols-outlined';
-        labelIcon.style.fontSize = '1.25rem';
         labelIcon.textContent = 'photo_library';
         const labelText = document.createElement('span');
         labelText.textContent = `이미지 슬라이더 (${images.length}장)`;
@@ -116,11 +103,10 @@ class SliderBlot extends BlockEmbed {
         label.appendChild(labelText);
 
         const thumbnails = document.createElement('div');
-        thumbnails.style.cssText = 'display: flex; gap: 0.5rem; justify-content: center; overflow-x: auto; padding-bottom: 0.5rem;';
+        thumbnails.className = 'mg-blot-thumbs';
         images.forEach(url => {
             const img = document.createElement('img');
             img.src = url.trim();
-            img.style.cssText = 'height: 60px; width: 60px; object-fit: cover; border-radius: 0.5rem; border: 1px solid #e2e8f0;';
             thumbnails.appendChild(img);
         });
 
@@ -160,16 +146,15 @@ class LocationBlot extends BlockEmbed {
 
         // Container
         const container = document.createElement('div');
-        container.style.cssText = 'padding: 1rem 1.25rem; border: 2px dashed #14b8a6; border-radius: 0.75rem; background-color: #f0fdfa; margin: 1rem 0; position: relative;';
+        container.className = 'mg-blot is-location';
 
         // Remove button
         const removeBtn = document.createElement('div');
         const removeIcon = document.createElement('span');
         removeIcon.className = 'material-symbols-outlined';
-        removeIcon.style.fontSize = '16px';
         removeIcon.textContent = 'close';
         removeBtn.appendChild(removeIcon);
-        removeBtn.style.cssText = 'position: absolute; top: -10px; right: -10px; width: 24px; height: 24px; background-color: #ef4444; color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer; box-shadow: 0 2px 5px rgba(0,0,0,0.2); z-index: 10;';
+        removeBtn.className = 'mg-blot-remove';
         removeBtn.addEventListener('click', (e) => {
             e.stopPropagation();
             node.remove();
@@ -177,20 +162,19 @@ class LocationBlot extends BlockEmbed {
 
         // Header row: pin icon + place name
         const header = document.createElement('div');
-        header.style.cssText = 'display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.5rem;';
+        header.className = 'mg-blot-head';
         const pin = document.createElement('span');
         pin.className = 'material-symbols-outlined';
-        pin.style.cssText = 'font-size: 20px; color: #0f766e;';
         pin.textContent = 'place';
         const titleEl = document.createElement('div');
-        titleEl.style.cssText = 'font-weight: bold; color: #0f766e; font-size: 14px;';
+        titleEl.className = 'mg-blot-title';
         titleEl.textContent = parsed.name || '(이름 없음)';
         header.appendChild(pin);
         header.appendChild(titleEl);
 
         // Body: address + extras
         const body = document.createElement('div');
-        body.style.cssText = 'font-size: 12px; color: #475569; line-height: 1.5;';
+        body.className = 'mg-blot-body';
         if (parsed.address) {
             const addrLine = document.createElement('div');
             addrLine.textContent = `📍 ${parsed.address}`;
@@ -207,7 +191,7 @@ class LocationBlot extends BlockEmbed {
         if (parsed.website) extras.push('🌐 홈페이지');
         if (extras.length > 0) {
             const extraLine = document.createElement('div');
-            extraLine.style.cssText = 'margin-top: 4px; color: #64748b; font-size: 11px;';
+            extraLine.className = 'mg-blot-extra';
             extraLine.textContent = extras.join('  ·  ');
             body.appendChild(extraLine);
         }
@@ -252,7 +236,6 @@ export const AdminMagazineManage: React.FC = () => {
     const [editorContent, setEditorContent] = useState('');
 
     const quillRef = useRef<ReactQuill>(null);
-    const sliderInputRef = useRef<HTMLInputElement>(null);
     const savedRange = useRef<ReactQuill.Range | null>(null);
 
     // Inline location modal state (for embedded LocationBlot)
@@ -444,11 +427,13 @@ export const AdminMagazineManage: React.FC = () => {
             // Save current selection before losing focus to file input
             savedRange.current = quill.getSelection();
         }
-        sliderInputRef.current?.click();
+        const input = document.createElement('input');
+        input.type = 'file'; input.accept = 'image/*'; input.multiple = true;
+        input.onchange = () => { void handleSliderFiles(Array.from(input.files || [])); };
+        input.click();
     };
 
-    const handleSliderFiles = async (e: React.ChangeEvent<HTMLInputElement>) => {
-        const files = e.target.files;
+    const handleSliderFiles = async (files: File[]) => {
         if (files && files.length > 0) {
             await runUpload(async () => {
             const session = sessionRef.current;
@@ -491,8 +476,6 @@ export const AdminMagazineManage: React.FC = () => {
             }
             });
         }
-        // Reset input
-        if (sliderInputRef.current) sliderInputRef.current.value = '';
     };
 
     // Open location modal — saves cursor position so we can insert at the right spot
@@ -644,8 +627,8 @@ export const AdminMagazineManage: React.FC = () => {
         fetchMagazines();
     };
 
-    const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-        const file = e.target.files?.[0];
+    const handleImageUpload = async (files: File[]) => {
+        const file = files[0];
         if (file) {
             await runUpload(async () => {
             const session = sessionRef.current;
@@ -661,8 +644,8 @@ export const AdminMagazineManage: React.FC = () => {
         }
     };
 
-    const handleAuthorImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-        const file = e.target.files?.[0];
+    const handleAuthorImageUpload = async (files: File[]) => {
+        const file = files[0];
         if (!file) return;
         await runUpload(async () => {
         const session = sessionRef.current;
@@ -893,93 +876,72 @@ export const AdminMagazineManage: React.FC = () => {
         return `${date.getFullYear()}.${String(date.getMonth() + 1).padStart(2, '0')}.${String(date.getDate()).padStart(2, '0')}`;
     };
 
+    const saveLabel = saving ? '저장 중…' : uploading ? '사진 업로드 중…' : formData.isActive ? (editingMagazine ? '수정 완료' : '발행하기') : '임시 저장';
+    const switchTab = (tab: 'magazines' | 'categories') => { if (viewMode === 'edit' && !resetForm()) return; setActiveTab(tab); };
+    const restoreRecovery = () => {
+        if (recovery.kind !== 'draft' || saveLock.current || uploadLock.current) return;
+        const restored = recovery.draft; pendingRef.current = false; revisionRef.current = restored.revision; storedRef.current = magazineDraftFingerprint(restored.form);
+        setFormData(structuredClone(restored.form)); setEditorContent(restored.form.content || ''); setDraftSavedAt(restored.savedAt); setRecovery({ kind: 'empty' });
+    };
+    const categoryChips = [...categories, ...[...new Set(magazines.map(m => m.category))].filter(name => name && !categories.includes(name))];
+
     // Header actions differ between list and edit views
     const headerActions = viewMode === 'edit' ? (
         <>
-            <button className="btn btn-ghost btn-sm" onClick={() => resetForm()} disabled={saving || uploading}>
-                <DashboardIcon name="lc-chevron-left" />목록
-            </button>
-            <button className="btn btn-ink" onClick={handleSubmit} disabled={editorLocked}>
-                <DashboardIcon name="lc-check" />{saving ? '저장 중…' : uploading ? '사진 업로드 중…' : formData.isActive ? (editingMagazine ? '수정 완료' : '발행하기') : '임시 저장'}
-            </button>
+            <AdminButton variant="secondary" size="sm" leading={<IconChevronLeft />} disabled={saving || uploading} onClick={() => resetForm()}>목록</AdminButton>
+            <AdminButton variant="primary" leading={<IconCheck />} loading={saving} disabled={editorLocked} onClick={() => void handleSubmit()}>{saveLabel}</AdminButton>
         </>
     ) : (
-        <button className="btn btn-ink" onClick={handleCreateNew}>
-            <MagazineIcon name="lc-square-pen" />매거진 작성
-        </button>
+        <AdminButton variant="primary" leading={<IconWrite />} onClick={handleCreateNew}>매거진 작성</AdminButton>
     );
 
     return (
         <AdminLayout activePage="magazines" title="매거진 관리" actions={headerActions}>
-            {/* Custom Quill Styles for Sticky Toolbar */}
-            <style>{`
-                .quill { display: flex; flex-direction: column; overflow: hidden; }
-                .ql-toolbar { flex-shrink: 0; background: white; z-index: 10; border-color: var(--border-default) !important; border-top-left-radius: var(--r-md); border-top-right-radius: var(--r-md); }
-                .ql-container { flex: 1; overflow: hidden !important; display: flex; flex-direction: column; border-color: var(--border-default) !important; border-bottom-left-radius: var(--r-md); border-bottom-right-radius: var(--r-md); font-family: inherit; font-size: 1rem; }
-                .ql-editor { flex: 1; overflow-y: auto; padding: 1.5rem; min-height: 360px; }
-            `}</style>
-
             <div className="cm-page mg-page">
-            {/* Tabs */}
-            <div className="cm-tabs" role="tablist" aria-label="매거진 관리 화면">
-                <button type="button" role="tab" className="cm-tab" aria-selected={activeTab === 'magazines'} onClick={() => { if (viewMode === 'edit' && !resetForm()) return; setActiveTab('magazines'); }}>매거진 목록</button>
-                <button type="button" role="tab" className="cm-tab" aria-selected={activeTab === 'categories'} onClick={() => { if (viewMode === 'edit' && !resetForm()) return; setActiveTab('categories'); }}>카테고리 관리</button>
-            </div>
-            {draftNotice && <p role="alert" className="adm-msg is-cautionary">{draftNotice}</p>}
-            {viewMode === 'edit' && <div role="status" className="adm-msg">
-                <strong>이 브라우저에 관리자별 매거진 초안을 자동 보관합니다.</strong><p style={{ margin: '4px 0', fontSize: 13 }}>자동 보관은 사이트 발행·서버 임시 저장과 별도입니다. {draftSavedAt ? `마지막 초안 보관: ${new Date(draftSavedAt).toLocaleString('ko-KR')}` : dirty ? '입력 내용을 보관하고 있습니다.' : '변경사항이 생기면 자동 보관합니다.'}</p>
-                {recovery.kind === 'draft' && <><p>{recovery.conflict ? '보관 후 서버 원본이 변경되었습니다. 초안을 복원하면 저장 시 현재 작성 내용이 원본을 대체합니다.' : '이 문서의 보관된 초안이 있습니다.'} 보관 시각: {new Date(recovery.draft.savedAt).toLocaleString('ko-KR')}</p><button type="button" className="btn btn-ink btn-sm" onClick={() => { if (saveLock.current || uploadLock.current) return; const restored = recovery.draft; pendingRef.current = false; revisionRef.current = restored.revision; storedRef.current = magazineDraftFingerprint(restored.form); setFormData(structuredClone(restored.form)); setEditorContent(restored.form.content || ''); setDraftSavedAt(restored.savedAt); setRecovery({ kind: 'empty' }); }}>초안 복원</button>{' '}</>}
-                {recovery.kind === 'error' && <p role="alert">{recovery.error}</p>}
-                {(recovery.kind !== 'empty' || dirty || draftSavedAt) && <button type="button" className="btn btn-ghost btn-sm" disabled={saving || uploading} onClick={async () => { if (recovery.kind !== 'empty' || await adminConfirm('매거진 변경사항과 보관된 초안을 버릴까요?')) discardRecovery(); }}>초안 버리기</button>}
-            </div>}
+            <AdminTabs label="매거진 관리 화면" value={activeTab} onChange={switchTab}
+                items={[{ value: 'magazines', label: '매거진 목록' }, { value: 'categories', label: '카테고리 관리' }]} />
+            {draftNotice && <AdminMessage tone="cautionary" role="alert">{draftNotice}</AdminMessage>}
+            {viewMode === 'edit' && <AdminMessage role="status" title="이 브라우저에 관리자별 매거진 초안을 자동 보관합니다."
+                actions={<>
+                    {recovery.kind === 'draft' && <AdminButton size="sm" variant="primary" onClick={restoreRecovery}>초안 복원</AdminButton>}
+                    {(recovery.kind !== 'empty' || dirty || draftSavedAt) && <AdminButton size="sm" variant="secondary" disabled={saving || uploading}
+                        onClick={async () => { if (recovery.kind !== 'empty' || await adminConfirm('매거진 변경사항과 보관된 초안을 버릴까요?')) discardRecovery(); }}>초안 버리기</AdminButton>}
+                </>}>
+                자동 보관은 사이트 발행·서버 임시 저장과 별도입니다. {draftSavedAt ? `마지막 초안 보관: ${new Date(draftSavedAt).toLocaleString('ko-KR')}` : dirty ? '입력 내용을 보관하고 있습니다.' : '변경사항이 생기면 자동 보관합니다.'}
+                {recovery.kind === 'draft' && <span className="mg-msg-line">{recovery.conflict ? '보관 후 서버 원본이 변경되었습니다. 초안을 복원하면 저장 시 현재 작성 내용이 원본을 대체합니다.' : '이 문서의 보관된 초안이 있습니다.'} 보관 시각: {new Date(recovery.draft.savedAt).toLocaleString('ko-KR')}</span>}
+                {recovery.kind === 'error' && <span className="mg-msg-line" role="alert">{recovery.error}</span>}
+            </AdminMessage>}
 
             {activeTab === 'categories' && (
-                <section className="cm-card fq-cats" aria-label="매거진 카테고리">
+                <AdminCard flush className="fq-cats" title="매거진 카테고리">
                     <form className="fq-cat-add" onSubmit={(e) => { e.preventDefault(); void handleQuickAddCategory(); }}>
-                        <input
-                            className="cm-input"
-                            value={newCategoryName}
-                            onChange={(e) => setNewCategoryName(e.target.value)}
-                            placeholder="새 카테고리 이름 (예: 사진 명소)"
-                            aria-label="새 카테고리 이름"
-                        />
-                        <button type="submit" className="cm-btn is-primary is-tall" disabled={categoryBusy || !newCategoryName.trim()}>추가</button>
+                        <AdminTextInput className="mg-grow" value={newCategoryName} onChange={(e) => setNewCategoryName(e.target.value)}
+                            placeholder="새 카테고리 이름 (예: 사진 명소)" aria-label="새 카테고리 이름" />
+                        <AdminButton type="submit" variant="primary" loading={categoryBusy} disabled={!newCategoryName.trim()}>추가</AdminButton>
                     </form>
                     {magazineCategories?.map((cat, index) => {
                         const count = magazines?.filter(m => m.category === cat.name).length || 0;
                         return (
                             <div key={cat.id} className="fq-cat-row" data-hidden={!cat.isActive || undefined}>
-                                <span className="cm-order">
-                                    <button type="button" onClick={() => moveCategoryOrder(index, 'up')} disabled={index === 0} title="위로" aria-label="위로 옮기기">
-                                        <MagazineIcon name="lc-chevron-up" size={14} />
-                                    </button>
-                                    <button type="button" onClick={() => moveCategoryOrder(index, 'down')} disabled={index === magazineCategories.length - 1} title="아래로" aria-label="아래로 옮기기">
-                                        <DashboardIcon name="lc-chevron-down" size={14} />
-                                    </button>
+                                <span className="mg-move">
+                                    <AdminIconButton size="sm" label="위로 옮기기" disabled={index === 0} onClick={() => void moveCategoryOrder(index, 'up')}><IconChevronUp /></AdminIconButton>
+                                    <AdminIconButton size="sm" label="아래로 옮기기" disabled={index === magazineCategories.length - 1} onClick={() => void moveCategoryOrder(index, 'down')}><IconChevronDown /></AdminIconButton>
                                 </span>
                                 <span className="fq-cat-name">{cat.name}</span>
                                 <span className="fq-cat-count">글 {count}개</span>
-                                <button type="button" className="cm-switch" aria-pressed={cat.isActive} title={cat.isActive ? '활성' : '비활성'} onClick={() => handleToggleCategoryActive(cat)}>
-                                    <span className="cm-switch-track"><span className="cm-switch-knob" /></span>{cat.isActive ? '활성' : '비활성'}
-                                </button>
-                                <button type="button" className="cm-icon-btn" title="이름·활성 수정" aria-label="카테고리 수정" onClick={() => {
+                                <AdminSwitch checked={cat.isActive} onChange={() => void handleToggleCategoryActive(cat)} label={cat.isActive ? '활성' : '비활성'} />
+                                <AdminIconButton size="sm" label="카테고리 이름·활성 수정" onClick={() => {
                                     setEditingCategory({ id: cat.id, name: cat.name, order: cat.order, isActive: cat.isActive });
                                     setCategoryForm({ name: cat.name, isActive: cat.isActive });
                                     setIsCategoryModalOpen(true);
-                                }}>
-                                    <DashboardIcon name="lc-pencil" />
-                                </button>
-                                <button type="button" className="cm-icon-btn is-danger" title={count ? '글이 있어 지울 수 없어요' : '삭제'} aria-label="카테고리 삭제" disabled={count > 0} onClick={() => handleDeleteCategory(cat)}>
-                                    <DashboardIcon name="lc-trash" />
-                                </button>
+                                }}><IconPencil /></AdminIconButton>
+                                <AdminIconButton size="sm" label={count ? '글이 있어 지울 수 없어요' : '카테고리 삭제'} disabled={count > 0} onClick={() => void handleDeleteCategory(cat)}><IconTrash /></AdminIconButton>
                             </div>
                         );
                     })}
-                    {magazineCategories.length === 0 && (
-                        <div className="cm-empty"><MagazineIcon name="lc-book-open" size={32} /><span>등록된 카테고리가 없어요.</span></div>
-                    )}
+                    {magazineCategories.length === 0 && <AdminEmpty icon={<IconBook />} title="등록된 카테고리가 없어요" />}
                     <p className="fq-cat-note">글이 들어 있는 카테고리는 지울 수 없어요. 먼저 글을 다른 카테고리로 옮겨 주세요.</p>
-                </section>
+                </AdminCard>
             )}
 
             {activeTab === 'magazines' && (
@@ -987,53 +949,35 @@ export const AdminMagazineManage: React.FC = () => {
                     {viewMode === 'list' && (
                         <>
                             <div className="cm-toolbar">
-                                <label className="cm-search">
-                                    <DashboardIcon name="lc-search" color="var(--text-tertiary)" />
-                                    <input
-                                        type="text"
-                                        value={searchQuery}
-                                        onChange={(e) => setSearchQuery(e.target.value)}
-                                        placeholder="매거진 제목 검색"
-                                        aria-label="매거진 제목 검색"
-                                    />
-                                </label>
-                                <div className="cm-chips" aria-label="카테고리">
-                                    <button type="button" className="cm-chip" aria-pressed={filterCategory === 'all'} onClick={() => setFilterCategory('all')}>
-                                        전체<span className="cm-chip-n">{magazines.length}</span>
-                                    </button>
-                                    {[...categories, ...[...new Set(magazines.map(m => m.category))].filter(name => name && !categories.includes(name))].map(cat => (
-                                        <button key={cat} type="button" className="cm-chip" aria-pressed={filterCategory === cat} onClick={() => setFilterCategory(cat)}>
-                                            {cat}<span className="cm-chip-n">{magazines.filter(m => m.category === cat).length}</span>
-                                        </button>
+                                <AdminSearch value={searchQuery} onChange={setSearchQuery} placeholder="매거진 제목 검색" aria-label="매거진 제목 검색" />
+                                <span className="mg-chips" role="group" aria-label="카테고리">
+                                    <AdminChip active={filterCategory === 'all'} count={magazines.length} onClick={() => setFilterCategory('all')}>전체</AdminChip>
+                                    {categoryChips.map(cat => (
+                                        <AdminChip key={cat} active={filterCategory === cat} count={magazines.filter(m => m.category === cat).length} onClick={() => setFilterCategory(cat)}>{cat}</AdminChip>
                                     ))}
-                                </div>
+                                </span>
                             </div>
 
                             {filteredMagazines?.length === 0 ? (
-                                <div className="cm-empty">
-                                    <MagazineIcon name="lc-book-open" size={32} />
-                                    {listState === 'loading' ? <span role="status">불러오는 중…</span>
-                                        : listState === 'error' && !magazines.length ? <><span role="alert">목록을 불러오지 못했습니다.</span><button type="button" className="cm-btn is-sm" onClick={() => { setListState('loading'); void fetchMagazines(); }}>다시 시도</button></>
-                                        : <span>{magazines.length ? '검색 결과가 없어요.' : '작성된 매거진이 없어요.'}</span>}
-                                </div>
+                                listState === 'loading' ? <AdminLoading />
+                                    : listState === 'error' && !magazines.length ? <AdminError reason="목록을 불러오지 못했습니다." onRetry={() => { setListState('loading'); void fetchMagazines(); }} />
+                                    : <AdminEmpty icon={<IconBook />} title={magazines.length ? '검색 결과가 없어요' : '작성된 매거진이 없어요'} />
                             ) : (
                                 <div className="mg-grid">
                                     {filteredMagazines?.map((magazine, index) => (
                                         <article className="mg-card" key={magazine.id}>
-                                            <button type="button" className="mg-card-open" onClick={() => handleEdit(magazine)} aria-label={`${magazine.title || '제목 없음'} 편집`}>
-                                                <span className="mg-cover">
-                                                    {magazine.image ? <img src={magazine.image} alt="" loading="lazy" /> : <MagazineIcon name="lc-image" size={28} />}
-                                                    <span className="mg-badges">
-                                                        <span className="mg-status" data-published={magazine.isActive || undefined}>{magazine.isActive ? '발행' : '초안'}</span>
-                                                        {!!magazine.isFeatured && <span className="mg-hot">인기</span>}
-                                                    </span>
+                                            <span className="mg-cover">
+                                                {magazine.image ? <img src={magazine.image} alt="" loading="lazy" /> : <IconImage aria-hidden="true" className="mg-cover-icon" />}
+                                                <span className="mg-badges">
+                                                    <span className="mg-status" data-published={magazine.isActive || undefined}>{magazine.isActive ? '발행' : '초안'}</span>
+                                                    {!!magazine.isFeatured && <span className="mg-hot">인기</span>}
                                                 </span>
-                                                <span className="mg-body">
-                                                    <span className="mg-cat">{magazine.category || '카테고리 없음'}</span>
-                                                    <span className="mg-title">{magazine.title || '제목 없음'}</span>
-                                                    <span className="mg-sum">{magazine.description || '요약 설명이 없어요'}</span>
-                                                </span>
-                                            </button>
+                                            </span>
+                                            <span className="mg-body">
+                                                <span className="mg-cat">{magazine.category || '카테고리 없음'}</span>
+                                                <AdminTextButton className="mg-title mg-open" onClick={() => void handleEdit(magazine)} aria-label={`${magazine.title || '제목 없음'} 편집`}>{magazine.title || '제목 없음'}</AdminTextButton>
+                                                <span className="mg-sum">{magazine.description || '요약 설명이 없어요'}</span>
+                                            </span>
                                             <div className="mg-foot">
                                                 <span className="mg-meta">
                                                     {magazine.author && <><span>{magazine.author}</span><span aria-hidden="true">·</span></>}
@@ -1041,20 +985,12 @@ export const AdminMagazineManage: React.FC = () => {
                                                 </span>
                                                 {isReorderable && (
                                                     <span className="mg-move" title="목록 순서">
-                                                        <button type="button" onClick={() => moveMagazine(index, 'up')} disabled={index === 0} title="앞으로" aria-label="앞으로 옮기기">
-                                                            <DashboardIcon name="lc-chevron-left" size={14} />
-                                                        </button>
-                                                        <button type="button" onClick={() => moveMagazine(index, 'down')} disabled={index === filteredMagazines.length - 1} title="뒤로" aria-label="뒤로 옮기기">
-                                                            <DashboardIcon name="lc-chevron-right" size={14} />
-                                                        </button>
+                                                        <AdminIconButton size="sm" label="앞으로 옮기기" disabled={index === 0} onClick={() => void moveMagazine(index, 'up')}><IconChevronLeft /></AdminIconButton>
+                                                        <AdminIconButton size="sm" label="뒤로 옮기기" disabled={index === filteredMagazines.length - 1} onClick={() => void moveMagazine(index, 'down')}><IconChevronRight /></AdminIconButton>
                                                     </span>
                                                 )}
-                                                <button type="button" className="cm-icon-btn" title="수정" aria-label="매거진 수정" onClick={() => handleEdit(magazine)}>
-                                                    <DashboardIcon name="lc-pencil" />
-                                                </button>
-                                                <button type="button" className="cm-icon-btn is-danger" title="삭제" aria-label="매거진 삭제" onClick={() => handleDelete(magazine.id)}>
-                                                    <DashboardIcon name="lc-trash" />
-                                                </button>
+                                                <AdminIconButton size="sm" label="매거진 수정" onClick={() => void handleEdit(magazine)}><IconPencil /></AdminIconButton>
+                                                <AdminIconButton size="sm" label="매거진 삭제" onClick={() => void handleDelete(magazine.id)}><IconTrash /></AdminIconButton>
                                             </div>
                                         </article>
                                     ))}
@@ -1063,183 +999,57 @@ export const AdminMagazineManage: React.FC = () => {
                         </>
                     )}
                     {viewMode === 'edit' && (
-                        <fieldset className="grid-2 mg-edit-grid" disabled={editorLocked} inert={editorLocked} style={{ gridTemplateColumns: '340px 1fr', alignItems: 'start', border: 0, padding: 0, margin: 0, minWidth: 0 }}>
-                            <div className="stack" style={{ gap: 16 }}>
-                                <div className="card card-pad">
-                                    <h3 className="sec-head" style={{ marginBottom: 16 }}>기본 설정</h3>
-
-                                    <div className="field">
-                                        <label>카테고리</label>
-                                        <select
-                                            className="inp"
-                                            value={formData.category}
-                                            onChange={(e) => setFormData(prev => ({ ...prev, category: e.target.value }))}
-                                        >
-                                            {categories.map(cat => (
-                                                <option key={cat} value={cat}>{cat}</option>
-                                            ))}
-                                        </select>
-                                    </div>
-
-                                    <div className="field">
-                                        <label>대표 이미지</label>
-                                        <div
-                                            className="block-img"
-                                            style={{ position: 'relative', borderRadius: 'var(--r-md)', overflow: 'hidden', cursor: 'pointer' }}
-                                        >
-                                            {formData.image ? (
-                                                <>
-                                                    <img src={formData.image} alt="Preview" />
-                                                    <button
-                                                        onClick={(e) => {
-                                                            e.stopPropagation();
-                                                            setFormData(prev => ({ ...prev, image: '' }));
-                                                        }}
-                                                        style={{ position: 'absolute', top: 8, right: 8, width: 28, height: 28, borderRadius: '50%', border: 'none', background: 'rgba(0,0,0,0.5)', color: '#fff', cursor: 'pointer', display: 'grid', placeItems: 'center' }}
-                                                    >
-                                                        <Icon name="close" style={{ fontSize: 16 }} />
-                                                    </button>
-                                                </>
-                                            ) : (
-                                                <div className="block-img-empty">
-                                                    <Icon name="add_photo_alternate" />
-                                                    클릭하여 업로드
-                                                </div>
-                                            )}
-                                            <input type="file" accept="image/*" onChange={handleImageUpload} style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', opacity: 0, cursor: 'pointer' }} />
-                                        </div>
-                                    </div>
-
-                                    <div className="field">
-                                        <label>요약 설명</label>
-                                        <textarea
-                                            className="inp"
-                                            value={formData.description}
-                                            onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
-                                            style={{ height: 96 }}
-                                        />
-                                    </div>
-
-                                    <div className="field">
-                                        <label>태그</label>
-                                        <input
-                                            className="inp"
-                                            type="text"
-                                            value={formData.tag}
-                                            onChange={(e) => setFormData(prev => ({ ...prev, tag: e.target.value }))}
-                                        />
-                                    </div>
-
-                                    <div className="field">
-                                        <label>저자 / 감수자</label>
-                                        <input
-                                            className="inp"
-                                            type="text"
-                                            value={formData.author || ''}
-                                            placeholder="예: Bolormaa Jambajamts"
-                                            onChange={(e) => setFormData(prev => ({ ...prev, author: e.target.value }))}
-                                        />
-                                    </div>
-
-                                    <div className="field">
-                                        <label>저자 사진</label>
-                                        <div className="row" style={{ gap: 12, alignItems: 'center' }}>
-                                            <div
-                                                style={{
-                                                    position: 'relative',
-                                                    width: 64,
-                                                    height: 64,
-                                                    flex: '0 0 64px',
-                                                    overflow: 'hidden',
-                                                    borderRadius: '50%',
-                                                    border: '1px solid var(--border)',
-                                                    background: 'var(--surface-subtle)',
-                                                }}
-                                            >
-                                                {formData.authorImage ? (
-                                                    <img
-                                                        src={formData.authorImage}
-                                                        alt="저자 사진 미리보기"
-                                                        style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                                                    />
-                                                ) : (
-                                                    <Icon
-                                                        name="person"
-                                                        style={{
-                                                            position: 'absolute',
-                                                            top: '50%',
-                                                            left: '50%',
-                                                            transform: 'translate(-50%, -50%)',
-                                                            color: 'var(--text-tertiary)',
-                                                        }}
-                                                    />
-                                                )}
-                                                <input
-                                                    type="file"
-                                                    accept="image/*"
-                                                    onChange={handleAuthorImageUpload}
-                                                    style={{ position: 'absolute', inset: 0, opacity: 0, cursor: 'pointer' }}
-                                                />
-                                            </div>
-                                            <div className="stack" style={{ gap: 6 }}>
-                                                <span style={{ fontSize: 12, color: 'var(--text-secondary)' }}>
-                                                    정사각형 얼굴 사진을 권장합니다.
+                        <fieldset className="mg-edit-grid" disabled={editorLocked} inert={editorLocked}>
+                            <div className="mg-side">
+                                <AdminCard title="기본 설정">
+                                    <div className="mg-fields">
+                                        <AdminField label="카테고리">
+                                            {(id) => <AdminSelect id={id} value={formData.category} onChange={(value) => setFormData(prev => ({ ...prev, category: value }))}
+                                                options={categories.map(cat => ({ value: cat, label: cat }))} />}
+                                        </AdminField>
+                                        <AdminField label="대표 이미지">
+                                            <span className="mg-cover-edit">
+                                                <span className="mg-cover">{formData.image ? <img src={formData.image} alt="대표 이미지 미리보기" /> : <IconImage aria-hidden="true" className="mg-cover-icon" />}</span>
+                                                <span className="mg-row">
+                                                    <AdminFileButton size="sm" accept="image/*" leading={<IconUpload />} loading={uploading} onFiles={(files) => void handleImageUpload(files)}>{formData.image ? '이미지 바꾸기' : '이미지 올리기'}</AdminFileButton>
+                                                    {formData.image && <AdminTextButton size="sm" tone="assistive" onClick={() => setFormData(prev => ({ ...prev, image: '' }))}>이미지 빼기</AdminTextButton>}
                                                 </span>
-                                                {formData.authorImage && (
-                                                    <button
-                                                        type="button"
-                                                        className="btn btn-ghost"
-                                                        onClick={() => setFormData(prev => ({ ...prev, authorImage: '' }))}
-                                                        style={{ alignSelf: 'flex-start', minHeight: 30, padding: '4px 10px' }}
-                                                    >
-                                                        사진 삭제
-                                                    </button>
-                                                )}
-                                            </div>
-                                        </div>
+                                            </span>
+                                        </AdminField>
+                                        <AdminField label="요약 설명">
+                                            {(id) => <AdminTextArea id={id} minRows={3} value={formData.description || ''} onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))} />}
+                                        </AdminField>
+                                        <AdminField label="태그">
+                                            {(id) => <AdminTextInput id={id} value={formData.tag || ''} onChange={(e) => setFormData(prev => ({ ...prev, tag: e.target.value }))} />}
+                                        </AdminField>
+                                        <AdminField label="저자 / 감수자">
+                                            {(id) => <AdminTextInput id={id} value={formData.author || ''} placeholder="예: Bolormaa Jambajamts" onChange={(e) => setFormData(prev => ({ ...prev, author: e.target.value }))} />}
+                                        </AdminField>
+                                        <AdminField label="저자 사진" hint="정사각형 얼굴 사진을 권장합니다.">
+                                            <span className="mg-row">
+                                                <span className="mg-author">{formData.authorImage ? <img src={formData.authorImage} alt="저자 사진 미리보기" /> : <IconPerson aria-hidden="true" />}</span>
+                                                <AdminFileButton size="sm" accept="image/*" leading={<IconUpload />} loading={uploading} onFiles={(files) => void handleAuthorImageUpload(files)}>{formData.authorImage ? '사진 바꾸기' : '사진 올리기'}</AdminFileButton>
+                                                {formData.authorImage && <AdminTextButton size="sm" tone="assistive" onClick={() => setFormData(prev => ({ ...prev, authorImage: '' }))}>사진 삭제</AdminTextButton>}
+                                            </span>
+                                        </AdminField>
+                                        <AdminSwitch checked={!!formData.isActive} onChange={(on) => setFormData(prev => ({ ...prev, isActive: on }))} label="발행 상태" />
+                                        <AdminSwitch checked={!!formData.isFeatured} onChange={(on) => setFormData(prev => ({ ...prev, isFeatured: on }))} label="인기 게시물" />
                                     </div>
-
-                                    <div className="stack" style={{ gap: 10 }}>
-                                        <label className="toggle-row" style={{ justifyContent: 'space-between', cursor: 'pointer' }}>
-                                            <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-secondary)' }}>발행 상태</span>
-                                            <input type="checkbox" checked={formData.isActive} onChange={(e) => setFormData(prev => ({ ...prev, isActive: e.target.checked }))} style={{ width: 16, height: 16 }} />
-                                        </label>
-                                        <label className="toggle-row" style={{ justifyContent: 'space-between', cursor: 'pointer' }}>
-                                            <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-secondary)' }}>인기 게시물</span>
-                                            <input type="checkbox" checked={formData.isFeatured} onChange={(e) => setFormData(prev => ({ ...prev, isFeatured: e.target.checked }))} style={{ width: 16, height: 16 }} />
-                                        </label>
-                                    </div>
-                                </div>
-
-                                <div className="row" style={{ gap: 10 }}>
-                                    <button className="btn btn-ghost" style={{ flex: 1 }} onClick={() => resetForm()}>작성 취소</button>
-                                    <button className="btn btn-ink" style={{ flex: 1 }} onClick={handleSubmit}>{saving ? '저장 중…' : formData.isActive ? (editingMagazine ? '수정 완료' : '발행하기') : '임시 저장'}</button>
+                                </AdminCard>
+                                <div className="mg-row is-split">
+                                    <AdminButton variant="secondary" fullWidth onClick={() => resetForm()}>작성 취소</AdminButton>
+                                    <AdminButton variant="primary" fullWidth loading={saving} onClick={() => void handleSubmit()}>{saveLabel}</AdminButton>
                                 </div>
                             </div>
 
-                            <div className="card" style={{ display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-                                <div style={{ padding: '20px 22px', borderBottom: '1px solid var(--border-subtle)' }}>
-                                    <input
-                                        type="text"
-                                        value={formData.title}
-                                        onChange={(e) => setFormData(prev => ({ ...prev, title: e.target.value }))}
-                                        style={{ width: '100%', fontSize: 24, fontWeight: 700, letterSpacing: '-0.02em', color: 'var(--text-strong)', border: 'none', outline: 'none', background: 'transparent' }}
-                                        placeholder="제목을 입력하세요"
-                                    />
+                            <AdminCard flush className="mg-editor">
+                                <div className="mg-editor-title">
+                                    <AdminTextInput large aria-label="제목" value={formData.title || ''} onChange={(e) => setFormData(prev => ({ ...prev, title: e.target.value }))} placeholder="제목을 입력하세요" />
                                 </div>
-                                <div style={{ padding: 16 }}>
-                                    <ReactQuill
-                                        ref={quillRef}
-                                        theme="snow"
-                                        value={editorContent}
-                                        readOnly={editorLocked}
-                                        onChange={setEditorContent}
-                                        modules={modules}
-                                        className="bg-white rounded-xl overflow-hidden flex flex-col"
-                                    />
-                                    <input type="file" ref={sliderInputRef} onChange={handleSliderFiles} multiple accept="image/*" className="hidden" style={{ display: 'none' }} />
+                                <div className="mg-editor-body">
+                                    <ReactQuill ref={quillRef} theme="snow" value={editorContent} readOnly={editorLocked} onChange={setEditorContent} modules={modules} className="mg-quill" />
                                 </div>
-                            </div>
+                            </AdminCard>
                         </fieldset>
                     )}
                 </>
@@ -1247,133 +1057,38 @@ export const AdminMagazineManage: React.FC = () => {
             </div>
 
             {/* Inline Location Block Modal */}
-            {isLocationModalOpen && (
-                <div className="picker-scrim" onClick={() => setIsLocationModalOpen(false)}>
-                    <div className="picker" style={{ width: 520 }} onClick={(e) => e.stopPropagation()}>
-                        <div className="card-head">
-                            <Icon name="add_location" style={{ color: 'var(--mrt-blue)' }} />
-                            <h2>위치 카드 삽입</h2>
-                            <div className="spacer" />
-                            <button className="act-btn" onClick={() => setIsLocationModalOpen(false)}>
-                                <Icon name="close" />
-                            </button>
-                        </div>
-                        <div style={{ padding: '18px 22px', overflowY: 'auto' }}>
-                            <div className="field">
-                                <label>장소 이름</label>
-                                <input
-                                    className="inp"
-                                    type="text"
-                                    value={locationModalForm.name}
-                                    onChange={(e) => setLocationModalForm(prev => ({ ...prev, name: e.target.value }))}
-                                    placeholder="예: 칭기스칸 박물관"
-                                />
-                            </div>
-                            <div className="field">
-                                <label>주소</label>
-                                <textarea
-                                    className="inp"
-                                    value={locationModalForm.address}
-                                    onChange={(e) => setLocationModalForm(prev => ({ ...prev, address: e.target.value }))}
-                                    placeholder="Sambuu St, Ulaanbaatar 15141, Mongolia"
-                                    style={{ height: 64 }}
-                                />
-                            </div>
-                            <div className="field-row">
-                                <div className="field">
-                                    <label>전화</label>
-                                    <input
-                                        className="inp"
-                                        type="tel"
-                                        value={locationModalForm.phone}
-                                        onChange={(e) => setLocationModalForm(prev => ({ ...prev, phone: e.target.value }))}
-                                        placeholder="+976 xxxx xxxx"
-                                    />
-                                </div>
-                                <div className="field">
-                                    <label>홈페이지</label>
-                                    <input
-                                        className="inp"
-                                        type="url"
-                                        value={locationModalForm.website}
-                                        onChange={(e) => setLocationModalForm(prev => ({ ...prev, website: e.target.value }))}
-                                        placeholder="https://..."
-                                    />
-                                </div>
-                            </div>
-                            <div className="field">
-                                <label>Google 지도 임베드 <span className="muted" style={{ fontWeight: 600, fontSize: 11 }}>— iframe 코드 또는 src URL</span></label>
-                                <textarea
-                                    className="inp"
-                                    value={locationModalForm.mapEmbedUrl}
-                                    onChange={(e) => setLocationModalForm(prev => ({ ...prev, mapEmbedUrl: e.target.value }))}
-                                    placeholder='Google 지도 → "공유" → "지도 임베드" → HTML 복사'
-                                    style={{ height: 64, fontFamily: 'var(--font-mono)', fontSize: 12 }}
-                                />
-                            </div>
-                            <div className="field">
-                                <label>길찾기 검색어 <span className="muted" style={{ fontWeight: 600, fontSize: 11 }}>— 좌표 또는 주소</span></label>
-                                <input
-                                    className="inp"
-                                    type="text"
-                                    value={locationModalForm.mapQuery}
-                                    onChange={(e) => setLocationModalForm(prev => ({ ...prev, mapQuery: e.target.value }))}
-                                    placeholder="47.918,106.917 or place name"
-                                />
-                            </div>
-                            <div className="field" style={{ marginBottom: 0 }}>
-                                <label>운영시간 <span className="muted" style={{ fontWeight: 600, fontSize: 11 }}>— 요일별 1줄씩</span></label>
-                                <textarea
-                                    className="inp"
-                                    value={locationModalForm.hours}
-                                    onChange={(e) => setLocationModalForm(prev => ({ ...prev, hours: e.target.value }))}
-                                    placeholder={'월: 09:00 - 17:00\n화: 09:00 - 17:00\n일: 휴무'}
-                                    style={{ height: 112, fontFamily: 'var(--font-mono)', fontSize: 12 }}
-                                />
-                            </div>
-                        </div>
-                        <div className="drawer-foot">
-                            <button className="btn btn-ghost" style={{ flex: 1 }} onClick={() => setIsLocationModalOpen(false)}>취소</button>
-                            <button className="btn btn-ink" style={{ flex: 1 }} onClick={insertLocationBlot}>본문에 삽입</button>
-                        </div>
-                    </div>
+            <AdminDialog open={isLocationModalOpen} onClose={() => setIsLocationModalOpen(false)} title="위치 카드 삽입" onSubmit={insertLocationBlot} submitLabel="본문에 삽입">
+                <AdminField label="장소 이름">
+                    {(id) => <AdminTextInput id={id} value={locationModalForm.name} onChange={(e) => setLocationModalForm(prev => ({ ...prev, name: e.target.value }))} placeholder="예: 칭기스칸 박물관" />}
+                </AdminField>
+                <AdminField label="주소">
+                    {(id) => <AdminTextArea id={id} minRows={2} value={locationModalForm.address} onChange={(e) => setLocationModalForm(prev => ({ ...prev, address: e.target.value }))} placeholder="Sambuu St, Ulaanbaatar 15141, Mongolia" />}
+                </AdminField>
+                <div className="mg-two">
+                    <AdminField label="전화">
+                        {(id) => <AdminTextInput id={id} type="tel" value={locationModalForm.phone} onChange={(e) => setLocationModalForm(prev => ({ ...prev, phone: e.target.value }))} placeholder="+976 xxxx xxxx" />}
+                    </AdminField>
+                    <AdminField label="홈페이지">
+                        {(id) => <AdminTextInput id={id} type="url" value={locationModalForm.website} onChange={(e) => setLocationModalForm(prev => ({ ...prev, website: e.target.value }))} placeholder="https://..." />}
+                    </AdminField>
                 </div>
-            )}
+                <AdminField label="Google 지도 임베드" hint="iframe 코드 또는 src URL">
+                    {(id, describedBy) => <AdminTextArea id={id} aria-describedby={describedBy} className="mg-mono" minRows={2} value={locationModalForm.mapEmbedUrl} onChange={(e) => setLocationModalForm(prev => ({ ...prev, mapEmbedUrl: e.target.value }))} placeholder='Google 지도 → "공유" → "지도 임베드" → HTML 복사' />}
+                </AdminField>
+                <AdminField label="길찾기 검색어" hint="좌표 또는 주소">
+                    {(id, describedBy) => <AdminTextInput id={id} aria-describedby={describedBy} value={locationModalForm.mapQuery} onChange={(e) => setLocationModalForm(prev => ({ ...prev, mapQuery: e.target.value }))} placeholder="47.918,106.917 or place name" />}
+                </AdminField>
+                <AdminField label="운영시간" hint="요일별 1줄씩">
+                    {(id, describedBy) => <AdminTextArea id={id} aria-describedby={describedBy} className="mg-mono" minRows={4} value={locationModalForm.hours} onChange={(e) => setLocationModalForm(prev => ({ ...prev, hours: e.target.value }))} placeholder={'월: 09:00 - 17:00\n화: 09:00 - 17:00\n일: 휴무'} />}
+                </AdminField>
+            </AdminDialog>
 
-            {isCategoryModalOpen && (
-                <div className="cm-scrim" onClick={() => setIsCategoryModalOpen(false)}>
-                    <div className="cm-modal is-narrow" role="dialog" aria-modal="true" aria-labelledby="mg-cat-modal-title" onClick={(e) => e.stopPropagation()}>
-                        <div className="cm-modal-head">
-                            <h2 id="mg-cat-modal-title">{editingCategory ? '카테고리 수정' : '카테고리 추가'}</h2>
-                            <button type="button" className="cm-icon-btn" title="닫기" aria-label="닫기" onClick={() => setIsCategoryModalOpen(false)}>
-                                <DashboardIcon name="lc-x" />
-                            </button>
-                        </div>
-                        <div className="cm-modal-body">
-                            <label className="cm-field">
-                                <span className="cm-label">카테고리명</span>
-                                <input
-                                    className="cm-input"
-                                    type="text"
-                                    value={categoryForm.name}
-                                    onChange={(e) => setCategoryForm({ ...categoryForm, name: e.target.value })}
-                                    placeholder="예: 여행 팁"
-                                />
-                            </label>
-                            <div className="cm-field">
-                                <span className="cm-label">상태</span>
-                                <button type="button" className="cm-switch" aria-pressed={categoryForm.isActive} onClick={() => setCategoryForm({ ...categoryForm, isActive: !categoryForm.isActive })}>
-                                    <span className="cm-switch-track"><span className="cm-switch-knob" /></span>{categoryForm.isActive ? '활성화' : '비활성'}
-                                </button>
-                            </div>
-                        </div>
-                        <div className="cm-modal-foot">
-                            <button type="button" className="cm-btn" onClick={() => setIsCategoryModalOpen(false)}>취소</button>
-                            <button type="button" className="cm-btn is-primary" onClick={handleSaveCategory}>저장</button>
-                        </div>
-                    </div>
-                </div>
-            )}
+            <AdminDialog open={isCategoryModalOpen} onClose={() => setIsCategoryModalOpen(false)} size="sm" title={editingCategory ? '카테고리 수정' : '카테고리 추가'} onSubmit={() => void handleSaveCategory()}>
+                <AdminField label="카테고리명">
+                    {(id) => <AdminTextInput id={id} value={categoryForm.name} onChange={(e) => setCategoryForm({ ...categoryForm, name: e.target.value })} placeholder="예: 여행 팁" />}
+                </AdminField>
+                <AdminSwitch checked={categoryForm.isActive} onChange={(on) => setCategoryForm({ ...categoryForm, isActive: on })} label="상태" description={categoryForm.isActive ? '활성화' : '비활성'} />
+            </AdminDialog>
         </AdminLayout>
     );
 };
