@@ -1,0 +1,49 @@
+/*
+ * 고객 통합 작업 안의 견적 예약 편집기(QuoteBookingEditorPanel) — 모양은 우리 관리자 부품(AdminCard·AdminField·AdminSelect·AdminMessage)이 정한다.
+ * 이 파일은 칸 배치·자원 미리보기·숙소/여행자 줄·서명 원본·아래 막대만 둔다. 값은 --adm-* 변수만 쓴다.
+ */
+.qbe { display: flex; flex-direction: column; gap: var(--adm-space-4); min-width: 0; }
+.qbe-fieldset { display: flex; flex-direction: column; gap: var(--adm-space-4); min-width: 0; margin: 0; padding: 0; border: 0; }
+.qbe-empty, .qbe-note { margin: 0 0 var(--adm-space-3); color: var(--adm-text-3); font-size: var(--adm-fs-small); }
+.qbe-grid-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.qbe-grid-4 { grid-template-columns: repeat(4, minmax(0, 1fr)); margin-bottom: var(--adm-space-4); }
+.qbe-assign { display: flex; flex-direction: column; gap: var(--adm-space-4); }
+.qbe-box { display: flex; flex-direction: column; gap: var(--adm-space-3); min-width: 0; padding: var(--adm-space-4); border: var(--adm-border-width) solid var(--adm-line-subtle); border-radius: var(--adm-radius-md); }
+.qbe-box + .qbe-box { margin-top: var(--adm-space-4); }
+.qbe-box-head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--adm-space-2) var(--adm-space-3); }
+.qbe-box-head b { color: var(--adm-ink); font-size: var(--adm-fs-body); }
+.qbe-box-head span { color: var(--adm-accent-strong); font-size: var(--adm-fs-small); font-weight: var(--adm-fw-bold); }
+.qbe-box-head small { color: var(--adm-text-3); font-size: var(--adm-fs-caption); }
+.qbe-box-head .adm-ui-select { min-width: calc(var(--adm-space-8) * 7); }
+.qbe-row-tools { display: inline-flex; align-items: center; gap: var(--adm-space-2); }
+.qbe-preview { display: flex; align-items: center; gap: var(--adm-space-3); min-width: 0; }
+.qbe-thumb { display: inline-flex; flex: none; align-items: center; justify-content: center; overflow: hidden; width: calc(var(--adm-space-8) * 2); height: calc(var(--adm-space-8) * 1.5);
+  border-radius: var(--adm-radius-sm); background: var(--adm-gray-100); color: var(--adm-text-3); font-size: var(--adm-fs-caption); }
+.qbe-thumb img { width: 100%; height: 100%; object-fit: cover; }
+.qbe-preview-text { display: flex; flex-direction: column; gap: calc(var(--adm-space-1) / 2); min-width: 0; }
+.qbe-preview-text b { color: var(--adm-ink); font-size: var(--adm-fs-body); }
+.qbe-preview-text small { color: var(--adm-text-3); font-size: var(--adm-fs-caption); overflow-wrap: anywhere; }
+.qbe-more summary, .qbe-tags summary { color: var(--adm-text-2); font-size: var(--adm-fs-small); font-weight: var(--adm-fw-bold); cursor: pointer; }
+.qbe-more[open] summary, .qbe-tags[open] summary { margin-bottom: var(--adm-space-3); }
+.qbe-tags { margin-top: var(--adm-space-2); }
+.qbe-lodge, .qbe-traveler { display: flex; flex-direction: column; gap: var(--adm-space-3); padding: var(--adm-space-3); border-radius: var(--adm-radius-md); background: var(--adm-gray-50); }
+.qbe-add { display: flex; flex-wrap: wrap; gap: var(--adm-space-2); }
+.qbe-checks { display: flex; flex-wrap: wrap; gap: var(--adm-space-3) var(--adm-space-6); }
+.qbe-sign { display: flex; flex-direction: column; gap: var(--adm-space-3); margin-top: var(--adm-space-3); }
+.qbe-sign p { margin: 0; color: var(--adm-accent-strong); font-size: var(--adm-fs-small); }
+.qbe-sign-img { margin: 0; padding: var(--adm-space-3); border: var(--adm-border-width) solid var(--adm-accent-line); border-radius: var(--adm-radius-md); background: var(--adm-surface); text-align: center; }
+.qbe-sign-img figcaption { margin-bottom: var(--adm-space-2); color: var(--adm-accent-strong); font-size: var(--adm-fs-caption); font-weight: var(--adm-fw-bold); }
+.qbe-sign-img img { display: block; max-width: 100%; height: calc(var(--adm-space-8) * 2.8); margin: auto; object-fit: contain; }
+.qbe-bar { margin: 0; padding-inline: var(--adm-space-4); border: var(--adm-border-width) solid var(--adm-line-subtle); border-radius: var(--adm-radius-lg); }
+.qbe-bar-status { display: flex; flex-direction: column; gap: calc(var(--adm-space-1) / 2); }
+.qbe-bar-status b { color: var(--adm-ink); font-size: var(--adm-fs-small); }
+.qbe-bar-status small { color: var(--adm-text-3); font-size: var(--adm-fs-caption); }
+
+@media (max-width: 900px) {
+  .qbe-grid-3, .qbe-grid-4 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (max-width: 760px) {
+  .qbe-grid-3, .qbe-grid-4 { grid-template-columns: minmax(0, 1fr); }
+  .qbe-box-head .adm-ui-select { min-width: 0; width: 100%; }
+  .qbe-bar { flex-wrap: wrap; }
+}

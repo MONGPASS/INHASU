@@ -60,12 +60,6 @@ test('send 바로가기는 숨겨진 알림 버튼 대신 일정표 카드로 �
     assert.deepEqual(calls, ['documentsSection', 'focus:documentsSection']);
 });
 
-test('임베드 편집기는 옛 머리·아래 바의 옮긴 버튼을 숨기고 본문은 관리자 공통 최대 폭까지 쓴다', () => {
-    const css = fs.readFileSync(new URL('../src/styles/quote-booking-workspace.css', import.meta.url), 'utf8');
-    assert.ok(css.includes('.customer-booking-editor body>header{display:none}'));
-    assert.ok(css.includes('.customer-booking-editor main,.customer-booking-editor #admin-booking-history{box-sizing:border-box;max-width:var(--adm-content-max)'));
-    assert.ok(css.includes('.customer-booking-editor #travelNoticeBtn,.customer-booking-editor .bar-more{display:none!important}'));
-    assert.ok(css.includes('--cbe-head:0px'));
-    // 단독 예약관리 화면의 버튼은 그대로 있어야 한다(숨기기만, 삭제 금지).
+test('단독 예약관리 문서의 버튼은 그대로 있다(휴대폰 옛 관리자·비교용)', () => {
     for (const id of ['itineraryNoticeBtn', 'copyLinkBtn', 'guideSheetBtn', 'guidePdfBtn', 'travelNoticeBtn', 'undoBtn', 'saveBtn']) assert.ok(bookingHtml.includes(`id="${id}"`), id);
 });

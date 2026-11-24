@@ -222,8 +222,7 @@ test('고객 화면은 문의 상세를 iframe 대신 React로 그리고, 첨부
     assert.match(panel, /fetch\(attachmentPath\(String\(r\.fileKey\)\), \{ headers: \{ 'x-admin-token': token \}/);
     const desk = readFileSync('src/pages/AdminQuoteDesk.tsx', 'utf8');
     assert.doesNotMatch(desk, /workspace=1/, '옛 견적관리 상세 iframe을 쓰지 않는다');
-    assert.match(desk, /const nativeInquiry = customerPage && tool\.key === 'inbox';/);
-    assert.match(desk, /const frameIsMounted = linked && frameReady && !nativeEditor &&/);
+    assert.match(desk, /const nativeInquiry = tool\.key === 'inbox';/);
     assert.match(desk, /if \(nativeInquiry\) return inquiryRef\.current\?\.flushAll\(\) \|\| \{ ok: true, busy: false \};/, '이동·새로고침 보호가 React 상세의 메모를 저장한다');
     assert.match(desk, /if \(nativeInquiry\) return !!inquiryRef\.current\?\.navigate\(section\);/);
     assert.match(desk, /<QuoteInquiryPanel key=\{`\$\{accountId\}:\$\{bookingId\}:\$\{nativeReload\}`\} ref=\{inquiryRef\}/, '계정·고객이 바뀌거나 다시 불러오면 새로 그린다');

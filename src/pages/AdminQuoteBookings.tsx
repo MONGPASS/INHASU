@@ -1,5 +1,5 @@
-import React, { lazy, useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { Navigate, useNavigate, useSearchParams } from 'react-router-dom';
 import { useUser } from '../contexts/UserContext';
 import {
     AdminBadge, AdminButton, AdminCheckbox, AdminChip, AdminChipGroup, AdminDataTable, AdminDialog, AdminEmpty, AdminError, AdminIconButton,
@@ -17,19 +17,18 @@ import {
 } from '../components/admin/quoteBookingList';
 import { readInquiryList } from '../components/admin/quoteInbox';
 import { loadQuoteCustomerRequest } from '../utils/quoteCustomerWorkspace';
-import { quoteCustomerHref } from '../utils/customerWorkspaceRoutes';
+import { customerWorkspaceReturnTo, quoteCustomerHref } from '../utils/customerWorkspaceRoutes';
 import './AdminQuoteBookings.css';
 
 /**
  * 견적 예약 목록(`/admin/quote-desk/bookings`) — 옛 도구 public/예약목록.html을 React로 옮겼다(iframe 대신).
  * 요약 4칸 → 검색·거르기·정렬 → 출발월 → 선택 작업 → 표. ‘배정 관리’는 고객 통합 작업 화면을 연다.
  * 표에서 바로 하는 일(결제 상태 바꾸기·선택 복제·선택 영구 삭제)은 옛 도구와 같은 API를 쓴다.
- * `?id=`(고객 화면으로 넘김)는 예전처럼 AdminQuoteDesk가 맡는다.
+ * `?id=`(예전 상세 주소)는 그 고객의 고객 통합 작업 화면으로 넘긴다.
  */
 const PAGE_SIZE = 50;
 const LIST_PATH = quoteDeskHref('bookings');
 const tool = findQuoteDeskTool('bookings');
-const AdminQuoteDesk = lazy(() => import('./AdminQuoteDesk').then(module => ({ default: module.AdminQuoteDesk })));
 
 const CONTRACT_TONE: Record<ReturnType<typeof contractState>, AdminTone> = { 수락대기: 'neutral', 서명대기: 'warn', 서명완료: 'success' };
 const isFilter = (value: string | null): value is BookingFilter => (BOOKING_FILTERS as readonly string[]).includes(value || '');
@@ -40,7 +39,9 @@ type Phase = 'connecting' | 'loading' | 'ready' | 'unset' | 'error';
 
 export const AdminQuoteBookings: React.FC = () => {
     const [params] = useSearchParams();
-    if (params.get('id')) return <AdminQuoteDesk tool="bookings" />;
+    const id = params.get('id');
+    // 예전 상세 주소(?id=) → 고객 통합 작업 화면. returnTo가 있으면 검증한 값, 없으면 이 목록으로 돌아온다.
+    if (id) return <Navigate replace to={quoteCustomerHref(id, params.has('returnTo') ? customerWorkspaceReturnTo(params.get('returnTo'), '/admin/reservations?type=quote_booking') : quoteDeskHref('bookings'))} />;
     return <BookingList />;
 };
 

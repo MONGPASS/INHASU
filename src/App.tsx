@@ -190,12 +190,13 @@ function App() {
             <Route path="/admin/quote-desk/resources" element={<AdminGuard><AdminResourceManage /></AdminGuard>} />
             <Route path="/admin/quote-desk/itinerary" element={<AdminGuard><AdminItineraryManage /></AdminGuard>} />
             <Route path="/admin/quote-desk/spots" element={<AdminGuard><AdminSpotManage /></AdminGuard>} />
-            <Route path="/admin/quote-desk/:tool?" element={<AdminGuard><AdminQuoteDesk /></AdminGuard>} />
+            {/* 견적 도구는 모두 위의 React 화면이다. 그 밖의 도구 이름은 견적 문의로(붙어 온 ?id= 등은 그대로) */}
+            <Route path="/admin/quote-desk/:tool?" element={<AdminGuard><QuoteDeskIndexRedirect /></AdminGuard>} />
             {/* Keep list selection and customer editor state in separate route instances. */}
             <Route path="/admin/reservations" element={<AdminGuard><AdminReservationManage key="reservation-list" /></AdminGuard>} />
             <Route path="/admin/customer-workspace/product/:id" element={<AdminGuard><AdminReservationManage key="product-customer" customerPage /></AdminGuard>} />
             <Route path="/admin/customer-workspace/legacy-quote/:id" element={<AdminGuard><AdminReservationManage key="legacy-quote-customer" customerPage customerSource="quote" /></AdminGuard>} />
-            <Route path="/admin/customer-workspace/quote/:id" element={<AdminGuard><AdminQuoteDesk customerPage /></AdminGuard>} />
+            <Route path="/admin/customer-workspace/quote/:id" element={<AdminGuard><AdminQuoteDesk /></AdminGuard>} />
             <Route path="/admin/accommodation-ops" element={<AdminGuard><AdminAccommodationOps /></AdminGuard>} />
             <Route path="/admin/calendar" element={<AdminGuard><AdminCalendar /></AdminGuard>} />
             <Route path="/admin/banners" element={<AdminGuard><AdminBannerManage /></AdminGuard>} />

@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import vm from 'node:vm';
+import fs from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { build } from 'esbuild';
 
@@ -99,57 +100,11 @@ test('서버에서 확인한 계정이 요청한 관리자와 다르면 연결�
     assert.equal(app.writes.length, 0); assert.equal(app.session.size, 0);
 });
 
-test('견적 작성기와 예약 상세 주소는 고객 ID를 한 개의 안전한 URI 인수로 유지한다', () => {
-    const app = setup(), id = '고객 A/?id=다른고객&qe=else# "';
-    for (const [key, pathname] of [['builder', '/견적만들기'], ['bookings', '/예약관리']]) {
-        const href = app.quoteDeskFrameSrc(app.findQuoteDeskTool(key), id);
-        const url = new URL(href, 'https://local.example.invalid');
-        assert.equal(decodeURIComponent(url.pathname), pathname);
-        assert.equal(url.searchParams.get('id'), id);
-        assert.deepEqual([...url.searchParams.keys()], ['id']);
-        assert.equal(url.hash, '');
-    }
-});
-
-test('모바일 견적 편집 고객과 새 견적은 qe 주소로 재열고 문의 ID와 섞지 않는다', () => {
-    const app = setup(), inbox = app.findQuoteDeskTool('inbox');
-    for (const qe of ['request/?qe=other&x=1#끝', 'new']) {
-        const url = new URL(app.quoteDeskFrameSrc(inbox, 'inquiry-a', qe), 'https://local.example.invalid');
-        assert.equal(decodeURIComponent(url.pathname), '/견적관리-모바일');
-        assert.equal(url.searchParams.get('qe'), qe);
-        assert.deepEqual([...url.searchParams.keys()], ['qe']);
-        assert.equal(url.hash, '');
-    }
-    const ordinary = new URL(app.quoteDeskFrameSrc(inbox, 'inquiry-a'), 'https://local.example.invalid');
-    assert.equal(decodeURIComponent(ordinary.pathname), '/견적관리');
-    assert.equal(ordinary.searchParams.get('id'), 'inquiry-a');
-    assert.equal(ordinary.searchParams.get('m'), '0');
-});
-
-test('기존 문의 메뉴는 화면 폭과 관계없이 PC와 같은 문서를 연다', () => {
-    const app = setup(), inbox = app.findQuoteDeskTool('inbox');
-    assert.equal(app.quoteDeskFrameSrc(inbox), '/견적관리?m=0');
-    // 휴대폰 폭에서 새로 열어도 예전 모바일 전용 문서로 넘어가지 않는다(폭을 줄였을 때와 같은 화면).
-    app.window.screen.width = 390;
-    assert.equal(app.quoteDeskFrameSrc(inbox), '/견적관리?m=0');
-    const narrow = new URL(app.quoteDeskFrameSrc(inbox, 'inquiry-a'), 'https://local.example.invalid');
-    assert.equal(narrow.searchParams.get('m'), '0');
-    assert.equal(narrow.searchParams.get('id'), 'inquiry-a');
-});
-
-test('공통 자원 바로가기는 허용된 분류만 열고 고객·편집 주소를 바꾸지 않는다', () => {
-    const app = setup(), resources = app.findQuoteDeskTool('resources');
-    for (const resourceType of ['guides', 'lodges', 'vehicles']) {
-        const url = new URL(app.quoteDeskFrameSrc(resources, undefined, undefined, resourceType), 'https://local.example.invalid');
-        assert.equal(decodeURIComponent(url.pathname), '/리소스관리');
-        assert.equal(url.searchParams.get('resourceType'), resourceType);
-        assert.deepEqual([...url.searchParams.keys()], ['resourceType']);
-    }
-    for (const invalid of ['', 'other', 'lodges&id=other', 'lodges#other']) {
-        assert.equal(app.quoteDeskFrameSrc(resources, undefined, undefined, invalid), '/리소스관리');
-    }
-    assert.equal(app.quoteDeskFrameSrc(app.findQuoteDeskTool('builder'), 'saved-id', undefined, 'lodges'), '/견적만들기?id=saved-id');
-    assert.equal(app.quoteDeskFrameSrc(app.findQuoteDeskTool('spots'), undefined, undefined, 'lodges'), '/명소관리');
+test('견적 도구는 모두 React 화면이라 옛 문서를 iframe으로 여는 주소 도우미가 없다', () => {
+    const app = setup();
+    for (const name of ['quoteDeskFrameSrc', 'quoteDeskToolForPath', 'normalizeDocPath']) assert.equal(app[name], undefined, name);
+    const desk = fs.readFileSync(new URL('../src/pages/AdminQuoteDesk.tsx', import.meta.url), 'utf8');
+    assert.doesNotMatch(desk, /<iframe|contentWindow|postMessage/, '고객 통합 작업 화면은 iframe을 쓰지 않는다');
 });
 
 test('가이드·숙소·차량 메뉴의 첫 화면은 가이드 배정 현황이고, 등록 정보는 view=registry나 종류 지정 링크로 연다', () => {

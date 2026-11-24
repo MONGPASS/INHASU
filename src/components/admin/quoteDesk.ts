@@ -36,7 +36,6 @@ export interface QuoteDeskTool {
 }
 
 /** 견적관리.html 이 모바일 관리자로 넘어가는 기준 폭 (그 문서 맨 위 스크립트와 같은 값). */
-const NARROW_MAX_WIDTH = 820;
 
 export const QUOTE_DESK_TOOLS: QuoteDeskTool[] = [
     {
@@ -85,43 +84,11 @@ export function findQuoteDeskTool(key?: string | null): QuoteDeskTool {
     return QUOTE_DESK_TOOLS.find((item) => item.key === key) ?? QUOTE_DESK_TOOLS[0];
 }
 
-/** 주소(pathname)를 문서 이름으로 맞춘다: 퍼센트 인코딩 해제, `.html`·끝의 `/` 제거. */
-export function normalizeDocPath(pathname: string): string {
-    let path = pathname;
-    try { path = decodeURIComponent(pathname); } catch { /* 잘못된 인코딩은 원문으로 비교 */ }
-    return path.replace(/\.html$/i, '').replace(/\/+$/, '');
-}
-
-/** 끼워 넣은 화면의 현재 주소(pathname)가 어느 메뉴인지 찾는다. 견적 도구 화면이 아니면 null. */
-export function quoteDeskToolForPath(pathname: string): QuoteDeskTool | null {
-    const path = normalizeDocPath(pathname);
-    return QUOTE_DESK_TOOLS.find((item) => item.doc === path || item.related?.includes(path)) ?? null;
-}
-
-/** 바깥(관리자) 창이 데스크톱 폭인지 — 견적관리.html 의 모바일 판별과 같은 식. */
-export function isDesktopViewport(): boolean {
-    const width = Math.min(window.innerWidth || 9999, window.screen?.width || 9999);
-    return width > NARROW_MAX_WIDTH;
-}
-
 /** 가이드·숙소·차량의 첫 화면은 가이드 배정 현황이다. `?view=registry`나 종류를 지정한 링크(`?resourceType=`)만 등록 정보로 연다. */
 export function resourceScheduleView(params: URLSearchParams): boolean {
     const view = params.get('view');
     if (view) return view !== 'registry';
     return !['guides', 'lodges', 'vehicles'].includes(params.get('resourceType') || '');
-}
-
-/**
- * iframe 에 넣을 주소. 관리자 안에서는 화면 폭과 관계없이 같은 문서(PC와 같은 화면)를 쓰도록 `?m=0` 을 붙인다.
- * 폭을 줄였을 때와 휴대폰에서 새로 열었을 때 서로 다른 화면이 나오지 않게 하기 위해서다.
- */
-export function quoteDeskFrameSrc(tool: QuoteDeskTool, bookingId?: string, quoteEditorId?: string, resourceType?: string): string {
-    if (tool.key === 'builder' && bookingId) return `${tool.doc}?id=${encodeURIComponent(bookingId)}`;
-    if (tool.key === 'inbox' && quoteEditorId) return `/견적관리-모바일?qe=${encodeURIComponent(quoteEditorId)}`;
-    if (tool.key === 'bookings' && bookingId) return `/예약관리?id=${encodeURIComponent(bookingId)}`;
-    if (tool.key === 'inbox' && bookingId) return `${tool.doc}?id=${encodeURIComponent(bookingId)}&m=0`;
-    if (tool.key === 'resources' && ['guides', 'lodges', 'vehicles'].includes(resourceType || '')) return `${tool.doc}?resourceType=${resourceType}`;
-    return tool.mobileDoc ? `${tool.doc}?m=0` : tool.doc;
 }
 
 /**

@@ -1,4 +1,4 @@
-import React, { lazy, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Navigate, useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import { useUser } from '../contexts/UserContext';
 import {
@@ -13,21 +13,19 @@ import {
     isUrgent, nextAction, nightText, paxSum, readInquiryList, requestSnippet, statusOf, visibleInquiries,
     type InboxFilter, type InboxSeen, type InboxSort, type InquiryRecord,
 } from '../components/admin/quoteInbox';
-import { quoteCustomerHref } from '../utils/customerWorkspaceRoutes';
+import { customerWorkspaceReturnTo, quoteCustomerHref } from '../utils/customerWorkspaceRoutes';
 import './AdminQuoteInbox.css';
 
 /**
  * 견적 문의(`/admin/quote-desk/inbox`) — 옛 도구 public/견적관리.html의 목록 화면을 React로 옮겼다(iframe 대신).
  * 요약 숫자 → 고객·예약 행동 알림 → 검색·상태 칩·정렬 → 표. 줄을 누르면 고객 통합 작업 화면으로 간다(고치는 일은 거기서).
- * `?id=`(고객 화면으로 넘김)·`?qe=`(휴대폰 견적 편집)는 예전처럼 AdminQuoteDesk가 맡는다.
+ * 예전 주소 `?id=`(문의 상세)·`?qe=`(옛 휴대폰 견적 편집)는 그 고객의 고객 통합 작업 화면으로 넘긴다(견적 편집도 거기서 React로).
  * 자료는 같은 `GET /api/requests`(x-admin-token)이고 30초마다 다시 읽어 새 문의·고객 행동을 알린다.
  */
 const PAGE_SIZE = 50;
 const REFRESH_MS = 30000;
 const INBOX_PATH = quoteDeskHref('inbox');
 const tool = findQuoteDeskTool('inbox');
-// 고객 한 명을 여는 주소에서만 쓰므로 따로 받는다(목록 화면이 큰 견적 데스크 코드를 함께 받지 않게).
-const AdminQuoteDesk = lazy(() => import('./AdminQuoteDesk').then(module => ({ default: module.AdminQuoteDesk })));
 
 const STATUS_TONE: Record<string, AdminTone> = { 신규: 'info', 진행중: 'warn', 예약확정: 'success', 완료: 'neutral', 보류: 'danger' };
 const ACTION_TONE: Record<ReturnType<typeof actionTone>, AdminTone> = { urgent: 'danger', waiting: 'warn', next: 'info' };
@@ -44,8 +42,9 @@ export const QuoteDeskIndexRedirect: React.FC = () => {
 
 export const AdminQuoteInbox: React.FC = () => {
     const [params] = useSearchParams();
-    // 고객 한 명을 여는 주소는 예전 처리(고객 통합 작업 화면으로 넘김·휴대폰 견적 편집기)를 그대로 쓴다.
-    if (params.get('id') || params.get('qe')) return <AdminQuoteDesk tool="inbox" />;
+    // 고객 한 명을 여는 예전 주소 → 고객 통합 작업 화면. returnTo가 있으면 검증한 값, 없으면 이 목록으로 돌아온다.
+    const id = params.get('id') || params.get('qe');
+    if (id) return <Navigate replace to={quoteCustomerHref(id, params.has('returnTo') ? customerWorkspaceReturnTo(params.get('returnTo'), '/admin/reservations?type=quote_booking') : INBOX_PATH)} />;
     return <InboxList />;
 };
 
