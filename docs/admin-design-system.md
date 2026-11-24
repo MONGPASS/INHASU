@@ -223,6 +223,7 @@ PC와 같은 화면·같은 부품이 휴대폰 폭에서 앱 모양으로 바�
 | `public/quote-day-editor.css` 끝 ‘공통 모양(정본)’ 블록의 `!important` 137곳 | 그대로 둠 | 견적서 만들기 STEP 2(정적 HTML)·견적 예약 일정표·상품 예약 일정표가 같은 일차 카드로 보이게 하려고 일부러 가장 강하게 적은 정본이다(`CLAUDE.md` 5절, `tests/quote-day-editor-design.test.mjs`). 견적 도구를 React로 옮기면(5단계) 우리 부품으로 바꾸면서 함께 걷는다 |
 | `src/styles/admin-mobile.css`의 `!important` 87곳 | 그대로 둠 | 아직 우리 부품으로 바뀌지 않은 옛 화면(0% 화면·견적 도구 iframe 바깥 틀)의 휴대폰 크기를 덮는 규칙이다. 화면마다 휴대폰에서 확인하며 걷어야 해서, 해당 화면을 Seed로 바꿀 때 그 화면 규칙을 함께 지운다 |
 | 통합 예약 목록(`AdminReservationManage.tsx`)의 `<table>` 6개·직접 색 26곳 | 그대로 둠 | 숙소에 보내는 몽골어 예약 요청서·엑셀 표의 HTML 문자열과 이름표 캔버스다. 새 창·파일·캔버스는 관리자 변수를 읽지 못한다 |
+| 아이콘: 카테고리·배너 아이콘(`MaterialIcon`), 문서 템플릿 화면 전체(`MaterialIcon as Icon`), 홈 화면 관리의 휴대폰·PC 미리보기 전환 2종(Lucide 선) | Seed 아이콘이 아님 | 카테고리·배너 아이콘은 관리자가 고른 Material 이름이 저장돼 고객 화면에 그대로 쓰이고, 문서 템플릿은 고객 문서 미리보기라 같은 모양이어야 한다. 휴대폰·PC는 저장소에 Seed 모양이 없다(`daangn/seed-icon`의 mobile·laptop을 받으면 바꾼다). 나머지 관리자 아이콘은 2026-11-24부터 모두 Seed(`ui/legacyIconNames.ts`) |
 | 투어 캘린더의 월간 달력 칸·일정 막대·팀 카드(`AdminCalendar.tsx`·`AdminCalendar.css`), 일반 문의의 목록 줄·첫 글자 동그라미(`AdminInquiryManage.tsx`·`.css`) | 우리 부품이 아니라 화면 CSS가 `--adm-*` 변수로 그림(`adm-cal-*`·`adm-iq-*` 버튼) | Seed에 달력 칸·메일함 줄 부품이 없다. 요약·검색·칩·보기 전환·표·배지·알림·빈 화면은 우리 부품을 쓴다 |
 | TSX 인라인 `style`의 민트 고정값(`v7Ui.tsx` 제외) | 1단계에서는 그대로 | 엑셀·인쇄용 HTML, 저장되는 기본색, 캔버스 그림과 섞여 있어 부품 교체(2~3단계) 때 함께 바꾼다 |
 | 배너·카테고리의 기본색 `#0f766e` | 바꾸지 않음 | 화면 꾸밈이 아니라 DB에 저장되는 값이다 |

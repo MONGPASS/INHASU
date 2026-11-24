@@ -16,10 +16,16 @@ export const OUT = 'src/components/admin/ui/AdminIcons.tsx';
 export const MAP = {
     IconApps: 'chart_regular',              // 대시보드
     IconArrowDown: 'arrow_downward_regular',
+    IconArrowRight: 'arrow_regular',
     IconArrowUp: 'arrow_upward_regular',
+    IconBadge: 'certification_regular',    // 자격·인증
     IconBell: 'notification_regular',       // 업무 알림
+    IconBlock: 'prohibition_regular',      // 미배정·사용 안 함
     IconBook: 'story_article_regular',      // 매거진
     IconCalendar: 'calendar_regular',
+    IconCall: 'call_regular',
+    IconCamera: 'camera_regular',
+    IconCar: 'car_regular',                // 차량
     IconCheck: 'check_regular',
     IconCheckThick: 'check_regular',
     IconChevronDown: 'expand_more_regular',
@@ -33,34 +39,57 @@ export const MAP = {
     IconClock: 'clock_regular',
     IconClose: 'close_regular',
     IconCoins: 'money_won_regular',
+    IconCopy: 'copy_regular',
     IconDocument: 'article_regular',        // 문서 템플릿(file은 클립 모양이라 쓰지 않음)
     IconDocumentText: 'search_doc_regular', // 견적 문의
     IconDownload: 'download_regular',
+    IconExternal: 'ios_share_regular',     // 새 창으로 열기
+    IconEye: 'view_count_regular',         // 미리보기·노출
+    IconFilter: 'filter02_regular',
     IconFlag: 'map_regular',                // 코스
+    IconFlight: 'near_me_regular',         // 항공·공항 이동(Seed에 비행기 모양 없음)
     IconFolder: 'product_regular',          // 상품
+    IconGrip: 'handle_regular',            // 끌어서 순서 바꾸기
+    IconHeart: 'heart_regular',
     IconHome: 'home_regular',
+    IconHotel: 'home_regular',             // 숙소(Seed에 호텔·침대 모양 없음)
     IconImage: 'photo_regular',
+    IconImages: 'photo_several_regular',   // 여러 장 사진
     IconInbox: 'search_doc_regular',        // 빈 목록
+    IconInfo: 'info_regular',
+    IconLayers: 'list_card_regular',       // 묶음·카드 목록
     IconListCategory: 'list_regular',
     IconLocation: 'location_regular',
+    IconLock: 'lock_regular',
     IconLogout: 'signout_regular',
     IconMail: 'chatting_regular',           // 문의
+    IconMap: 'map_regular',
     IconMegaphone: 'loudspeaker_regular',
     IconMenu: 'menu_regular',               // 휴대폰 위 바 메뉴 열기
     IconMinus: 'subtraction_regular',
     IconMoreHorizontal: 'more_horiz_regular',
     IconMoreVertical: 'more_vert_regular',
+    IconNote: 'note_regular',              // 메모
     IconPencil: 'edit_regular',
     IconPerson: 'profile_regular',
     IconPersons: 'user_group_regular',
     IconPlus: 'add_regular',
     IconRefresh: 'retry_regular',
+    IconRestaurant: 'restaurant_regular',  // 식사
     IconSearch: 'search_regular',
+    IconSend: 'chatting_send_regular',     // 보내기
+    IconSettings: 'setting_regular',
+    IconSparkle: 'ai_regular',             // 자동·추천
     IconStar: 'review_star_regular',
+    IconSwap: 'convert_regular',           // 바꾸기
     IconTag: 'hashtag_regular',             // 카테고리
     IconTicket: 'coupon_regular',           // 예약
+    IconTranslate: 'translate_regular',
     IconTrash: 'trash_regular',
     IconUpload: 'ios_share_regular',
+    IconWalk: 'walk_regular',              // 일정·동선
+    IconWarning: 'warning_regular',
+    IconWrite: 'write_regular',
 };
 
 const attr = (tag, name) => tag.match(new RegExp(`\\s${name}="([^"]*)"`))?.[1];

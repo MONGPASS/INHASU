@@ -534,7 +534,7 @@
   "rawButton": 31,
   "rawField": 17,
   "rawTable": 0,
-  "inlineStyle": 5,
+  "inlineStyle": 4,
   "px": 0,
   "hex": 8,
   "nativeDialog": 0
@@ -615,7 +615,7 @@
   "rawButton": 26,
   "rawField": 11,
   "rawTable": 0,
-  "inlineStyle": 20,
+  "inlineStyle": 19,
   "px": 48,
   "hex": 13,
   "nativeDialog": 1

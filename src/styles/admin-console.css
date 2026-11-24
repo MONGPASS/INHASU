@@ -39,6 +39,8 @@
 .admin-app-wrapper .material-symbols-outlined {
   display: inline-block; vertical-align: middle; flex: none;
 }
+/* Seed 아이콘을 예전 이름으로 그릴 때(console/Icon): 바깥 칸의 글자 크기(1em)를 그대로 따른다 */
+.admin-app-wrapper .adm-glyph > svg { display: block; width: 1em; height: 1em; }
 
 .admin-app-wrapper ::-webkit-scrollbar { width: 10px; height: 10px; }
 .admin-app-wrapper ::-webkit-scrollbar-thumb { background: var(--adm-gray-300); border-radius: 999px; border: 3px solid transparent; background-clip: content-box; }

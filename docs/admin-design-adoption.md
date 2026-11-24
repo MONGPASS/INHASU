@@ -6,7 +6,7 @@
 - **직접 지정**: 인라인 `style={{}}` 수, 숫자로 적은 크기(px), 직접 적은 색(hex), `!important`, CSS에 숫자로 적은 크기(글자·모서리·높이·여백).
 - 이 수치는 `scripts/admin-design-baseline.json`의 상한보다 늘어나면 `tests/admin-design-budget.test.mjs`가 실패한다(PR마다 CI에서 검사). 줄였으면 `--write-baseline`으로 상한을 낮춘다.
 
-전체: 공통 부품 1285개 / 생 HTML 부품 255개 → **전환율 83%** · 인라인 style 1163 · 숫자 크기 3544 · 직접 색 309 · !important 276
+전체: 공통 부품 1285개 / 생 HTML 부품 255개 → **전환율 83%** · 인라인 style 1161 · 숫자 크기 3544 · 직접 색 309 · !important 276
 
 | 화면 | 파일 | 부품 전환율 | 공통 부품 | 생 HTML 부품 | 인라인 style | 숫자 크기(TSX/CSS) | 직접 색 | !important | 기본 확인창 |
 |---|---:|---:|---:|---:|---:|---:|---:|---:|---:|
@@ -26,8 +26,8 @@
 | 일반 문의 | 2 | 100% | 24 | 0 | 0 | 0 / 0 | 0 | 0 | 0 |
 | 후기 관리 | 2 | 100% | 47 | 0 | 0 | 0 / 0 | 0 | 0 | 0 |
 | FAQ·상품별 FAQ | 5 | 100% | 85 | 0 | 0 | 0 / 0 | 0 | 0 | 0 |
-| 매거진 관리 | 1 | 0% | 0 | 37 | 20 | 48 / 0 | 13 | 0 | 1 |
-| 홈 화면(배너) | 2 | 0% | 0 | 48 | 5 | 0 / 133 | 11 | 0 | 0 |
+| 매거진 관리 | 1 | 0% | 0 | 37 | 19 | 48 / 0 | 13 | 0 | 1 |
+| 홈 화면(배너) | 2 | 0% | 0 | 48 | 4 | 0 / 133 | 11 | 0 | 0 |
 | 여행기획전 | 1 | 0% | 0 | 20 | 34 | 52 / 0 | 1 | 0 | 0 |
 | 상품용 가이드·숙소 | 2 | 0% | 0 | 31 | 36 | 41 / 0 | 0 | 0 | 0 |
 | 콘텐츠 공통 CSS | 1 | — | 0 | 0 | 0 | 0 / 125 | 2 | 0 | 0 |
@@ -53,9 +53,9 @@
 | `src/components/admin/QuoteModals.tsx` | 맞춤견적 관리(이전) | 41 | 84 | 88 | 0 |
 | `src/pages/AdminTemplateManage.tsx` | 문서 템플릿 | 45 | 86 | 50 | 49 |
 | `src/pages/AdminPromotionManage.tsx` | 여행기획전 | 20 | 34 | 52 | 1 |
-| `src/pages/AdminMagazineManage.tsx` | 매거진 관리 | 37 | 20 | 48 | 13 |
+| `src/pages/AdminMagazineManage.tsx` | 매거진 관리 | 37 | 19 | 48 | 13 |
 | `src/pages/AdminGuideManage.tsx` | 상품용 가이드·숙소 | 16 | 20 | 24 | 0 |
-| `src/pages/AdminBannerManage.tsx` | 홈 화면(배너) | 48 | 5 | 0 | 8 |
+| `src/pages/AdminBannerManage.tsx` | 홈 화면(배너) | 48 | 4 | 0 | 8 |
 | `src/pages/AdminLogin.tsx` | 관리자 로그인 | 11 | 14 | 27 | 0 |
 | `src/pages/AdminAccommodationManage.tsx` | 상품용 가이드·숙소 | 15 | 16 | 17 | 0 |
 | `src/pages/AdminReservationManage.tsx` | 통합 예약 목록 | 6 | 1 | 33 | 26 |
