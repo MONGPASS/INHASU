@@ -231,7 +231,12 @@ test('고객 정보는 기본 접힘·한 번에 하나만 펼치고 개인정�
         travelers: { expected: 10, registered: 1, people: [{ id: 't1', name: '저장 여행자', details: [{ label: '여권번호', value: 'M12345678' }] }] },
         preferences: ['보존할 요청'] };
     const first = view({ model: detailed });
-    const closed = renderToStaticMarkup(first.tree);
+    // 예약 상세·항공편·여행자·요청은 펼침 버튼 뒤에 있다(기본 접힘)
+    const collapsed = renderToStaticMarkup(first.tree);
+    assert.ok(collapsed.includes('예약·항공편·여행자 정보 보기')); assert.ok(!collapsed.includes('1/2편 정보 등록'));
+    byText(first.tree, '예약·항공편·여행자 정보 보기').props.onClick();
+    assert.equal(first.st.infoMore, true);
+    const closed = renderToStaticMarkup(view({ model: detailed }, first.st).tree);
     for (const value of ['1/2편 정보 등록', '1/10명 등록', '요청 1건', '접수 · 주문 경로 등 2개 항목']) assert.ok(closed.includes(value), value);
     for (const value of ['보존할 메모', 'LOCAL-1', '보존할 요청']) assert.ok(!closed.includes(value), value);
     assert.ok(closed.includes('010-1234***')); assert.ok(!closed.includes('010-1234-5678'));

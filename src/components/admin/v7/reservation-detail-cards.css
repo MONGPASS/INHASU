@@ -232,7 +232,11 @@
 .v7-step-sub.is-now { color: var(--adm-danger); animation: rvBlink 1.8s ease-in-out infinite; }
 
 /* 바로가기 아래 한 줄: 고객 정보 · 운영 메모(2026-11-24). 좁으면 아래위로 */
-.v7-top { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 360px), 1fr)); align-items: start; gap: var(--adm-space-4); }
+/* 두 카드는 같은 높이(긴 쪽에 맞춘다). 고객 정보의 세부 묶음은 펼침 버튼 뒤라 평소에는 짧다 */
+.v7-top { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 360px), 1fr)); align-items: stretch; gap: var(--adm-space-4); }
+.v7-info .adm-ui-text-btn.v7-info-more { align-self: flex-start; margin: var(--adm-space-1) 0 var(--adm-space-2); }
+.v7-info-more[aria-expanded="true"] svg { transform: rotate(180deg); }
+.v7-info-more-body { display: flex; flex-direction: column; }
 /* 오른쪽 칸의 고객 알림 자동발송: 다른 카드처럼 그림자 없이. 펼치면 길어지므로 오른쪽 칸을 화면에 붙이지 않는다 */
 .v7-side > .cw-kakao { box-shadow: none; }
 /* 좁은 오른쪽 칸에서는 수동 재안내 카드를 한 줄에 하나씩(두 칸이면 글자가 몇 자씩 끊긴다) */

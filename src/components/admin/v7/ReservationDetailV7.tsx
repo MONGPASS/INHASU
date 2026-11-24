@@ -86,11 +86,13 @@ export interface DetailState {
     maskOn: boolean; sections: Record<string, boolean>; travelerOpen: number; dayOpen: Record<string, boolean>;
     /** 구역 탭에서 마지막으로 고른 구역(밑줄 표시용). */
     navSid: string;
+    /** 고객 정보 카드의 예약 상세·항공편·여행자·요청 묶음을 펼쳤는지(기본 접힘). */
+    infoMore: boolean;
     /** 배정 카드의 박별 숙소 목록을 펼쳤는지(기본 접힘). */
     staysOpen: boolean;
 }
 export const initialDetailState = (): DetailState => ({ allItems: [], resources: null, menu: null, toast: '', saving: false, maskOn: true,
-    sections: {}, travelerOpen: 0, dayOpen: {}, navSid: 'sec-plan', staysOpen: false });
+    sections: {}, travelerOpen: 0, dayOpen: {}, navSid: 'sec-plan', staysOpen: false, infoMore: false });
 export type DetailSet = (patch: Partial<DetailState> | ((s: DetailState) => Partial<DetailState>)) => void;
 export interface DetailEnv { mounted: { current: boolean }; toastTimer: { current: number | undefined }; root: { current: HTMLElement | null } }
 
@@ -407,6 +409,10 @@ export function reservationDetailView({ model: m, onAction, busy = false, noteCo
                         <span className="v7-info-label">{f.label}</span>
                         <span className={f.value ? 'v7-info-value' : 'v7-info-value is-empty'}>{f.value ? maskFact(f.label, f.value, maskOn) : '미입력'}</span>
                     </div>)}
+                    {/* 예약 상세·항공편·여행자·요청은 펼침 버튼 뒤로(2026-11-24): 카드가 길어지지 않고 옆 일정 카드와 높이가 맞는다 */}
+                    <AdminTextButton size="sm" tone="assistive" className="v7-info-more" aria-expanded={st.infoMore} aria-controls="v7-info-more"
+                        onClick={() => set(s => ({ infoMore: !s.infoMore }))} trailing={<Ico name="lc-chevron-down" size={14} />}>{st.infoMore ? '상세 정보 접기' : '예약·항공편·여행자 정보 보기'}</AdminTextButton>
+                    {st.infoMore && <div id="v7-info-more" className="v7-info-more-body">
                     <div className="v7-rule is-spaced" />
                     {m.facts.length > 3 && disclosure({ icon: 'lc-file-text', title: '예약 상세 정보', sub: `접수 · 주문 경로 등 ${m.facts.length - 3}개 항목`, open: sections.bk, onToggle: () => setSections(s => s.bk ? {} as Record<string, boolean> : { bk: true }), children:
                         <div className="v7-soft-box v7-kv-list">
@@ -444,6 +450,7 @@ export function reservationDetailView({ model: m, onAction, busy = false, noteCo
                     {disclosure({ icon: 'lc-message-circle', title: '고객 요청 사항', sub: m.preferences?.length ? `요청 ${m.preferences.length}건` : '등록된 요청 없음', open: sections.rq, onToggle: () => setSections(s => s.rq ? {} as Record<string, boolean> : { rq: true }), children:
                         <div className={m.preferences?.length ? 'v7-soft-box v7-requests' : 'v7-requests is-empty'}>{m.preferences?.length ? m.preferences.join('\n') : '등록된 요청 사항이 없어요.'}</div>
                     })}
+                    </div>}
                 </div>
 
                 <div id="sec-plan" className="v7-card">
