@@ -231,10 +231,18 @@
 .v7-step-sub.is-ok { color: var(--adm-text-2); }
 .v7-step-sub.is-now { color: var(--adm-danger); animation: rvBlink 1.8s ease-in-out infinite; }
 
+/* 바로가기 아래 한 줄: 고객 정보 · 운영 메모(2026-11-24). 좁으면 아래위로 */
+.v7-top { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 360px), 1fr)); align-items: start; gap: var(--adm-space-4); }
+/* 오른쪽 칸의 고객 알림 자동발송: 다른 카드처럼 그림자 없이. 펼치면 길어지므로 오른쪽 칸을 화면에 붙이지 않는다 */
+.v7-side > .cw-kakao { box-shadow: none; }
+/* 좁은 오른쪽 칸에서는 수동 재안내 카드를 한 줄에 하나씩(두 칸이면 글자가 몇 자씩 끊긴다) */
+.v7-side > .cw-kakao .cw-kakao-list { grid-template-columns: minmax(0, 1fr); }
+.v7-side > .cw-kakao .cw-kakao-notice { flex-direction: row; align-items: center; }
+
 /* 아래 두 열 */
 .v7-cols { display: flex; flex-wrap: wrap; align-items: flex-start; gap: var(--adm-space-4); }
 .v7-main { display: flex; flex: 1 1 calc(var(--adm-space-8) * 17.5); flex-direction: column; gap: var(--adm-space-4); min-width: 0; }
-.v7-side { position: sticky; top: calc(var(--adm-space-8) * 2.5 + var(--adm-space-1)); display: flex; flex: 1 1 calc(var(--adm-space-8) * 10); flex-direction: column; gap: var(--adm-space-4);
+.v7-side { display: flex; flex: 1 1 calc(var(--adm-space-8) * 10); flex-direction: column; gap: var(--adm-space-4);
   min-width: 0; max-width: calc(var(--adm-space-8) * 13.75); }
 
 /* 숙소·가이드·차량: 가이드·차량 줄 */

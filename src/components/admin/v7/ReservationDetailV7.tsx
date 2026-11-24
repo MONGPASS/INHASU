@@ -394,57 +394,8 @@ export function reservationDetailView({ model: m, onAction, busy = false, noteCo
             {NAV.map(n => <button key={n.sid} type="button" className="adm-v7-tab v7-tab" aria-label={`${n.label} 위치로 이동`} aria-current={st.navSid === n.sid ? 'true' : undefined}
                 onClick={() => { set({ navSid: n.sid }); goSec(n.sid); }}>{n.label}</button>)}
         </nav>
-        {notificationActions}
-        <div className="v7-quad rdc-grid">
-            {quadCards}
-        </div>
-
-        <div className="v7-cols">
-            <div className="v7-main">
-                <div id="sec-plan" className="v7-card">
-                    <div className="v7-card-head is-nowrap">
-                        <span className="v7-tile"><Ico name="lc-route" size={16} /></span><b className="v7-card-title">일정</b>
-                        <span className="v7-card-meta">{period?.sch || (m.days.length ? `${m.days.length}일` : '')}</span>
-                        <AdminTextButton tone="assistive" size="sm" className="v7-push" disabled={busy} onClick={action('edit-itinerary')} trailing={<Ico name="lc-chevron-right" size={14} />}>일정표 편집</AdminTextButton>
-                    </div>
-                    {m.days.map((day, i) => {
-                        const open = !!dayOpen[day.id], last = i === m.days.length - 1;
-                        const night = row?.stays.find(s => s.day === day.day);
-                        const stayText = day.stayRequired === false || (last && !night) ? '숙박 없음' : night?.hotel ? `${night.hotel} · ${bookingStatusMeta(night.bookingStatus).label}` : day.stayAssigned && day.stay ? day.stay : '숙소 미정';
-                        const has = stayText !== '숙소 미정', none = stayText === '숙박 없음', c = none ? 'var(--adm-line-strong)' : night?.hotel ? bookingStatusMeta(night.bookingStatus).color : has ? 'var(--adm-accent-strong)' : 'var(--adm-danger)';
-                        const activities = day.activities?.length ? day.activities : scheduleTimeline(day.summary || '').map(s => ({ time: s.time, title: s.text }));
-                        // 숙소 점 색은 수배 상태 원본(bookingStatusMeta.color)에서 실행 중에 정해진다.
-                        const dotColor = { '--v7-stay-dot': c } as React.CSSProperties;
-                        return <div key={day.id} className="v7-day">
-                            <button type="button" aria-expanded={open} className={open ? 'adm-v7-day v7-day-btn is-open' : 'adm-v7-day v7-day-btn'} onClick={() => setDayOpen(prev => ({ ...prev, [day.id]: !open }))}>
-                                <b className="v7-day-no">{day.day}일차</b>
-                                <span className="v7-day-date">{day.date ? (/^\d{4}-\d{2}-\d{2}$/.test(day.date) ? shortDate(day.date) : day.date) : startKey ? shortDate(new Date(Date.parse(`${startKey}T00:00:00Z`) + (day.day - 1) * 864e5).toISOString().slice(0, 10)) : ''}</span>
-                                <span className="v7-day-title">{day.title || `${day.day}일차 일정 작성`}</span>
-                                <span className={none ? 'v7-day-stay is-none' : has ? 'v7-day-stay' : 'v7-day-stay is-missing'} style={dotColor}><Ico name="lc-bed-double" size={13} />{stayText}</span>
-                                <span className={open ? 'v7-chevron is-open' : 'v7-chevron'}><Ico name="lc-chevron-down" size={16} color="var(--adm-text-3)" /></span>
-                            </button>
-                            {open && <div className="v7-day-body">
-                                <div className="v7-timeline">
-                                    {activities.length ? activities.map((it, k) => <div key={k} className="v7-tl-row">
-                                        <span className="v7-tl-time">{it.time || ''}</span>
-                                        <span className="v7-tl-rail"><span className="v7-tl-dot" /><span className={k === activities.length - 1 ? 'v7-tl-line is-last' : 'v7-tl-line'} /></span>
-                                        <span className="v7-tl-text"><b className="v7-tl-title">{it.title}</b>{(it as any).description && <span className="v7-tl-desc">{(it as any).description}</span>}</span>
-                                    </div>) : <span className="v7-empty-text">상세 일정이 입력되지 않았습니다.</span>}
-                                </div>
-                                <div className="v7-day-foot">
-                                    <span className="v7-fact"><Ico name="lc-utensils" size={13} color="var(--adm-accent-strong)" /><b>식사</b>{day.meals || '미입력'}</span>
-                                    <span className="v7-fact"><Ico name="lc-car" size={13} color="var(--adm-accent-strong)" /><b>이동</b>{day.travel || '미입력'}</span>
-                                    <AdminTextButton size="sm" className="v7-push" disabled={busy} onClick={action('edit-itinerary', day.id)} leading={<Ico name="lc-pencil" size={12} />}>{`${day.day}일차 편집`}</AdminTextButton>
-                                </div>
-                            </div>}
-                        </div>;
-                    })}
-                    {!m.days.length && <div className="v7-card-note is-row"><span className="v7-grow">아직 작성된 일정이 없어요. 기존 견적·상품 일정을 불러와 편집할 수 있습니다.</span><AdminButton variant="secondary" size="sm" disabled={busy} onClick={action('edit-itinerary')}>일정 작성하기</AdminButton></div>}
-                </div>
-
-            </div>
-
-            <div className="v7-side">
+        {/* 고객 정보 · 운영 메모: 바로가기 바로 아래 한 줄(2026-11-24, 고객 알림 자동발송과 자리 바꿈) */}
+        <div className="v7-top">
                 <div id="sec-info" className="v7-card v7-info">
                     <div className="v7-info-head">
                         <b className="v7-info-title">고객 정보</b>
@@ -503,6 +454,59 @@ export function reservationDetailView({ model: m, onAction, busy = false, noteCo
                     </li>)}</ol>}
                     {noteComposer || <AdminButton variant="secondary" disabled={busy} onClick={action('notes')}>메모 작성</AdminButton>}
                 </div>
+        </div>
+        <div className="v7-quad rdc-grid">
+            {quadCards}
+        </div>
+
+        <div className="v7-cols">
+            <div className="v7-main">
+                <div id="sec-plan" className="v7-card">
+                    <div className="v7-card-head is-nowrap">
+                        <span className="v7-tile"><Ico name="lc-route" size={16} /></span><b className="v7-card-title">일정</b>
+                        <span className="v7-card-meta">{period?.sch || (m.days.length ? `${m.days.length}일` : '')}</span>
+                        <AdminTextButton tone="assistive" size="sm" className="v7-push" disabled={busy} onClick={action('edit-itinerary')} trailing={<Ico name="lc-chevron-right" size={14} />}>일정표 편집</AdminTextButton>
+                    </div>
+                    {m.days.map((day, i) => {
+                        const open = !!dayOpen[day.id], last = i === m.days.length - 1;
+                        const night = row?.stays.find(s => s.day === day.day);
+                        const stayText = day.stayRequired === false || (last && !night) ? '숙박 없음' : night?.hotel ? `${night.hotel} · ${bookingStatusMeta(night.bookingStatus).label}` : day.stayAssigned && day.stay ? day.stay : '숙소 미정';
+                        const has = stayText !== '숙소 미정', none = stayText === '숙박 없음', c = none ? 'var(--adm-line-strong)' : night?.hotel ? bookingStatusMeta(night.bookingStatus).color : has ? 'var(--adm-accent-strong)' : 'var(--adm-danger)';
+                        const activities = day.activities?.length ? day.activities : scheduleTimeline(day.summary || '').map(s => ({ time: s.time, title: s.text }));
+                        // 숙소 점 색은 수배 상태 원본(bookingStatusMeta.color)에서 실행 중에 정해진다.
+                        const dotColor = { '--v7-stay-dot': c } as React.CSSProperties;
+                        return <div key={day.id} className="v7-day">
+                            <button type="button" aria-expanded={open} className={open ? 'adm-v7-day v7-day-btn is-open' : 'adm-v7-day v7-day-btn'} onClick={() => setDayOpen(prev => ({ ...prev, [day.id]: !open }))}>
+                                <b className="v7-day-no">{day.day}일차</b>
+                                <span className="v7-day-date">{day.date ? (/^\d{4}-\d{2}-\d{2}$/.test(day.date) ? shortDate(day.date) : day.date) : startKey ? shortDate(new Date(Date.parse(`${startKey}T00:00:00Z`) + (day.day - 1) * 864e5).toISOString().slice(0, 10)) : ''}</span>
+                                <span className="v7-day-title">{day.title || `${day.day}일차 일정 작성`}</span>
+                                <span className={none ? 'v7-day-stay is-none' : has ? 'v7-day-stay' : 'v7-day-stay is-missing'} style={dotColor}><Ico name="lc-bed-double" size={13} />{stayText}</span>
+                                <span className={open ? 'v7-chevron is-open' : 'v7-chevron'}><Ico name="lc-chevron-down" size={16} color="var(--adm-text-3)" /></span>
+                            </button>
+                            {open && <div className="v7-day-body">
+                                <div className="v7-timeline">
+                                    {activities.length ? activities.map((it, k) => <div key={k} className="v7-tl-row">
+                                        <span className="v7-tl-time">{it.time || ''}</span>
+                                        <span className="v7-tl-rail"><span className="v7-tl-dot" /><span className={k === activities.length - 1 ? 'v7-tl-line is-last' : 'v7-tl-line'} /></span>
+                                        <span className="v7-tl-text"><b className="v7-tl-title">{it.title}</b>{(it as any).description && <span className="v7-tl-desc">{(it as any).description}</span>}</span>
+                                    </div>) : <span className="v7-empty-text">상세 일정이 입력되지 않았습니다.</span>}
+                                </div>
+                                <div className="v7-day-foot">
+                                    <span className="v7-fact"><Ico name="lc-utensils" size={13} color="var(--adm-accent-strong)" /><b>식사</b>{day.meals || '미입력'}</span>
+                                    <span className="v7-fact"><Ico name="lc-car" size={13} color="var(--adm-accent-strong)" /><b>이동</b>{day.travel || '미입력'}</span>
+                                    <AdminTextButton size="sm" className="v7-push" disabled={busy} onClick={action('edit-itinerary', day.id)} leading={<Ico name="lc-pencil" size={12} />}>{`${day.day}일차 편집`}</AdminTextButton>
+                                </div>
+                            </div>}
+                        </div>;
+                    })}
+                    {!m.days.length && <div className="v7-card-note is-row"><span className="v7-grow">아직 작성된 일정이 없어요. 기존 견적·상품 일정을 불러와 편집할 수 있습니다.</span><AdminButton variant="secondary" size="sm" disabled={busy} onClick={action('edit-itinerary')}>일정 작성하기</AdminButton></div>}
+                </div>
+
+            </div>
+
+            <div className="v7-side">
+                {/* 고객 알림 자동발송·이력/다시 보내기는 오른쪽 칸(2026-11-24, 고객 정보·운영 메모와 자리 바꿈) */}
+                {notificationActions}
 
                 <div id="sec-log" className="v7-card v7-card-pad v7-log">
                     <div className="v7-log-head"><b className="v7-card-title">알림 · 변경 이력</b><span className="v7-log-count">{logs.length}건</span></div>
