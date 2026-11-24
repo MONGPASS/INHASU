@@ -35,6 +35,8 @@ export interface ReservationDetailV7Links {
 }
 
 /** 이 화면에서 열지 않는 배정 업무. 배정은 ‘숙소 배정’·‘가이드·숙소·차량’ 메뉴에서만 한다(2026-11-24). */
+/** 일정 카드가 처음에 보여 주는 일차 수(고객 정보 카드와 같은 높이). */
+const PLAN_PREVIEW_DAYS = 3;
 const ASSIGN_ACTIONS = new Set(['assignments', 'assign', 'guide', 'vehicle', 'stay']);
 /** 바로가기 6개(디자인 v7): 같은 화면 안의 해당 카드로 이동한다. 업무 화면은 각 카드의 버튼이 연다. */
 const NAV: Array<{ label: string; icon: DashboardIconName; sid: string }> = [
@@ -86,13 +88,15 @@ export interface DetailState {
     maskOn: boolean; sections: Record<string, boolean>; travelerOpen: number; dayOpen: Record<string, boolean>;
     /** 구역 탭에서 마지막으로 고른 구역(밑줄 표시용). */
     navSid: string;
+    /** 일정 카드에서 4일차 이후도 펼쳤는지(기본: 3일까지만). */
+    daysAll: boolean;
     /** 고객 정보 카드의 예약 상세·항공편·여행자·요청 묶음을 펼쳤는지(기본 접힘). */
     infoMore: boolean;
     /** 배정 카드의 박별 숙소 목록을 펼쳤는지(기본 접힘). */
     staysOpen: boolean;
 }
 export const initialDetailState = (): DetailState => ({ allItems: [], resources: null, menu: null, toast: '', saving: false, maskOn: true,
-    sections: {}, travelerOpen: 0, dayOpen: {}, navSid: 'sec-plan', staysOpen: false, infoMore: false });
+    sections: {}, travelerOpen: 0, dayOpen: {}, navSid: 'sec-plan', staysOpen: false, infoMore: false, daysAll: false });
 export type DetailSet = (patch: Partial<DetailState> | ((s: DetailState) => Partial<DetailState>)) => void;
 export interface DetailEnv { mounted: { current: boolean }; toastTimer: { current: number | undefined }; root: { current: HTMLElement | null } }
 
@@ -248,6 +252,10 @@ export function reservationDetailView({ model: m, onAction, busy = false, noteCo
     /** 카드 제목 줄 끝의 연필 버튼(2026-11-24, 고객 정보 카드의 수정 버튼과 같은 모양): 그 업무의 편집 화면을 연다(배정은 숙소 배정 화면으로 이동). */
     const cardEdit = (label: string, go: { onClick?: () => void; to?: string }) => <AdminIconButton label={`${label} 편집`} variant="outlined" className="rdc-edit"
         disabled={busy} onClick={go.onClick} to={go.to}><Ico name="lc-pencil" size={16} /></AdminIconButton>;
+    /** 카드 아래 가운데 펼침 아이콘(2026-11-24): 눌러서 숨긴 내용을 펼치고 접는다. */
+    const foldButton = (open: boolean, label: string, controls: string | undefined, toggle: () => void) => <div className="v7-fold">
+        <AdminIconButton size="sm" label={label} aria-expanded={open} aria-controls={controls} className={open ? 'v7-fold-btn is-open' : 'v7-fold-btn'} onClick={toggle}><Ico name="lc-chevron-down" size={18} /></AdminIconButton>
+    </div>;
     const lodgeHref = source && source.type !== 'quote' ? `/admin/accommodation-ops?open=${encodeURIComponent(source.id)}&source=${source.type === 'quote_booking' ? 'quote_booking' : 'product'}` : '/admin/accommodation-ops';
     const dot = (done: boolean) => <span className={cls('rdc-dot', done ? 'is-done' : 'is-open')} aria-hidden="true" />;
     const selClass = (warn: boolean, full = false) => cls('rdc-sel', full && 'is-full', warn && 'is-warn');
@@ -413,7 +421,7 @@ export function reservationDetailView({ model: m, onAction, busy = false, noteCo
                 onClick={() => { set({ navSid: n.sid }); goSec(n.sid); }}>{n.label}</button>)}
         </nav>
         {/* 고객 정보 · 일정: 바로가기 바로 아래 한 줄(2026-11-24 — 고객 알림 자동발송·운영 메모와 자리 바꿈) */}
-        <div className="v7-top">
+        <div className={!st.infoMore && !st.daysAll ? 'v7-top is-even' : 'v7-top'}>
                 <div id="sec-info" className="v7-card v7-info">
                     <div className="v7-info-head">
                         <b className="v7-info-title">고객 정보</b>
@@ -425,9 +433,7 @@ export function reservationDetailView({ model: m, onAction, busy = false, noteCo
                         <span className="v7-info-label">{f.label}</span>
                         <span className={f.value ? 'v7-info-value' : 'v7-info-value is-empty'}>{f.value ? maskFact(f.label, f.value, maskOn) : '미입력'}</span>
                     </div>)}
-                    {/* 예약 상세·항공편·여행자·요청은 펼침 버튼 뒤로(2026-11-24): 카드가 길어지지 않고 옆 일정 카드와 높이가 맞는다 */}
-                    <AdminTextButton size="sm" tone="assistive" className="v7-info-more" aria-expanded={st.infoMore} aria-controls="v7-info-more"
-                        onClick={() => set(s => ({ infoMore: !s.infoMore }))} trailing={<Ico name="lc-chevron-down" size={14} />}>{st.infoMore ? '상세 정보 접기' : '예약·항공편·여행자 정보 보기'}</AdminTextButton>
+                    {/* 예약 상세·항공편·여행자·요청은 카드 아래 가운데 펼침 아이콘 뒤로(2026-11-24): 옆 일정 카드와 높이가 맞는다 */}
                     {st.infoMore && <div id="v7-info-more" className="v7-info-more-body">
                     <div className="v7-rule is-spaced" />
                     {m.facts.length > 3 && disclosure({ icon: 'lc-file-text', title: '예약 상세 정보', sub: `접수 · 주문 경로 등 ${m.facts.length - 3}개 항목`, open: sections.bk, onToggle: () => setSections(s => s.bk ? {} as Record<string, boolean> : { bk: true }), children:
@@ -467,6 +473,7 @@ export function reservationDetailView({ model: m, onAction, busy = false, noteCo
                         <div className={m.preferences?.length ? 'v7-soft-box v7-requests' : 'v7-requests is-empty'}>{m.preferences?.length ? m.preferences.join('\n') : '등록된 요청 사항이 없어요.'}</div>
                     })}
                     </div>}
+                    {foldButton(st.infoMore, st.infoMore ? '예약·항공편·여행자 정보 접기' : '예약·항공편·여행자 정보 보기', 'v7-info-more', () => set(s => ({ infoMore: !s.infoMore })))}
                 </div>
 
                 <div id="sec-plan" className="v7-card">
@@ -475,7 +482,7 @@ export function reservationDetailView({ model: m, onAction, busy = false, noteCo
                         <span className="v7-card-meta">{period?.sch || (m.days.length ? `${m.days.length}일` : '')}</span>
                         <AdminTextButton tone="assistive" size="sm" className="v7-push" disabled={busy} onClick={action('edit-itinerary')} trailing={<Ico name="lc-chevron-right" size={14} />}>일정표 편집</AdminTextButton>
                     </div>
-                    {m.days.map((day, i) => {
+                    {(st.daysAll ? m.days : m.days.slice(0, PLAN_PREVIEW_DAYS)).map((day, i) => {
                         const open = !!dayOpen[day.id], last = i === m.days.length - 1;
                         const night = row?.stays.find(s => s.day === day.day);
                         const stayText = day.stayRequired === false || (last && !night) ? '숙박 없음' : night?.hotel ? `${night.hotel} · ${bookingStatusMeta(night.bookingStatus).label}` : day.stayAssigned && day.stay ? day.stay : '숙소 미정';
@@ -508,6 +515,8 @@ export function reservationDetailView({ model: m, onAction, busy = false, noteCo
                         </div>;
                     })}
                     {!m.days.length && <div className="v7-card-note is-row"><span className="v7-grow">아직 작성된 일정이 없어요. 기존 견적·상품 일정을 불러와 편집할 수 있습니다.</span><AdminButton variant="secondary" size="sm" disabled={busy} onClick={action('edit-itinerary')}>일정 작성하기</AdminButton></div>}
+                    {/* 일정은 3일까지만 보이고 나머지는 카드 아래 가운데 펼침 아이콘으로(2026-11-24): 옆 고객 정보 카드와 높이를 맞춘다 */}
+                    {m.days.length > PLAN_PREVIEW_DAYS && foldButton(st.daysAll, st.daysAll ? '일정 접기' : `일정 ${m.days.length}일 모두 보기`, undefined, () => set(s => ({ daysAll: !s.daysAll })))}
                 </div>
 
         </div>
