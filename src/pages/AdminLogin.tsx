@@ -1,21 +1,16 @@
 import React, { useEffect, useState } from 'react';
 import { api } from '../lib/api';
 import { BRAND } from '../constants/company';
-import { Icon } from '../components/admin/console/Icon';
+import { AdminButton, AdminField, AdminMessage, AdminTextButton, AdminTextInput, IconFlight, IconPerson } from '../components/admin/ui';
 import '../styles/adminShell';
+import './AdminLogin.css';
 
+/**
+ * 관리자 로그인(`/admin/login`) — 이메일·비밀번호(Lucia 세션). 관리자 계정이 하나도 없으면 ‘처음 설정’(기존 견적 관리자 비밀번호로 확인 후 계정 만들기).
+ * 왼쪽 소개 칸은 공통 틀 CSS의 login-* 배치를 쓰고, 폼은 우리 관리자 부품(당근 Seed)으로 그린다.
+ */
 const ADMIN_BRAND = `${BRAND.name} 관리자`;
 const MIN_PASSWORD_LENGTH = 10;
-
-const noticeStyle = (tone: 'red' | 'green'): React.CSSProperties => ({
-    marginBottom: 18, padding: '12px 14px', borderRadius: 'var(--r-md)',
-    background: `var(--mrt-${tone}-soft)`, color: `var(--mrt-${tone})`,
-    fontSize: 13, fontWeight: 600, lineHeight: 1.5,
-});
-
-const textButtonStyle: React.CSSProperties = {
-    background: 'none', border: 'none', cursor: 'pointer', fontSize: 12, color: 'var(--text-tertiary)', fontWeight: 600,
-};
 
 export const AdminLogin: React.FC = () => {
     const [email, setEmail] = useState('');
@@ -54,7 +49,7 @@ export const AdminLogin: React.FC = () => {
             } else {
                 setError(response.error || '로그인에 실패했습니다.');
             }
-        } catch (err) {
+        } catch {
             setError('로그인 요청을 처리하지 못했습니다. 이메일과 비밀번호를 확인해 주세요.');
         } finally {
             setLoading(false);
@@ -120,14 +115,14 @@ export const AdminLogin: React.FC = () => {
         <div className="login-wrap">
             <div className="login-brand">
                 <div className="login-brand-in">
-                    <div className="row" style={{ gap: 12 }}>
-                        <span className="brand-mark" style={{ width: 46, height: 46 }}><Icon name="flight_takeoff" /></span>
+                    <div className="al-brand">
+                        <span className="al-brand-mark" aria-hidden="true"><IconFlight /></span>
                         <div>
-                            <div style={{ fontSize: 20, fontWeight: 700, letterSpacing: '-0.03em' }}>{ADMIN_BRAND}</div>
-                            <div style={{ fontSize: 12, fontWeight: 600, opacity: 0.7 }}>예약 · 맞춤 견적 · 상품 · 콘텐츠</div>
+                            <div className="al-brand-name">{ADMIN_BRAND}</div>
+                            <div className="al-brand-sub">예약 · 맞춤 견적 · 상품 · 콘텐츠</div>
                         </div>
                     </div>
-                    <div style={{ flex: 1 }} />
+                    <div className="al-grow" />
                     <h1 className="login-h">예약부터 가이드 배정까지,<br />몽골 여행 운영을 한 곳에서.</h1>
                     <p className="login-p">여행 상품 예약과 맞춤 견적 문의·견적서·예약 배정을 하나의 관리자에서 한 번의 로그인으로 관리합니다.</p>
                     <div className="login-stats">
@@ -140,91 +135,73 @@ export const AdminLogin: React.FC = () => {
 
             <div className="login-form-side">
                 {showSetup ? (
-                    <form className="login-card" onSubmit={handleSetup}>
-                        <div className="eyebrow"><span className="dot" />처음 설정</div>
-                        <h2 style={{ fontSize: 26, fontWeight: 700, letterSpacing: '-0.03em', color: 'var(--text-strong)', margin: '6px 0 6px' }}>관리자 계정을 만듭니다</h2>
-                        <p style={{ fontSize: 14, color: 'var(--text-tertiary)', margin: '0 0 22px', lineHeight: 1.6 }}>
+                    <form className="login-card al-card" onSubmit={handleSetup}>
+                        <p className="al-kicker">처음 설정</p>
+                        <h2 className="al-title">관리자 계정을 만듭니다</h2>
+                        <p className="al-lead">
                             {ADMIN_BRAND}에 아직 계정이 없습니다. 기존 견적 관리자 비밀번호로 확인한 뒤,
                             앞으로 로그인에 쓸 이메일과 비밀번호를 정해 주세요.
                         </p>
 
-                        {error && <div style={noticeStyle('red')} role="alert">{error}</div>}
+                        {error && <AdminMessage tone="negative" role="alert">{error}</AdminMessage>}
 
-                        <div className="field">
-                            <label htmlFor="setup-legacy">기존 견적 관리자 비밀번호</label>
-                            <input id="setup-legacy" className="inp" type="password" value={legacyPassword}
+                        <AdminField id="setup-legacy" label="기존 견적 관리자 비밀번호" required>
+                            <AdminTextInput id="setup-legacy" large type="password" value={legacyPassword}
                                 onChange={(e) => setLegacyPassword(e.target.value)} placeholder="견적 관리 화면에 쓰던 비밀번호"
                                 autoComplete="off" required />
-                        </div>
-                        <div className="field">
-                            <label htmlFor="setup-email">새 관리자 이메일</label>
-                            <input id="setup-email" className="inp" type="text" inputMode="email" value={newEmail}
+                        </AdminField>
+                        <AdminField id="setup-email" label="새 관리자 이메일" required>
+                            <AdminTextInput id="setup-email" large type="text" inputMode="email" value={newEmail}
                                 onChange={(e) => setNewEmail(e.target.value)} placeholder={`admin@${BRAND.domain}`}
                                 autoComplete="username" autoCapitalize="none" spellCheck={false} required />
-                        </div>
-                        <div className="field">
-                            <label htmlFor="setup-password">새 비밀번호</label>
-                            <input id="setup-password" className="inp" type="password" value={newPassword}
+                        </AdminField>
+                        <AdminField id="setup-password" label="새 비밀번호" required hint={`${MIN_PASSWORD_LENGTH}자 이상`}>
+                            <AdminTextInput id="setup-password" large type="password" value={newPassword}
                                 onChange={(e) => setNewPassword(e.target.value)} placeholder={`${MIN_PASSWORD_LENGTH}자 이상`}
                                 autoComplete="new-password" minLength={MIN_PASSWORD_LENGTH} required />
-                        </div>
-                        <div className="field">
-                            <label htmlFor="setup-password-confirm">새 비밀번호 확인</label>
-                            <input id="setup-password-confirm" className="inp" type="password" value={newPasswordConfirm}
+                        </AdminField>
+                        <AdminField id="setup-password-confirm" label="새 비밀번호 확인" required>
+                            <AdminTextInput id="setup-password-confirm" large type="password" value={newPasswordConfirm}
                                 onChange={(e) => setNewPasswordConfirm(e.target.value)} placeholder="한 번 더 입력"
                                 autoComplete="new-password" minLength={MIN_PASSWORD_LENGTH} required />
+                        </AdminField>
+
+                        <AdminButton variant="primary" size="lg" fullWidth type="submit" loading={loading} leading={<IconPerson />}>
+                            {loading ? '계정 만드는 중' : '관리자 계정 만들기'}
+                        </AdminButton>
+
+                        <div className="al-links">
+                            <AdminTextButton tone="assistive" size="sm" onClick={() => switchForm(false)}>이미 관리자 계정이 있으면 로그인</AdminTextButton>
                         </div>
-
-                        <button className="btn btn-ink btn-lg" style={{ width: '100%' }} type="submit" disabled={loading}>
-                            {loading
-                                ? <><Icon name="progress_activity" className="spin" />계정 만드는 중</>
-                                : <><Icon name="person_add" />관리자 계정 만들기</>}
-                        </button>
-
-                        <p style={{ textAlign: 'center', marginTop: 18 }}>
-                            <button type="button" onClick={() => switchForm(false)} style={textButtonStyle}>
-                                이미 관리자 계정이 있으면 로그인
-                            </button>
-                        </p>
                     </form>
                 ) : (
-                    <form className="login-card" onSubmit={handleLogin}>
-                        <div className="eyebrow"><span className="dot" />관리자 로그인</div>
-                        <h2 style={{ fontSize: 26, fontWeight: 700, letterSpacing: '-0.03em', color: 'var(--text-strong)', margin: '6px 0 6px' }}>운영을 시작합니다</h2>
-                        <p style={{ fontSize: 14, color: 'var(--text-tertiary)', margin: '0 0 26px' }}>{ADMIN_BRAND} 계정으로 로그인해 주세요.</p>
+                    <form className="login-card al-card" onSubmit={handleLogin}>
+                        <p className="al-kicker">관리자 로그인</p>
+                        <h2 className="al-title">운영을 시작합니다</h2>
+                        <p className="al-lead">{ADMIN_BRAND} 계정으로 로그인해 주세요.</p>
 
-                        {notice && <div style={noticeStyle('green')} role="status">{notice}</div>}
-                        {error && <div style={noticeStyle('red')} role="alert">{error}</div>}
+                        {notice && <AdminMessage tone="positive" role="status">{notice}</AdminMessage>}
+                        {error && <AdminMessage tone="negative" role="alert">{error}</AdminMessage>}
 
-                        <div className="field">
-                            <label htmlFor="login-email">이메일</label>
-                            <input id="login-email" className="inp" type="text" inputMode="email" value={email}
+                        <AdminField id="login-email" label="이메일">
+                            <AdminTextInput id="login-email" large type="text" inputMode="email" value={email}
                                 onChange={(e) => setEmail(e.target.value)} placeholder={`admin@${BRAND.domain}`}
                                 autoComplete="email" required />
-                        </div>
-                        <div className="field">
-                            <label htmlFor="login-password">비밀번호</label>
-                            <input id="login-password" className="inp" type="password" value={password}
+                        </AdminField>
+                        <AdminField id="login-password" label="비밀번호">
+                            <AdminTextInput id="login-password" large type="password" value={password}
                                 onChange={(e) => setPassword(e.target.value)} placeholder="비밀번호 입력"
                                 autoComplete="current-password" required />
+                        </AdminField>
+
+                        <AdminButton variant="primary" size="lg" fullWidth type="submit" loading={loading}>
+                            {loading ? '로그인 중' : '로그인'}
+                        </AdminButton>
+
+                        <div className="al-links">
+                            {needsSetup && <AdminTextButton tone="assistive" size="sm" onClick={() => switchForm(true)}>처음 설정으로 돌아가기</AdminTextButton>}
+                            <AdminTextButton tone="assistive" size="sm" onClick={() => { window.location.href = '/'; }}>사용자 사이트로 돌아가기</AdminTextButton>
                         </div>
-
-                        <button className="btn btn-ink btn-lg" style={{ width: '100%' }} type="submit" disabled={loading}>
-                            {loading
-                                ? <><Icon name="progress_activity" className="spin" />로그인 중</>
-                                : <><Icon name="login" />로그인</>}
-                        </button>
-
-                        <p style={{ textAlign: 'center', marginTop: 18 }}>
-                            {needsSetup && (
-                                <button type="button" onClick={() => switchForm(true)} style={{ ...textButtonStyle, display: 'block', margin: '0 auto 8px' }}>
-                                    처음 설정으로 돌아가기
-                                </button>
-                            )}
-                            <button type="button" onClick={() => { window.location.href = '/'; }} style={textButtonStyle}>
-                                사용자 사이트로 돌아가기
-                            </button>
-                        </p>
                     </form>
                 )}
             </div>

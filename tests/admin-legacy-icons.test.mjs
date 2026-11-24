@@ -34,7 +34,6 @@ const LEGACY_IMPORTERS = new Set([
     'src/pages/AdminCategoryManage.tsx',
     'src/pages/AdminDashboard.tsx',
     'src/pages/AdminGuideManage.tsx',
-    'src/pages/AdminLogin.tsx',
     'src/pages/AdminMagazineManage.tsx',
     'src/pages/AdminProductManage.tsx',
     'src/pages/AdminPromotionManage.tsx',
