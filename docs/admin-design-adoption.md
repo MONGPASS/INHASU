@@ -6,7 +6,7 @@
 - **직접 지정**: 인라인 `style={{}}` 수, 숫자로 적은 크기(px), 직접 적은 색(hex), `!important`, CSS에 숫자로 적은 크기(글자·모서리·높이·여백).
 - 이 수치는 `scripts/admin-design-baseline.json`의 상한보다 늘어나면 `tests/admin-design-budget.test.mjs`가 실패한다(PR마다 CI에서 검사). 줄였으면 `--write-baseline`으로 상한을 낮춘다.
 
-전체: 공통 부품 1856개 / 생 HTML 부품 77개 → **전환율 96%** · 인라인 style 1010 · 숫자 크기 2115 · 직접 색 264 · !important 260
+전체: 공통 부품 1856개 / 생 HTML 부품 66개 → **전환율 97%** · 인라인 style 998 · 숫자 크기 2103 · 직접 색 264 · !important 260
 
 | 화면 | 파일 | 부품 전환율 | 공통 부품 | 생 HTML 부품 | 인라인 style | 숫자 크기(TSX/CSS) | 직접 색 | !important | 기본 확인창 |
 |---|---:|---:|---:|---:|---:|---:|---:|---:|---:|
@@ -16,7 +16,7 @@
 | 고객 예약 상세(상품·이전 견적) | 24 | 100% | 114 | 0 | 4 | 0 / 79 | 4 | 2 | 1 |
 | 고객 통합 작업(견적)·견적 도구 틀 | 6 | 100% | 93 | 0 | 0 | 0 / 1 | 0 | 0 | 0 |
 | 투어 캘린더 | 2 | 100% | 48 | 0 | 0 | 0 / 0 | 0 | 0 | 0 |
-| 맞춤견적 관리(이전) | 2 | 0% | 0 | 52 | 96 | 100 / 0 | 0 | 0 | 0 |
+| 이전 견적 고객 상세 | 1 | 0% | 0 | 41 | 84 | 88 / 0 | 0 | 0 | 0 |
 | 숙소 배정 · 배정 보드(새 디자인) | 4 | 100% | 71 | 0 | 0 | 0 / 0 | 0 | 0 | 0 |
 | 숙소 배정·현지 운영 | 5 | 100% | 95 | 0 | 0 | 0 / 0 | 0 | 0 | 0 |
 | 가이드 배정 현황 | 5 | 100% | 39 | 0 | 10 | 0 / 0 | 0 | 0 | 0 |
@@ -55,9 +55,8 @@
 
 | 파일 | 화면 | 생 부품 | 인라인 style | 숫자 크기 | 직접 색 |
 |---|---|---:|---:|---:|---:|
-| `src/components/admin/QuoteModals.tsx` | 맞춤견적 관리(이전) | 41 | 84 | 88 | 0 |
+| `src/components/admin/QuoteModals.tsx` | 이전 견적 고객 상세 | 41 | 84 | 88 | 0 |
 | `src/pages/AdminTemplateManage.tsx` | 문서 템플릿 | 20 | 40 | 0 | 49 |
-| `src/pages/AdminQuoteManage.tsx` | 맞춤견적 관리(이전) | 11 | 12 | 12 | 0 |
 | `src/pages/AdminAssignment.tsx` | (쓰이지 않는 파일) | 5 | 8 | 8 | 0 |
 | `src/components/admin/guides/GuideSchedule.tsx` | 가이드 배정 현황 | 0 | 8 | 0 | 0 |
 | `src/pages/AdminProductManage.tsx` | 상품 목록·추가·수정 | 0 | 1 | 5 | 0 |
@@ -75,3 +74,4 @@
 | `src/components/admin/v7/v7Ui.tsx` | 고객 예약 상세(상품·이전 견적) | 0 | 1 | 0 | 0 |
 | `src/components/admin/AdminDeliveryHistory.tsx` | 고객 예약 상세(상품·이전 견적) | 0 | 0 | 0 | 0 |
 | `src/components/admin/AdminLayout.tsx` | 공통 틀·부품 | 0 | 0 | 0 | 0 |
+| `src/components/admin/AdminSidebar.tsx` | 공통 틀·부품 | 0 | 0 | 0 | 0 |

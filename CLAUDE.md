@@ -31,7 +31,7 @@
 
 - 업로드 주소가 둘: 견적은 `/api/upload`(JS), 사이트 이미지는 `/api/site-upload`(Hono, `functions/api/site-upload.ts`).
 - 견적 요청 화면은 React `/custom-estimate` 하나다(`src/components/estimate-desktop/quoteForm.ts`가 선택지·검증·payload의 정본). 접수는 `POST /api/requests`로 들어가 견적 파이프라인을 탄다. 옛 `public/견적요청.html`은 리다이렉트 문서.
-- 옛 MILKYWAY 자체 견적(`/api/quotes`, `/estimate/:id`, `/admin/quotes`, 마이페이지 견적 내역)은 코드만 남아 있고 새 요청은 들어오지 않는다.
+- 옛 MILKYWAY 자체 견적(`/api/quotes`, `/estimate/:id`, 마이페이지 견적 내역)은 코드만 남아 있고 새 요청은 들어오지 않는다. 관리자 목록 `/admin/quotes`(맞춤견적 관리)는 운영 자료 0건이라 2026-11-24 지웠고 옛 주소는 견적 문의 `/admin/quote-desk/inbox`로 넘긴다(`?open=<id>`는 `/admin/customer-workspace/legacy-quote/:id`). 대시보드 견적 바로가기도 견적 문의로 간다.
 
 ## 3. ⚠️ 반드시 지킬 것
 

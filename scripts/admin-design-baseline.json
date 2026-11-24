@@ -701,15 +701,6 @@
   "hex": 0,
   "nativeDialog": 0
  },
- "src/pages/AdminQuoteManage.tsx": {
-  "rawButton": 9,
-  "rawField": 1,
-  "rawTable": 1,
-  "inlineStyle": 12,
-  "px": 12,
-  "hex": 0,
-  "nativeDialog": 0
- },
  "src/pages/AdminReservationManage.tsx": {
   "rawButton": 0,
   "rawField": 0,

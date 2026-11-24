@@ -19,6 +19,7 @@ import { NotificationProvider } from './contexts/NotificationContext'
 import { FloatingConsultation } from './components/common/FloatingConsultation'
 import { AdminWorkspaceProvider } from './components/admin/AdminWorkspaceContext'
 import { adminPageLoaders } from './lib/adminPagePreload'
+import { legacyQuoteCustomerHref } from './utils/customerWorkspaceRoutes'
 
 // Lazy Load Pages - Handling Named Exports
 const Reservation = lazy(() => import('./pages/Reservation').then(module => ({ default: module.Reservation })))
@@ -63,13 +64,16 @@ const Wishlist = lazy(() => import('./pages/Wishlist').then(module => ({ default
 // Admin Pages
 const AdminLogin = lazy(adminPageLoaders.login)
 const AdminDashboard = lazy(adminPageLoaders.dashboard)
-const AdminQuoteManage = lazy(adminPageLoaders.quotes)
 const AdminQuoteDesk = lazy(adminPageLoaders.quoteDesk)
 const AdminCourseManage = lazy(adminPageLoaders.courses)
 const AdminQuoteInbox = lazy(adminPageLoaders.inbox)
 const AdminQuoteBookings = lazy(adminPageLoaders.bookings)
 const AdminQuoteBuilder = lazy(adminPageLoaders.builder)
 const QuoteDeskIndexRedirect = lazy(adminPageLoaders.inboxIndex)
+function LegacyQuotesRedirect() {
+    const id = new URLSearchParams(useLocation().search).get('open');
+    return <Navigate to={id ? legacyQuoteCustomerHref(id) : '/admin/quote-desk/inbox'} replace />;
+}
 const AdminResourceManage = lazy(adminPageLoaders.resources)
 const AdminItineraryManage = lazy(adminPageLoaders.itinerary)
 const AdminSpotManage = lazy(adminPageLoaders.spots)
@@ -179,7 +183,8 @@ function App() {
             {/* Admin Routes */}
             <Route path="/admin/login" element={<AdminLogin />} />
             <Route path="/admin" element={<AdminGuard><AdminDashboard /></AdminGuard>} />
-            <Route path="/admin/quotes" element={<AdminGuard><AdminQuoteManage /></AdminGuard>} />
+            {/* 옛 맞춤견적 관리(이전 MILKYWAY 견적 목록)는 지웠다(2026-11-24, 운영 자료 0건). 옛 주소는 견적 문의로, ?open=<id>는 이전 견적 고객 화면으로 */}
+            <Route path="/admin/quotes" element={<AdminGuard><LegacyQuotesRedirect /></AdminGuard>} />
             {/* 맞춤 견적 데스크: 견적 관리 도구(public/*.html)를 관리자 안에 끼워 넣는다. tool = inbox | bookings | builder | courses | itinerary | spots | resources */}
             {/* 견적 도구 중 React로 옮긴 화면. 주소는 그대로이고 옛 문서(public/일정관리.html·명소관리.html 등)는 비교용으로만 남는다. 견적 문의의 ?id=·?qe=, 견적 예약 목록의 ?id=는 각 화면이 AdminQuoteDesk에 맡긴다. */}
             <Route path="/admin/quote-desk" element={<AdminGuard><QuoteDeskIndexRedirect /></AdminGuard>} />
