@@ -6,7 +6,7 @@ import {
     IconDocumentText, IconFlight, IconHome, IconPencil, IconRefresh,
 } from '../components/admin/ui';
 import { useAdminWorkspace } from '../components/admin/AdminWorkspaceContext';
-import { TrafficSources, trafficReady, useAdminTraffic, type AdminTrafficLoad } from '../components/admin/dashboard/TrafficSources';
+import { TrafficSources, trafficPeriodLabel, trafficReady, useAdminTraffic, type AdminTraffic } from '../components/admin/dashboard/TrafficSources';
 import { trafficKpis } from '../utils/adminTraffic';
 import type { AdminWorkBooking, AdminWorkspaceData } from '../types/adminWorkspace';
 import {
@@ -87,18 +87,19 @@ function Kpi({ card }: { card: KpiCard }) {
         : <Link to={card.to} className={styles.kpi}>{body}</Link>;
 }
 
-/** 문의 전환율 카드: GA4 최근 30일. 연결 전·조회 실패는 0이 아니라 그 사실을 적는다. */
-function conversionCard(traffic: AdminTrafficLoad): KpiCard {
-    const data = trafficReady(traffic);
+/** 문의 전환율 카드: 유입 경로 카드에서 고른 GA4 기간. 연결 전·조회 실패는 0이 아니라 그 사실을 적는다. */
+function conversionCard(traffic: AdminTraffic): KpiCard {
+    const data = trafficReady(traffic.load);
+    const range = trafficPeriodLabel(traffic.period);
     const kpis = data ? trafficKpis(data) : [];
     const cvr = kpis.find(kpi => kpi.label === '문의 전환율');
     const leads = kpis.find(kpi => kpi.label === '견적 문의');
     const value = cvr?.value == null ? '—' : `${cvr.format(cvr.value)}%`;
     return {
-        label: '문의 전환율', value, aria: `문의 전환율 최근 30일: ${value}`, icon: <IconChat />, tone: 'purple', to: '#dashboard-traffic',
+        label: '문의 전환율', value, aria: `문의 전환율 ${range}: ${value}`, icon: <IconChat />, tone: 'purple', to: '#dashboard-traffic',
         pill: cvr?.delta || undefined,
-        sub: data ? `최근 30일 · 문의 ${leads?.value == null ? '—' : dashboardNumber(leads.value)}건`
-            : traffic.status === 'loading' ? '유입 통계를 불러오는 중' : traffic.status === 'error' ? '유입 통계 조회 실패' : 'GA4 연결 필요',
+        sub: data ? `${range} · 문의 ${leads?.value == null ? '—' : dashboardNumber(leads.value)}건`
+            : traffic.load.status === 'loading' ? '유입 통계를 불러오는 중' : traffic.load.status === 'error' ? '유입 통계 조회 실패' : 'GA4 연결 필요',
     };
 }
 
@@ -115,7 +116,8 @@ function bookingLook(b: AdminWorkBooking): { icon: React.ReactNode; tone: string
 }
 
 /** Shared workspace data is presented as received; server counts are never recalculated here. */
-export function AdminDashboardBody({ data, loading, error, refresh, traffic = { load: { status: 'loading' }, retry: () => {} } }: DashboardState & { traffic?: { load: AdminTrafficLoad; retry: () => void } }) {
+const NO_TRAFFIC: AdminTraffic = { load: { status: 'loading' }, retry: () => {}, period: '30d', setPeriod: () => {} };
+export function AdminDashboardBody({ data, loading, error, refresh, traffic = NO_TRAFFIC }: DashboardState & { traffic?: AdminTraffic }) {
     const availability = dashboardAvailability(data);
     const initialLoading = loading && !data;
     const metrics = data?.metrics;
@@ -148,7 +150,7 @@ export function AdminDashboardBody({ data, loading, error, refresh, traffic = { 
             icon: <IconClock />, tone: 'blue', to: '/admin/reservations',
             pill: waitingNext && waitingDays != null ? `${waitingDays === 0 ? 'D-DAY' : `D-${waitingDays}`} ${waitingNext.customerName || '이름 미정'}` : undefined,
             sub: waitingNext ? `${dashboardMonthRange(waitingNext.startDate, waitingNext.startDate, data?.today || '')} 출발` : data ? '다가오는 대기 예약 없음' : '예약을 확인하고 있습니다' },
-        conversionCard(traffic.load),
+        conversionCard(traffic),
     ];
 
     const readAt = data ? readTime(data.generatedAt) : '';
@@ -231,7 +233,7 @@ export function AdminDashboardBody({ data, loading, error, refresh, traffic = { 
                         </ul>
                         {!departures.length && <SectionState loading={initialLoading} complete={availability.bookings} error={error} empty="다가오는 출발이 없습니다." />}
                     </section>
-                    <TrafficSources load={traffic.load} retry={traffic.retry} />
+                    <TrafficSources {...traffic} />
                 </div>
             </div>
 

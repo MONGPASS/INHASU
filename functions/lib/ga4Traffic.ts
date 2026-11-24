@@ -23,10 +23,13 @@ export function classifyTrafficSource(source: string, medium: string): AdminTraf
 
 const DATE_RANGES: Record<AdminTrafficPeriod, [{ startDate: string; endDate: string }, { startDate: string; endDate: string }]> = {
     today: [{ startDate: 'today', endDate: 'today' }, { startDate: 'yesterday', endDate: 'yesterday' }],
+    yesterday: [{ startDate: 'yesterday', endDate: 'yesterday' }, { startDate: '2daysAgo', endDate: '2daysAgo' }],
     '7d': [{ startDate: '6daysAgo', endDate: 'today' }, { startDate: '13daysAgo', endDate: '7daysAgo' }],
     '30d': [{ startDate: '29daysAgo', endDate: 'today' }, { startDate: '59daysAgo', endDate: '30daysAgo' }],
+    '90d': [{ startDate: '89daysAgo', endDate: 'today' }, { startDate: '179daysAgo', endDate: '90daysAgo' }],
 };
-export const isTrafficPeriod = (value: string): value is AdminTrafficPeriod => value in DATE_RANGES;
+// own key only: `in` would also accept prototype names such as "constructor"
+export const isTrafficPeriod = (value: string): value is AdminTrafficPeriod => Object.prototype.hasOwnProperty.call(DATE_RANGES, value);
 
 /** One batch: totals for both ranges, sessions by source, and quote leads by source. */
 export function trafficReportRequest(period: AdminTrafficPeriod) {

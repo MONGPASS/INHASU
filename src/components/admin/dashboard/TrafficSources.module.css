@@ -4,8 +4,13 @@
 .head { display: flex; align-items: center; gap: var(--adm-space-1-5); }
 .title { margin: 0; font-size: var(--adm-fs-lead); font-weight: var(--adm-fw-bold); color: var(--adm-ink); }
 .info { display: flex; color: var(--adm-text-3); font-size: var(--adm-fs-body); cursor: help; }
-.period { margin-left: auto; padding: var(--adm-space-1-5) var(--adm-space-2-5); border-radius: var(--adm-radius-mid); background: var(--adm-gray-100);
-  color: var(--adm-text); font-size: var(--adm-fs-caption); font-weight: var(--adm-fw-bold); }
+.period { margin-left: auto; }
+/* 메뉴 항목: 고른 기간만 앞에 체크, 나머지는 같은 자리를 비워 글자가 줄 맞게 */
+.option { display: inline-flex; align-items: center; gap: var(--adm-space-2); }
+.optionCheck { flex: none; visibility: hidden; color: var(--adm-accent-strong); }
+.optionOn { font-weight: var(--adm-fw-bold); color: var(--adm-accent-strong); }
+.optionOn .optionCheck { visibility: visible; }
+.srOnly { position: absolute; width: 1px; height: 1px; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
 
 .total { display: flex; align-items: baseline; flex-wrap: wrap; gap: var(--adm-space-2-5); }
 .totalValue { font-size: var(--adm-fs-stat); font-weight: var(--adm-fw-bold); line-height: var(--adm-lh-tight); color: var(--adm-ink); }
