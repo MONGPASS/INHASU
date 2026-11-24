@@ -14,7 +14,7 @@ import {
     IconCar, IconCheck, IconChevronDown, IconChevronLeft, IconChevronRight, IconChevronUp, IconCircleQuestion, IconClock, IconClose,
     IconCoins, IconCopy, IconDocument, IconDocumentText, IconDownload, IconExternal, IconEye, IconFilter, IconFlag, IconFlight, IconFolder,
     IconGrip, IconHeart, IconHome, IconHotel, IconImage, IconImages, IconInbox, IconInfo, IconLayers, IconListCategory, IconLocation,
-    IconLock, IconLogout, IconMail, IconMap, IconMegaphone, IconMenu, IconMinus, IconMoreHorizontal, IconMoreVertical, IconNote, IconPencil,
+    IconLock, IconLogout, IconMail, IconMap, IconMegaphone, IconMobile, IconMenu, IconMinus, IconMoreHorizontal, IconMoreVertical, IconNote, IconPencil,
     IconPerson, IconPersons, IconPlus, IconRefresh, IconRestaurant, IconSearch, IconSend, IconSettings, IconSparkle, IconStar, IconSwap,
     IconTag, IconTicket, IconTranslate, IconTrash, IconUpload, IconWalk, IconWarning, IconWrite,
 } from './AdminIcons';
@@ -82,7 +82,7 @@ export const SEED_FOR_MATERIAL: Record<string, SeedIconComponent> = {
     group: IconPersons, groups: IconPersons, group_add: IconPersons, people: IconPersons, diversity_3: IconPersons, logout: IconLogout,
     mail: IconMail, email: IconMail, chat: IconMail, chat_bubble: IconMail, chat_bubble_outline: IconMail, comment: IconMail, forum: IconMail,
     message: IconMail, sms: IconMail, send: IconSend, outgoing_mail: IconSend, forward_to_inbox: IconSend, mark_email_read: IconCheck,
-    mark_email_unread: IconMail, phone: IconCall, call: IconCall, smartphone: IconCall, campaign: IconMegaphone, notifications: IconBell,
+    mark_email_unread: IconMail, phone: IconCall, call: IconCall, smartphone: IconMobile, campaign: IconMegaphone, notifications: IconBell,
     rate_review: IconStar, reviews: IconStar, star: IconStar, grade: IconStar, stars: IconStar, favorite: IconHeart, favorite_border: IconHeart,
     // 일정·여행
     event: IconCalendar, event_note: IconCalendar, event_available: IconCalendar, event_busy: IconCalendar, event_upcoming: IconCalendar,

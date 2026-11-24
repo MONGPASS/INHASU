@@ -95,6 +95,9 @@
   --adm-fs-section: 20px;   /* 구역 제목 — Seed title2 */
   --adm-fs-title: 24px;     /* 화면 제목 — Seed title1 */
   --adm-fs-title-sm: 20px;  /* 좁은 화면의 화면 제목 */
+  /* 화면 폭과 관계없이 고정인 Seed 단계(위 섹션·제목 글자는 휴대폰에서 작아진다) */
+  --adm-fs-large: 16px;     /* 강조 본문 — Seed body-l */
+  --adm-fs-xl: 20px;        /* 큰 숫자·카드 강조 — Seed title2, 휴대폰에서도 20 */
   /* Seed는 보통·굵게 두 굵기만 쓴다. 옛 이름(medium·semibold)도 그 둘 중 하나로 잇는다. */
   --adm-fw-regular: 400; --adm-fw-medium: 400; --adm-fw-semibold: 700; --adm-fw-bold: 700; --adm-fw-black: 900; /* Pretendard Black — 강조 문구만 */
   --adm-lh: 1.5;            /* 읽는 글 — Seed 150% */
@@ -103,6 +106,8 @@
   /* ── 간격 (Seed 4px 단위) ── */
   --adm-space-1: 4px; --adm-space-2: 8px; --adm-space-3: 12px; --adm-space-4: 16px;
   --adm-space-5: 20px; --adm-space-6: 24px; --adm-space-8: 32px;
+  /* Seed 간격의 반 단계(2·6·10px) — 칩·배지·촘촘한 줄 */
+  --adm-space-0-5: var(--seed-space-2); --adm-space-1-5: var(--seed-space-6); --adm-space-2-5: var(--seed-space-10);
   --adm-gap-control: 8px;    /* 버튼·입력창 사이 */
   --adm-gap-section: 24px;   /* 구역 사이 */
   --adm-pad-card: 20px;      /* 카드 안 여백 */
@@ -114,6 +119,7 @@
   --adm-radius-xs: var(--seed-radius-xsmall);  /* 4px 배지·작은 버튼 */
   --adm-radius-sm: var(--seed-radius-small);   /* 6px 버튼·입력창 */
   --adm-radius-md: var(--seed-radius-large);   /* 10px 카드·알림 */
+  --adm-radius-mid: var(--seed-radius-medium); /* 8px 안내 상자·고르기 칸 */
   --adm-radius-lg: var(--seed-radius-xlarge);  /* 16px 팝업 */
   --adm-radius-pill: var(--seed-radius-full);  /* 칩·상태 */
 
@@ -122,6 +128,9 @@
   --adm-control-h-sm: var(--seed-control-height-xsmall);  /* 32px 목록 안 작은 버튼 */
   --adm-control-h-lg: var(--seed-control-height-large);   /* 48px 저장 등 주요 버튼, 터치 화면 */
   --adm-control-h-xl: var(--seed-control-height-xlarge);  /* 52px 화면 아래에 붙는 큰 버튼 */
+  /* 화면 폭과 관계없이 고정인 높이(위 이름들은 휴대폰에서 한 단계 커진다) */
+  --adm-h-32: var(--seed-control-height-xsmall); --adm-h-36: var(--seed-control-height-small); --adm-h-40: var(--seed-control-height-medium);
+  --adm-h-48: var(--seed-control-height-large); --adm-h-52: var(--seed-control-height-xlarge);
   --adm-control-pad-x: 16px;
 
   /* ── 그림자·겹침 순서·움직임 ──

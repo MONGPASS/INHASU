@@ -9,21 +9,21 @@
     flex-direction: column;
     width: min(1240px, 100%);
     min-height: 0;
-    height: calc(100dvh - 36px);
-    max-height: calc(100dvh - 36px);
+    height: calc(100dvh - var(--adm-h-36));
+    max-height: calc(100dvh - var(--adm-h-36));
     background: var(--adm-gray-50);
 }
 
 .reservation-workspace.product-workspace .drawer-head {
     flex: none;
-    padding: 16px 24px;
+    padding: var(--adm-space-4) var(--adm-space-6);
     background: var(--adm-surface);
 }
 
 .reservation-workspace.product-workspace .rw-customer-line {
-    margin: 6px 0 0;
+    margin: var(--adm-space-1-5) 0 0;
     color: var(--adm-text-3);
-    font-size: 12px;
+    font-size: var(--adm-fs-caption);
     line-height: 1.6;
 }
 
@@ -31,7 +31,7 @@
     flex: none;
     min-width: 0;
     overflow-x: auto;
-    padding: 0 24px;
+    padding: 0 var(--adm-space-6);
     scrollbar-width: thin;
 }
 
@@ -62,7 +62,7 @@
     min-height: 0;
     overflow-y: auto;
     overscroll-behavior-y: contain;
-    padding: 22px 24px 30px;
+    padding: 22px var(--adm-space-6) 30px;
 }
 
 .reservation-workspace.product-workspace .reservation-workspace-body > .stack {
@@ -74,7 +74,7 @@
 .reservation-workspace.product-workspace .drawer-foot {
     flex: none;
     flex-wrap: wrap;
-    padding: 12px 24px;
+    padding: var(--adm-space-3) var(--adm-space-6);
 }
 
 .reservation-workspace.product-workspace .card {
@@ -88,9 +88,9 @@
 .reservation-workspace.product-workspace .btn {
     min-height: 38px;
     height: auto;
-    padding: 9px 12px;
+    padding: 9px var(--adm-space-3);
     border-radius: var(--adm-radius-sm);
-    font-size: 12px;
+    font-size: var(--adm-fs-caption);
     line-height: 1.45;
     white-space: normal;
 }
@@ -128,9 +128,9 @@
 
 .reservation-workspace.product-workspace .rw-overview {
     display: grid;
-    gap: 16px;
+    gap: var(--adm-space-4);
     min-width: 0;
-    margin-bottom: 20px;
+    margin-bottom: var(--adm-space-5);
 }
 
 .reservation-workspace.product-workspace .rw-section-head {
@@ -138,15 +138,15 @@
     align-items: center;
     justify-content: space-between;
     flex-wrap: wrap;
-    gap: 12px;
-    padding: 20px 24px;
+    gap: var(--adm-space-3);
+    padding: var(--adm-space-5) var(--adm-space-6);
     border-bottom: 1px solid var(--adm-line);
 }
 
 .reservation-workspace.product-workspace .rw-kicker {
     display: block;
-    margin-bottom: 4px;
-    font-size: 11px;
+    margin-bottom: var(--adm-space-1);
+    font-size: var(--adm-fs-micro);
     line-height: 1.5;
     font-weight: var(--adm-fw-bold);
     color: var(--rw-mint-strong);
@@ -154,7 +154,7 @@
 
 .reservation-workspace.product-workspace .rw-section-head h2 {
     color: var(--rw-ink);
-    font-size: 18px;
+    font-size: var(--adm-fs-lead);
     line-height: 1.5;
     letter-spacing: -.03em;
 }
@@ -162,7 +162,7 @@
 .reservation-workspace.product-workspace .rw-section-head p {
     margin: 5px 0 0;
     color: var(--rw-muted);
-    font-size: 12px;
+    font-size: var(--adm-fs-caption);
     line-height: 1.65;
 }
 
@@ -170,15 +170,15 @@
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
     align-items: stretch;
-    gap: 16px;
-    padding: 22px 24px;
+    gap: var(--adm-space-4);
+    padding: 22px var(--adm-space-6);
 }
 
 .reservation-workspace.product-workspace .rw-document-card {
     display: flex;
     flex-direction: column;
     min-width: 0;
-    padding: 20px;
+    padding: var(--adm-space-5);
     border: 1px solid var(--adm-line);
     border-radius: var(--adm-radius-md);
     background: var(--adm-surface);
@@ -186,13 +186,13 @@
 
 .reservation-workspace.product-workspace .rw-document-card > .row {
     flex-wrap: wrap;
-    gap: 8px;
+    gap: var(--adm-space-2);
 }
 
 .reservation-workspace.product-workspace .rw-document-card h3 {
     margin: 0;
     color: var(--rw-ink);
-    font-size: 16px;
+    font-size: var(--adm-fs-large);
     font-weight: var(--adm-fw-bold);
     line-height: 1.5;
 }
@@ -200,7 +200,7 @@
 .reservation-workspace.product-workspace .rw-document-card > p {
     margin: 9px 0 18px;
     color: var(--rw-muted);
-    font-size: 12px;
+    font-size: var(--adm-fs-caption);
     line-height: 1.65;
 }
 
@@ -209,7 +209,7 @@
     flex-direction: column;
     gap: 7px;
     min-width: 0;
-    font-size: 12px;
+    font-size: var(--adm-fs-caption);
     line-height: 1.5;
     font-weight: 700;
     color: var(--adm-text-2);
@@ -218,11 +218,11 @@
 .reservation-workspace.product-workspace .rw-field .inp {
     width: 100%;
     min-width: 0;
-    height: 40px;
+    height: var(--adm-h-40);
     border-color: var(--adm-line);
     border-radius: var(--adm-radius-sm);
     background: var(--adm-surface);
-    font-size: 13px;
+    font-size: var(--adm-fs-small);
     font-weight: 500;
     color: var(--rw-ink);
 }
@@ -231,7 +231,7 @@
     height: auto;
     min-height: 90px;
     resize: vertical;
-    padding: 10px 12px;
+    padding: var(--adm-space-2-5) var(--adm-space-3);
     line-height: 1.6;
 }
 
@@ -243,7 +243,7 @@
 .reservation-workspace.product-workspace .rw-primary-actions {
     display: flex;
     flex-wrap: wrap;
-    gap: 8px;
+    gap: var(--adm-space-2);
     margin-top: 18px;
 }
 
@@ -251,18 +251,18 @@
     display: flex;
     flex-wrap: wrap;
     align-items: center;
-    gap: 6px 12px;
-    margin-top: 12px;
+    gap: var(--adm-space-1-5) var(--adm-space-3);
+    margin-top: var(--adm-space-3);
 }
 
 .reservation-workspace.product-workspace .rw-secondary-actions button {
-    min-height: 32px;
-    padding: 4px 0;
+    min-height: var(--adm-h-32);
+    padding: var(--adm-space-1) 0;
     border: none;
     background: transparent;
     font: inherit;
     color: var(--rw-mint-strong);
-    font-size: 12px;
+    font-size: var(--adm-fs-caption);
     line-height: 1.6;
     font-weight: 650;
     text-align: left;
@@ -282,14 +282,14 @@
 .reservation-workspace.product-workspace .rw-contract-summary {
     display: grid;
     grid-template-columns: auto minmax(0, 1fr);
-    gap: 10px 16px;
+    gap: var(--adm-space-2-5) var(--adm-space-4);
     margin-top: 3px;
     padding: 15px;
     border: 1px solid var(--adm-line);
     border-radius: var(--adm-radius-sm);
     background: var(--adm-gray-50);
     color: var(--adm-text-2);
-    font-size: 12px;
+    font-size: var(--adm-fs-caption);
     line-height: 1.6;
 }
 
@@ -301,9 +301,9 @@
 }
 
 .reservation-workspace.product-workspace .rw-document-card > .rw-inline-note {
-    margin: 12px 0;
+    margin: var(--adm-space-3) 0;
     color: var(--adm-text-3);
-    font-size: 11px;
+    font-size: var(--adm-fs-micro);
     line-height: 1.65;
 }
 
@@ -312,12 +312,12 @@
     align-items: center;
     justify-content: space-between;
     flex-wrap: wrap;
-    gap: 10px;
+    gap: var(--adm-space-2-5);
     margin-top: auto;
     padding-top: 18px;
     border-top: 1px solid var(--adm-line);
     color: var(--rw-muted);
-    font-size: 11px;
+    font-size: var(--adm-fs-micro);
     line-height: 1.6;
 }
 
@@ -326,8 +326,8 @@
     align-items: center;
     justify-content: space-between;
     flex-wrap: wrap;
-    gap: 12px 20px;
-    padding: 18px 24px;
+    gap: var(--adm-space-3) var(--adm-space-5);
+    padding: 18px var(--adm-space-6);
     border-top: 1px solid var(--adm-line);
     background: var(--adm-gray-50);
 }
@@ -336,39 +336,39 @@
     min-width: 0;
     margin: 0;
     color: var(--adm-text-3);
-    font-size: 11px;
+    font-size: var(--adm-fs-micro);
     line-height: 1.7;
     overflow-wrap: anywhere;
 }
 
 .reservation-workspace.product-workspace .rw-schedule-summary {
-    margin: 0 24px 22px;
+    margin: 0 var(--adm-space-6) 22px;
     border: 1px solid var(--adm-line);
     border-radius: var(--adm-radius-md);
     background: var(--adm-surface);
 }
 
 .reservation-workspace.product-workspace .rw-schedule-summary > summary {
-    padding: 14px 16px;
+    padding: 14px var(--adm-space-4);
     color: var(--adm-text-2);
-    font-size: 12px;
+    font-size: var(--adm-fs-caption);
     line-height: 1.6;
     font-weight: var(--adm-fw-bold);
     cursor: pointer;
 }
 
 .reservation-workspace.product-workspace .rw-schedule-summary > div {
-    padding: 0 16px 6px;
+    padding: 0 var(--adm-space-4) var(--adm-space-1-5);
 }
 
 .reservation-workspace.product-workspace .rw-day-summary {
     display: grid;
     grid-template-columns: 50px minmax(0, 1fr);
-    gap: 12px;
+    gap: var(--adm-space-3);
     padding: 14px 0;
     border-top: 1px solid var(--adm-line-subtle);
     color: var(--adm-text-2);
-    font-size: 12px;
+    font-size: var(--adm-fs-caption);
     line-height: 1.7;
 }
 
@@ -384,16 +384,16 @@
 
 .reservation-workspace.product-workspace .rw-day-summary small {
     color: var(--adm-text-3);
-    font-size: 11px;
+    font-size: var(--adm-fs-micro);
 }
 
 .reservation-workspace.product-workspace .rw-operations-fields {
     display: grid;
     grid-template-columns: repeat(4, minmax(0, 1fr));
-    gap: 18px 16px;
+    gap: 18px var(--adm-space-4);
     min-width: 0;
     margin: 0;
-    padding: 22px 24px;
+    padding: 22px var(--adm-space-6);
     border: none;
 }
 
@@ -402,9 +402,9 @@
 }
 
 .reservation-workspace.product-workspace .rw-operations-note {
-    padding: 0 24px 20px;
+    padding: 0 var(--adm-space-6) var(--adm-space-5);
     color: var(--adm-text-3);
-    font-size: 11px;
+    font-size: var(--adm-fs-micro);
     line-height: 1.7;
 }
 
@@ -420,7 +420,7 @@
     min-width: 0;
     border: 1px solid var(--adm-accent-line);
     border-radius: var(--adm-radius-md);
-    padding: 24px;
+    padding: var(--adm-space-6);
     background: var(--adm-surface);
     color: var(--rw-ink);
     box-shadow: 0 4px 20px #18382b04;
@@ -430,12 +430,12 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
-    gap: 16px;
+    gap: var(--adm-space-4);
 }
 
 .reservation-workspace.product-workspace .rw-card-heading h2 {
     margin: 3px 0 0;
-    font-size: 18px;
+    font-size: var(--adm-fs-lead);
     line-height: 1.45;
     font-weight: var(--adm-fw-bold);
     letter-spacing: -.04em;
@@ -445,7 +445,7 @@
 .reservation-workspace.product-workspace .rw-eyebrow {
     display: block;
     margin: 0;
-    font-size: 11px;
+    font-size: var(--adm-fs-micro);
     line-height: 1.5;
     font-weight: var(--adm-fw-bold);
     color: var(--rw-mint-strong);
@@ -453,11 +453,11 @@
 
 .reservation-workspace.product-workspace .rw-progress-label {
     flex: none;
-    padding: 6px 10px;
+    padding: var(--adm-space-1-5) var(--adm-space-2-5);
     border-radius: 999px;
     background: var(--adm-gray-100);
     color: var(--adm-text-2);
-    font-size: 11px;
+    font-size: var(--adm-fs-micro);
     line-height: 1.5;
     font-weight: 700;
     white-space: nowrap;
@@ -473,7 +473,7 @@
     grid-template-columns: repeat(var(--rw-step-count), minmax(0, 1fr));
     gap: 0;
     list-style: none;
-    margin: 24px 0;
+    margin: var(--adm-space-6) 0;
     padding: 0;
 }
 
@@ -501,11 +501,11 @@
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 8px;
+    gap: var(--adm-space-2);
     width: 100%;
     min-width: 0;
     margin: 0;
-    padding: 2px 7px 6px;
+    padding: var(--adm-space-0-5) 7px var(--adm-space-1-5);
     border: none;
     border-radius: var(--adm-radius-sm);
     background: transparent;
@@ -524,12 +524,12 @@
     place-items: center;
     flex: none;
     width: 36px;
-    height: 36px;
+    height: var(--adm-h-36);
     border: 1px solid var(--adm-line);
     border-radius: 50%;
     background: var(--adm-gray-50);
     color: var(--adm-text-3);
-    font-size: 13px;
+    font-size: var(--adm-fs-small);
     font-weight: var(--adm-fw-bold);
 }
 
@@ -552,7 +552,7 @@
 }
 
 .reservation-workspace.product-workspace .rw-step-title {
-    font-size: 13px;
+    font-size: var(--adm-fs-small);
     line-height: 1.45;
     font-weight: var(--adm-fw-bold);
     overflow-wrap: anywhere;
@@ -566,7 +566,7 @@
 .reservation-workspace.product-workspace .rw-step-description {
     display: block;
     max-width: 100%;
-    font-size: 11px;
+    font-size: var(--adm-fs-micro);
     line-height: 1.55;
     overflow-wrap: anywhere;
 }
@@ -586,12 +586,12 @@
     place-items: center;
     flex: none;
     width: 40px;
-    height: 40px;
+    height: var(--adm-h-40);
     border: 1px solid var(--adm-accent-line);
     border-radius: var(--adm-radius-md);
     background: var(--adm-surface);
     color: var(--rw-mint-strong);
-    font-size: 16px;
+    font-size: var(--adm-fs-large);
     font-weight: var(--adm-fw-bold);
 }
 
@@ -606,17 +606,17 @@
 }
 
 .reservation-workspace.product-workspace .rw-next-copy h3 {
-    margin: 2px 0 0;
+    margin: var(--adm-space-0-5) 0 0;
     color: var(--rw-ink);
-    font-size: 15px;
+    font-size: var(--adm-fs-base);
     font-weight: var(--adm-fw-bold);
     line-height: 1.5;
 }
 
 .reservation-workspace.product-workspace .rw-next-copy p {
-    margin: 4px 0 0;
+    margin: var(--adm-space-1) 0 0;
     color: var(--adm-text-2);
-    font-size: 12px;
+    font-size: var(--adm-fs-caption);
     line-height: 1.65;
     overflow-wrap: anywhere;
 }
@@ -626,15 +626,15 @@
     align-items: center;
     justify-content: center;
     flex: none;
-    gap: 8px;
+    gap: var(--adm-space-2);
     min-height: 42px;
-    padding: 10px 14px;
+    padding: var(--adm-space-2-5) 14px;
     border: 1px solid var(--rw-mint);
     border-radius: var(--adm-radius-sm);
     background: var(--rw-mint);
     color: #fff;
     font: inherit;
-    font-size: 12px;
+    font-size: var(--adm-fs-caption);
     line-height: 1.45;
     font-weight: var(--adm-fw-bold);
     cursor: pointer;
@@ -666,14 +666,14 @@
 .reservation-workspace.product-workspace .rw-heading-note {
     margin: 0;
     color: var(--rw-muted);
-    font-size: 11px;
+    font-size: var(--adm-fs-micro);
     line-height: 1.6;
 }
 
 .reservation-workspace.product-workspace .rw-readiness-grid {
     display: grid;
     grid-template-columns: repeat(4, minmax(0, 1fr));
-    gap: 12px;
+    gap: var(--adm-space-3);
     margin-top: 18px;
 }
 
@@ -681,9 +681,9 @@
     display: flex;
     flex-direction: column;
     align-items: stretch;
-    gap: 8px;
+    gap: var(--adm-space-2);
     min-width: 0;
-    padding: 16px;
+    padding: var(--adm-space-4);
     border: 1px solid var(--adm-warn-line);
     border-radius: var(--adm-radius-md);
     background: var(--adm-gray-50);
@@ -708,8 +708,8 @@
     align-items: center;
     justify-content: space-between;
     flex-wrap: wrap;
-    gap: 6px;
-    font-size: 11px;
+    gap: var(--adm-space-1-5);
+    font-size: var(--adm-fs-micro);
     line-height: 1.5;
     font-weight: var(--adm-fw-bold);
     color: var(--adm-text-3);
@@ -719,7 +719,7 @@
     display: inline-flex;
     align-items: center;
     color: var(--adm-warn-strong);
-    font-size: 11px;
+    font-size: var(--adm-fs-micro);
     font-weight: var(--adm-fw-bold);
 }
 
@@ -730,7 +730,7 @@
 }
 
 .reservation-workspace.product-workspace .rw-readiness-value {
-    font-size: 20px;
+    font-size: var(--adm-fs-xl);
     line-height: 1.35;
     font-weight: var(--adm-fw-bold);
     letter-spacing: -.03em;
@@ -738,8 +738,8 @@
 }
 
 .reservation-workspace.product-workspace .rw-readiness-description {
-    margin-bottom: 4px;
-    font-size: 11px;
+    margin-bottom: var(--adm-space-1);
+    font-size: var(--adm-fs-micro);
     line-height: 1.6;
     color: var(--rw-muted);
     overflow-wrap: anywhere;
@@ -749,10 +749,10 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
-    gap: 6px;
+    gap: var(--adm-space-1-5);
     margin-top: auto;
     color: var(--rw-mint-strong);
-    font-size: 11px;
+    font-size: var(--adm-fs-micro);
     line-height: 1.5;
     font-weight: var(--adm-fw-bold);
 }
@@ -784,49 +784,49 @@
 @media (max-width: 760px) {
     .reservation-workspace.product-workspace .rw-document-grid {
         grid-template-columns: minmax(0, 1fr);
-        padding: 16px;
+        padding: var(--adm-space-4);
     }
 
     .reservation-workspace.product-workspace .rw-section-head,
     .reservation-workspace.product-workspace .rw-document-footer {
-        padding: 18px 16px;
+        padding: 18px var(--adm-space-4);
     }
 
     .reservation-workspace.product-workspace .rw-document-card {
-        padding: 16px;
+        padding: var(--adm-space-4);
     }
 
     .reservation-workspace.product-workspace .rw-schedule-summary {
-        margin: 0 16px 18px;
+        margin: 0 var(--adm-space-4) 18px;
     }
 
     .reservation-workspace.product-workspace .rw-operations-fields {
-        padding: 18px 16px;
-        gap: 16px 12px;
+        padding: 18px var(--adm-space-4);
+        gap: var(--adm-space-4) var(--adm-space-3);
     }
 
     .reservation-workspace.product-workspace .rw-operations-note {
-        padding: 0 16px 18px;
+        padding: 0 var(--adm-space-4) 18px;
     }
 
     .reservation-workspace.product-workspace .drawer-head {
         flex-wrap: wrap;
-        gap: 8px;
-        padding: 12px 14px;
+        gap: var(--adm-space-2);
+        padding: var(--adm-space-3) 14px;
     }
 
     .reservation-workspace.product-workspace .tc-anchors {
-        padding: 0 10px;
+        padding: 0 var(--adm-space-2-5);
     }
 
     .reservation-workspace.product-workspace .tc-anchors button {
-        padding-right: 10px;
-        padding-left: 10px;
-        font-size: 12px;
+        padding-right: var(--adm-space-2-5);
+        padding-left: var(--adm-space-2-5);
+        font-size: var(--adm-fs-caption);
     }
 
     .reservation-workspace.product-workspace .reservation-workspace-body.drawer-body {
-        padding: 16px 12px 24px;
+        padding: var(--adm-space-4) var(--adm-space-3) var(--adm-space-6);
     }
 
     .reservation-workspace.product-workspace .reservation-workspace-body .grid-2 {
@@ -834,7 +834,7 @@
     }
 
     .reservation-workspace.product-workspace .drawer-foot {
-        padding: 10px 14px;
+        padding: var(--adm-space-2-5) 14px;
     }
 
     .reservation-workspace.product-workspace .rw-workflow-card,
@@ -846,16 +846,16 @@
     .reservation-workspace.product-workspace .rw-card-heading {
         align-items: flex-start;
         flex-wrap: wrap;
-        gap: 8px;
+        gap: var(--adm-space-2);
     }
 
     .reservation-workspace.product-workspace .rw-card-heading h2 {
-        font-size: 16px;
+        font-size: var(--adm-fs-large);
     }
 
     .reservation-workspace.product-workspace .rw-next-task {
         flex-wrap: wrap;
-        gap: 10px;
+        gap: var(--adm-space-2-5);
         padding: 14px;
     }
 
@@ -867,18 +867,18 @@
 
 @media (max-width: 640px) {
     .reservation-workspace.product-workspace .rw-steps {
-        margin: 22px -8px 20px;
+        margin: 22px -8px var(--adm-space-5);
     }
 
     .reservation-workspace.product-workspace .rw-step-button {
         gap: 7px;
-        padding: 2px 3px 6px;
+        padding: var(--adm-space-0-5) 3px var(--adm-space-1-5);
     }
 
     .reservation-workspace.product-workspace .rw-step-number {
         width: 30px;
         height: 30px;
-        font-size: 11px;
+        font-size: var(--adm-fs-micro);
     }
 
     .reservation-workspace.product-workspace .rw-step-item:not(:last-child)::after {
@@ -888,7 +888,7 @@
     }
 
     .reservation-workspace.product-workspace .rw-step-title {
-        font-size: 11px;
+        font-size: var(--adm-fs-micro);
         line-height: 1.5;
     }
 
@@ -897,15 +897,15 @@
     }
 
     .reservation-workspace.product-workspace .rw-readiness-grid {
-        gap: 8px;
+        gap: var(--adm-space-2);
     }
 
     .reservation-workspace.product-workspace .rw-readiness-item {
-        padding: 12px;
+        padding: var(--adm-space-3);
     }
 
     .reservation-workspace.product-workspace .rw-readiness-value {
-        font-size: 18px;
+        font-size: var(--adm-fs-lead);
     }
 }
 
@@ -958,11 +958,15 @@
 :is(.reservation-workspace.product-workspace, .crp-picker) .rw-dm-tag.is-danger { background: var(--adm-danger-soft); color: var(--adm-danger); }
 :is(.reservation-workspace.product-workspace, .crp-picker) .rw-dm-tag.is-muted { background: var(--adm-gray-100); color: var(--adm-text-3); }
 :is(.reservation-workspace.product-workspace, .crp-picker) .rw-dm-tag.is-accent { background: var(--adm-accent-soft); color: var(--adm-accent-strong); }
-/* 숙소 보드 수배 상태: 색이 상태마다 달라 TSX가 --rw-dm-tag-bg/fg로 넘긴다 */
+/* 숙소 보드 수배 상태: 상태마다 색 이름(data-tone)을 TSX가 넘긴다 */
 :is(.reservation-workspace.product-workspace, .crp-picker) .rw-dm-tag.is-status {
     margin-left: 0; padding: calc(var(--adm-space-1) / 2) var(--adm-space-2);
-    background: var(--rw-dm-tag-bg, var(--adm-gray-100)); color: var(--rw-dm-tag-fg, var(--adm-text-2));
+    background: var(--adm-gray-100); color: var(--adm-text-2);
 }
+:is(.reservation-workspace.product-workspace, .crp-picker) .rw-dm-tag.is-status[data-tone="accent"] { background: var(--adm-accent-soft); color: var(--adm-accent-strong); }
+:is(.reservation-workspace.product-workspace, .crp-picker) .rw-dm-tag.is-status[data-tone="warn"] { background: var(--adm-warn-soft); color: var(--adm-warn-strong); }
+:is(.reservation-workspace.product-workspace, .crp-picker) .rw-dm-tag.is-status[data-tone="success"] { background: var(--adm-success-soft); color: var(--adm-success-strong); }
+:is(.reservation-workspace.product-workspace, .crp-picker) .rw-dm-tag.is-status[data-tone="danger"] { background: var(--adm-danger-soft); color: var(--adm-danger); }
 
 /* 상태 고르기(StatusDropdown) — 생 버튼(adm-)에 옛 .statusdd 모양을 두고 아이콘·초점만 토큰으로 */
 .adm-rw-dm-status:focus-visible, .adm-rw-dm-status-item:focus-visible { outline: 0; box-shadow: var(--adm-ring); }

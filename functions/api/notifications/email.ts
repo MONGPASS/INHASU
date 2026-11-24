@@ -298,7 +298,7 @@ function tplAdminNewQuote(data: any) {
         ['내용', data.productName || data.destination],
     ])}</table>
   </div>
-  ${cta('견적 관리 열기', `${SITE_URL}/admin/quotes`)}
+  ${cta('견적 관리 열기', `${SITE_URL}/admin/quote-desk/inbox`)}
 </div>
 ${footer()}`);
 }

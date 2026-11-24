@@ -3,7 +3,6 @@
 export const adminPageLoaders = {
     login: () => import('../pages/AdminLogin').then(module => ({ default: module.AdminLogin })),
     dashboard: () => import('../pages/AdminDashboard').then(module => ({ default: module.AdminDashboard })),
-    quotes: () => import('../pages/AdminQuoteManage').then(module => ({ default: module.AdminQuoteManage })),
     quoteDesk: () => import('../pages/AdminQuoteDesk').then(module => ({ default: module.AdminQuoteDesk })),
     resources: () => import('../pages/AdminResourceManage').then(module => ({ default: module.AdminResourceManage })),
     courses: () => import('../pages/AdminCourseManage').then(module => ({ default: module.AdminCourseManage })),
@@ -33,7 +32,7 @@ export const adminPageLoaders = {
 
 type AdminPageKey = keyof typeof adminPageLoaders;
 const routes: Record<string, AdminPageKey> = {
-    '/admin': 'dashboard', '/admin/login': 'login', '/admin/quotes': 'quotes',
+    '/admin': 'dashboard', '/admin/login': 'login', '/admin/quotes': 'inbox',
     '/admin/reservations': 'reservations', '/admin/calendar': 'calendar',
     '/admin/banners': 'banners', '/admin/products': 'products', '/admin/categories': 'categories',
     '/admin/guides': 'guides', '/admin/magazines': 'magazines',

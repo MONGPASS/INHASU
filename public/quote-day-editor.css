@@ -2,41 +2,42 @@
 .quote-day-editor { --p:var(--adm-accent); --pd:var(--adm-accent-strong); --pl:var(--adm-accent-soft); --pb:var(--adm-accent-line); --ink:var(--adm-ink); --sub:var(--adm-text-3); --gray:var(--adm-text-3); --dim:var(--adm-text-3); --line2:var(--adm-line-subtle); --red:var(--adm-danger); min-width:0; font-family:inherit; }
 .quote-day-editor *, .quote-day-editor *::before, .quote-day-editor *::after { box-sizing:border-box; }
 .quote-day-editor .qde-field-label { display:none; }
-.quote-day-editor input, .quote-day-editor select, .quote-day-editor textarea { width:100%; padding:10px 12px; border:1px solid var(--adm-line); border-radius:var(--adm-radius-sm); font-size:14px; font-family:inherit; color:var(--ink); outline:none; background:var(--adm-surface); }
+.quote-day-editor input, .quote-day-editor select, .quote-day-editor textarea { width:100%; padding:var(--adm-space-2-5) var(--adm-space-3); border:1px solid var(--adm-line); border-radius:var(--adm-radius-sm); font-size:var(--adm-fs-body); font-family:inherit; color:var(--ink); outline:none; background:var(--adm-surface); }
 .quote-day-editor input::placeholder, .quote-day-editor textarea::placeholder { color:var(--dim); }
-.quote-day-editor input:focus, .quote-day-editor select:focus, .quote-day-editor textarea:focus { border-color:var(--p); box-shadow:0 0 0 3px rgba(6,196,160,.16); }
+/* 입력 중: 당근 Seed 입력칸처럼 테두리만 진하게(색 링 없음) — 아래 공통 모양 블록도 같다 */
+.quote-day-editor input:focus, .quote-day-editor select:focus, .quote-day-editor textarea:focus { border-color:var(--adm-ink); box-shadow:none; }
 .quote-day-editor textarea { resize:vertical; line-height:1.7; }
-.quote-day-editor .day-edit { border:1px solid var(--line2); border-radius:var(--adm-radius-md); padding:15px 16px; margin-bottom:12px; background:var(--adm-surface); transition:box-shadow .12s,border-color .12s; }
+.quote-day-editor .day-edit { border:1px solid var(--line2); border-radius:var(--adm-radius-md); padding:15px var(--adm-space-4); margin-bottom:var(--adm-space-3); background:var(--adm-surface); transition:box-shadow .12s,border-color .12s; }
 .quote-day-editor .day-edit.dragging { opacity:.45; }
 .quote-day-editor .day-edit.drag-over { border-color:var(--p); box-shadow:0 0 0 2px var(--p) inset; }
-.quote-day-editor .day-edit .dh { display:flex; align-items:center; gap:10px; margin-bottom:12px; }
-.quote-day-editor .day-edit .dh .drag-handle { cursor:grab; color:var(--adm-text-3); font-size:15px; line-height:1; padding:0 2px; user-select:none; flex:0 0 auto; }
+.quote-day-editor .day-edit .dh { display:flex; align-items:center; gap:var(--adm-space-2-5); margin-bottom:var(--adm-space-3); }
+.quote-day-editor .day-edit .dh .drag-handle { cursor:grab; color:var(--adm-text-3); font-size:var(--adm-fs-base); line-height:1; padding:0 var(--adm-space-0-5); user-select:none; flex:0 0 auto; }
 .quote-day-editor .day-edit .dh .drag-handle:active { cursor:grabbing; }
 .quote-day-editor .day-edit .dh .drag-handle:focus-visible { outline:2px solid var(--p); outline-offset:4px; border-radius:var(--adm-radius-xs); }
-.quote-day-editor .day-edit .dh .badge { background:var(--adm-neutral-soft); color:var(--adm-ink); border-radius:var(--adm-radius-xs); padding:4px 8px; font-size:var(--adm-fs-small); font-weight:var(--adm-fw-semibold); white-space:nowrap; } /* Montage: 일차 배지는 회색 채움 */
-.quote-day-editor .day-edit .dh input.ddate { flex:none; width:120px; font-size:12px; font-weight:600; }
-.quote-day-editor .day-edit .dh input.dest { flex:1; min-width:0; padding:8px 11px; border-radius:var(--adm-radius-sm); font-weight:700; }
-.quote-day-editor .day-edit .dh input.move { max-width:130px; padding:8px 11px; border-radius:var(--adm-radius-sm); font-size:13px; color:var(--sub); }
-.quote-day-editor .day-edit .dh .day-del { border:1px solid var(--adm-line); background:var(--adm-surface); color:var(--red); width:30px; height:30px; border-radius:var(--adm-radius-sm); font-size:15px; cursor:pointer; flex:0 0 auto; font-family:inherit; }
+.quote-day-editor .day-edit .dh .badge { background:var(--adm-neutral-soft); color:var(--adm-ink); border-radius:var(--adm-radius-xs); padding:var(--adm-space-1) var(--adm-space-2); font-size:var(--adm-fs-small); font-weight:var(--adm-fw-semibold); white-space:nowrap; } /* Montage: 일차 배지는 회색 채움 */
+.quote-day-editor .day-edit .dh input.ddate { flex:none; width:120px; font-size:var(--adm-fs-caption); font-weight:600; }
+.quote-day-editor .day-edit .dh input.dest { flex:1; min-width:0; padding:var(--adm-space-2) 11px; border-radius:var(--adm-radius-sm); font-weight:700; }
+.quote-day-editor .day-edit .dh input.move { max-width:130px; padding:var(--adm-space-2) 11px; border-radius:var(--adm-radius-sm); font-size:var(--adm-fs-small); color:var(--sub); }
+.quote-day-editor .day-edit .dh .day-del { border:1px solid var(--adm-line); background:var(--adm-surface); color:var(--red); width:30px; height:30px; border-radius:var(--adm-radius-sm); font-size:var(--adm-fs-base); cursor:pointer; flex:0 0 auto; font-family:inherit; }
 .quote-day-editor .day-edit .dh .day-del:hover { background:var(--adm-gray-50); }
-.quote-day-editor .day-edit .dh .day-toggle { display:inline-flex; align-items:center; justify-content:center; gap:5px; flex:0 0 auto; min-height:38px; padding:7px 10px; border:1px solid var(--adm-accent-line); border-radius:var(--adm-radius-sm); background:var(--adm-success-soft); color:var(--adm-accent-strong); font:inherit; font-size:12px; font-weight:650; white-space:nowrap; cursor:pointer; }
+.quote-day-editor .day-edit .dh .day-toggle { display:inline-flex; align-items:center; justify-content:center; gap:5px; flex:0 0 auto; min-height:38px; padding:7px var(--adm-space-2-5); border:1px solid var(--adm-accent-line); border-radius:var(--adm-radius-sm); background:var(--adm-success-soft); color:var(--adm-accent-strong); font:inherit; font-size:var(--adm-fs-caption); font-weight:650; white-space:nowrap; cursor:pointer; }
 .quote-day-editor .day-edit .dh .day-toggle:hover:not(:disabled) { background:var(--adm-success-soft); border-color:var(--adm-accent); }
 .quote-day-editor .day-edit.is-collapsed .dh { margin-bottom:0; }
 .quote-day-editor .day-body[hidden] { display:none!important; }
-.quote-day-editor .day-edit .snip-row { display:flex; align-items:center; gap:10px; margin-bottom:10px; }
-.quote-day-editor .day-edit .snip-sel { width:250px; padding:8px 11px; border:1px solid var(--p); border-radius:var(--adm-radius-sm); background:var(--adm-surface); color:var(--ink); font-weight:600; font-size:13px; cursor:pointer; }
-.quote-day-editor .day-edit .snip-hint { font-size:12px; color:var(--gray); }
-.quote-day-editor .day-edit textarea.items { min-height:96px; font-size:13px; margin-bottom:10px; }
+.quote-day-editor .day-edit .snip-row { display:flex; align-items:center; gap:var(--adm-space-2-5); margin-bottom:var(--adm-space-2-5); }
+.quote-day-editor .day-edit .snip-sel { width:250px; padding:var(--adm-space-2) 11px; border:1px solid var(--p); border-radius:var(--adm-radius-sm); background:var(--adm-surface); color:var(--ink); font-weight:600; font-size:var(--adm-fs-small); cursor:pointer; }
+.quote-day-editor .day-edit .snip-hint { font-size:var(--adm-fs-caption); color:var(--gray); }
+.quote-day-editor .day-edit textarea.items { min-height:96px; font-size:var(--adm-fs-small); margin-bottom:var(--adm-space-2-5); }
 .quote-day-editor .day-edit .sub { display:none; }
-.quote-day-editor .day-edit .row.c2 { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
-.quote-day-editor .day-edit .row.c2 input { padding:9px 11px; border-radius:var(--adm-radius-sm); font-size:13px; }
-.quote-day-editor .day-add { width:100%; height:44px; border:1px dashed var(--pb); background:var(--adm-gray-50); color:var(--pd); border-radius:var(--adm-radius-sm); font-size:14px; font-weight:700; cursor:pointer; font-family:inherit; }
+.quote-day-editor .day-edit .row.c2 { display:grid; grid-template-columns:1fr 1fr; gap:var(--adm-space-2-5); }
+.quote-day-editor .day-edit .row.c2 input { padding:9px 11px; border-radius:var(--adm-radius-sm); font-size:var(--adm-fs-small); }
+.quote-day-editor .day-add { width:100%; height:44px; border:1px dashed var(--pb); background:var(--adm-gray-50); color:var(--pd); border-radius:var(--adm-radius-sm); font-size:var(--adm-fs-body); font-weight:700; cursor:pointer; font-family:inherit; }
 .quote-day-editor .day-add:hover { background:var(--pl); }
-.quote-day-editor .day-edit .quote-day-extra { margin-top:12px; }
+.quote-day-editor .day-edit .quote-day-extra { margin-top:var(--adm-space-3); }
 .quote-day-editor input:disabled, .quote-day-editor select:disabled, .quote-day-editor textarea:disabled, .quote-day-editor button:disabled { opacity:.55; cursor:default; }
 .quote-day-editor button:focus-visible { outline:3px solid var(--pb); outline-offset:2px; }
 @media (max-width:640px) {
-  .quote-day-editor .day-edit .dh { flex-wrap:wrap; gap:8px; }
+  .quote-day-editor .day-edit .dh { flex-wrap:wrap; gap:var(--adm-space-2); }
   .quote-day-editor .day-edit .dh input.dest { flex-basis:calc(100% - 160px); }
   .quote-day-editor .day-edit .snip-row { flex-wrap:wrap; }
   .quote-day-editor .day-edit .snip-sel { width:100%; }
@@ -46,36 +47,36 @@
    견적서 만들기 STEP 2 · 견적 예약 일정표 편집(예약관리) · 상품 예약 일정표 편집(React QuoteDayEditor)이 모두 같은 카드로 보이게 한다.
    색·테두리·높이·글자 같은 모양은 여기 한 곳에서만 정한다(!important). 화면별 CSS는 배치(칸 너비·줄 바꿈·격자)만 정하고
    카드 모양을 다시 적지 않는다. 값은 관리자 공통 변수(--adm-*)만 쓴다. */
-.quote-day-editor .day-edit { margin-bottom:10px !important; padding:16px 20px !important; border:1px solid var(--adm-line) !important; border-radius:var(--adm-radius-md) !important; background:var(--adm-surface) !important; box-shadow:none !important; }
+.quote-day-editor .day-edit { margin-bottom:var(--adm-space-2-5) !important; padding:var(--adm-space-4) var(--adm-space-5) !important; border:1px solid var(--adm-line) !important; border-radius:var(--adm-radius-md) !important; background:var(--adm-surface) !important; box-shadow:none !important; }
 .quote-day-editor .day-edit:not(.is-collapsed) { border-color:var(--adm-line-strong) !important; box-shadow:var(--adm-shadow-xs) !important; }
 .quote-day-editor .day-edit.drag-over { border-color:var(--adm-accent) !important; box-shadow:0 0 0 2px var(--adm-accent) inset !important; }
 /* .dh는 견적 도구의 서랍 머리(.dh)와 이름이 같아, 그쪽 규칙(높이 60px·아래 줄·안쪽 여백)이 묻지 않게 지운다 */
-.quote-day-editor .day-edit .dh { gap:8px !important; margin:0 !important; min-height:0 !important; height:auto !important; padding:0 !important; border:0 !important; }
+.quote-day-editor .day-edit .dh { gap:var(--adm-space-2) !important; margin:0 !important; min-height:0 !important; height:auto !important; padding:0 !important; border:0 !important; }
 .quote-day-editor .day-edit .dh .drag-handle { color:var(--adm-text-3) !important; }
-.quote-day-editor .day-edit .dh .badge { display:inline-flex !important; align-items:center; justify-content:center; flex:none; height:24px !important; padding:0 8px !important; border-radius:var(--adm-radius-xs) !important; background:var(--adm-neutral-soft) !important; color:var(--adm-ink) !important; font-size:var(--adm-fs-small) !important; font-weight:var(--adm-fw-semibold) !important; }
+.quote-day-editor .day-edit .dh .badge { display:inline-flex !important; align-items:center; justify-content:center; flex:none; height:24px !important; padding:0 var(--adm-space-2) !important; border-radius:var(--adm-radius-xs) !important; background:var(--adm-neutral-soft) !important; color:var(--adm-ink) !important; font-size:var(--adm-fs-small) !important; font-weight:var(--adm-fw-semibold) !important; }
 .quote-day-editor .day-edit .dh input { box-sizing:border-box; height:var(--adm-control-h) !important; min-height:var(--adm-control-h) !important; padding:0 14px !important; border:1px solid var(--adm-line) !important; border-radius:var(--adm-radius-sm) !important; background:var(--adm-surface) !important; color:var(--adm-text) !important; font-size:var(--adm-fs-body) !important; }
-.quote-day-editor .day-edit .dh input.ddate { padding:0 6px !important; border-color:transparent !important; background:transparent !important; font-size:var(--adm-fs-body) !important; font-weight:var(--adm-fw-semibold) !important; text-align:left !important; }
+.quote-day-editor .day-edit .dh input.ddate { padding:0 var(--adm-space-1-5) !important; border-color:transparent !important; background:transparent !important; font-size:var(--adm-fs-body) !important; font-weight:var(--adm-fw-semibold) !important; text-align:left !important; }
 .quote-day-editor .day-edit .dh input.ddate::placeholder { font-weight:var(--adm-fw-medium); } /* 자동 날짜 안내(11.27(금) (선택))가 잘리지 않는 크기 */
 .quote-day-editor .day-edit .dh input.ddate:hover:not(:disabled) { border-color:var(--adm-line) !important; background:var(--adm-surface) !important; }
-.quote-day-editor .day-edit .dh input.dest { font-size:15px !important; font-weight:var(--adm-fw-bold) !important; }
+.quote-day-editor .day-edit .dh input.dest { font-size:var(--adm-fs-base) !important; font-weight:var(--adm-fw-bold) !important; }
 .quote-day-editor .day-edit .dh input.move { color:var(--adm-text-2) !important; font-size:var(--adm-fs-small) !important; font-weight:var(--adm-fw-medium) !important; }
-.quote-day-editor .day-edit .dh .day-toggle { height:var(--adm-control-h-sm) !important; min-height:var(--adm-control-h-sm) !important; padding:0 12px !important; border:0 !important; border-radius:var(--adm-radius-sm) !important; background:transparent !important; color:var(--adm-text-2) !important; font-size:var(--adm-fs-small) !important; font-weight:var(--adm-fw-bold) !important; }
+.quote-day-editor .day-edit .dh .day-toggle { height:var(--adm-control-h-sm) !important; min-height:var(--adm-control-h-sm) !important; padding:0 var(--adm-space-3) !important; border:0 !important; border-radius:var(--adm-radius-sm) !important; background:transparent !important; color:var(--adm-text-2) !important; font-size:var(--adm-fs-small) !important; font-weight:var(--adm-fw-bold) !important; }
 .quote-day-editor .day-edit .dh .day-toggle:hover:not(:disabled) { border:0 !important; background:var(--adm-neutral-soft) !important; }
 /* 일자 삭제: 휴지통 아이콘(글자 ✕는 숨긴다) */
-.quote-day-editor .day-edit .dh .day-del { display:inline-flex !important; align-items:center; justify-content:center; flex:none; box-sizing:border-box; width:36px !important; height:36px !important; min-height:36px !important; padding:0 !important; border:0 !important; border-radius:var(--adm-radius-sm) !important; background:transparent !important; color:var(--adm-text-3) !important; font-size:0 !important; }
+.quote-day-editor .day-edit .dh .day-del { display:inline-flex !important; align-items:center; justify-content:center; flex:none; box-sizing:border-box; width:36px !important; height:var(--adm-h-36) !important; min-height:var(--adm-h-36) !important; padding:0 !important; border:0 !important; border-radius:var(--adm-radius-sm) !important; background:transparent !important; color:var(--adm-text-3) !important; font-size:0 !important; }
 .quote-day-editor .day-edit .dh .day-del::before { content:"" !important; width:18px !important; height:18px !important; background:currentColor !important; -webkit-mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M10 11v6M14 11v6'/%3E%3C/svg%3E") center/contain no-repeat !important; mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M10 11v6M14 11v6'/%3E%3C/svg%3E") center/contain no-repeat !important; }
 .quote-day-editor .day-edit .dh .day-del:hover:not(:disabled) { background:var(--adm-danger-soft) !important; color:var(--adm-danger) !important; }
-.quote-day-editor .day-body { margin-top:12px !important; padding:14px !important; border-radius:var(--adm-radius-sm) !important; background:var(--adm-gray-50) !important; }
-.quote-day-editor .day-edit .snip-row { gap:10px !important; margin-bottom:10px !important; }
+.quote-day-editor .day-body { margin-top:var(--adm-space-3) !important; padding:14px !important; border-radius:var(--adm-radius-sm) !important; background:var(--adm-gray-50) !important; }
+.quote-day-editor .day-edit .snip-row { gap:var(--adm-space-2-5) !important; margin-bottom:var(--adm-space-2-5) !important; }
 .quote-day-editor .day-edit .snip-sel { width:auto; min-width:180px; height:var(--adm-control-h) !important; min-height:var(--adm-control-h) !important; padding:0 38px 0 14px !important; border:1px solid var(--adm-line-strong) !important; border-radius:var(--adm-radius-sm) !important; -webkit-appearance:none !important; appearance:none !important; background:var(--adm-surface) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23191f28' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E") right 14px center/14px no-repeat !important; color:var(--adm-text) !important; font-size:var(--adm-fs-small) !important; font-weight:var(--adm-fw-semibold) !important; }
-.quote-day-editor .day-edit .snip-hint { color:var(--adm-text-3) !important; font-size:12px !important; }
-.quote-day-editor .day-edit textarea.items { min-height:104px !important; margin-bottom:10px !important; padding:12px 14px !important; border:1px solid var(--adm-line) !important; border-radius:var(--adm-radius-sm) !important; background:var(--adm-surface) !important; color:var(--adm-text) !important; font-size:var(--adm-fs-body) !important; line-height:1.7 !important; }
+.quote-day-editor .day-edit .snip-hint { color:var(--adm-text-3) !important; font-size:var(--adm-fs-caption) !important; }
+.quote-day-editor .day-edit textarea.items { min-height:104px !important; margin-bottom:var(--adm-space-2-5) !important; padding:var(--adm-space-3) 14px !important; border:1px solid var(--adm-line) !important; border-radius:var(--adm-radius-sm) !important; background:var(--adm-surface) !important; color:var(--adm-text) !important; font-size:var(--adm-fs-body) !important; line-height:1.7 !important; }
 /* 숙소·식사 두 칸: 칸 이름을 위에 보여 준다 */
-.quote-day-editor .day-edit .row.c2 { grid-template-rows:auto auto; grid-auto-flow:column; gap:6px 8px !important; }
-.quote-day-editor .day-edit .row.c2 .qde-field-label { display:block !important; position:static !important; width:auto !important; height:auto !important; overflow:visible !important; clip:auto !important; color:var(--adm-text-3) !important; font-size:12px !important; font-weight:var(--adm-fw-semibold) !important; }
+.quote-day-editor .day-edit .row.c2 { grid-template-rows:auto auto; grid-auto-flow:column; gap:var(--adm-space-1-5) var(--adm-space-2) !important; }
+.quote-day-editor .day-edit .row.c2 .qde-field-label { display:block !important; position:static !important; width:auto !important; height:auto !important; overflow:visible !important; clip:auto !important; color:var(--adm-text-3) !important; font-size:var(--adm-fs-caption) !important; font-weight:var(--adm-fw-semibold) !important; }
 .quote-day-editor .day-edit .row.c2 input { height:var(--adm-control-h) !important; min-height:var(--adm-control-h) !important; padding:0 14px !important; border:1px solid var(--adm-line) !important; border-radius:var(--adm-radius-sm) !important; background:var(--adm-surface) !important; font-size:var(--adm-fs-body) !important; }
-.quote-day-editor .day-edit :is(input, select, textarea):focus { border-color:var(--adm-accent) !important; box-shadow:var(--adm-ring) !important; }
-.quote-day-editor .day-edit .dh input.ddate:focus { background:var(--adm-surface) !important; }
+.quote-day-editor .day-edit :is(input, select, textarea):focus, .quote-day-editor .day-edit .row.c2 input:focus { border-color:var(--adm-ink) !important; box-shadow:none !important; }
+.quote-day-editor .day-edit .dh input.ddate:focus { border-color:var(--adm-ink) !important; background:var(--adm-surface) !important; }
 .quote-day-editor .day-add { height:var(--adm-control-h) !important; min-height:var(--adm-control-h) !important; margin-top:0; border:1px dashed var(--adm-line-strong) !important; border-radius:var(--adm-radius-md) !important; background:transparent !important; color:var(--adm-text-2) !important; font-size:var(--adm-fs-body) !important; font-weight:var(--adm-fw-semibold) !important; }
 .quote-day-editor .day-add:hover:not(:disabled) { border-color:var(--adm-line-strong) !important; background:var(--adm-gray-50) !important; color:var(--adm-ink) !important; }
 .quote-day-editor button:focus-visible { outline:2px solid var(--adm-accent) !important; outline-offset:2px !important; }

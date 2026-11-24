@@ -139,7 +139,7 @@ export function AdminDashboardBody({ data, loading, error, refresh }: DashboardS
             icon: 'lc-clipboard-check', to: '#dashboard-tasks', hot: true },
         { label: '확정 매출', value: dashboardWon(metrics?.confirmedSales), aria: metricLabel('확정 매출 전체 기간', metrics?.confirmedSales, '원'), icon: 'lc-wallet', to: '/admin/reservations' },
         { label: '오늘 신규 예약', value: unit(metrics?.todayReservations, '건'), aria: metricLabel('오늘 신규 예약', metrics?.todayReservations, '건'), icon: 'lc-calendar-plus', to: '/admin/reservations' },
-        { label: '답변 대기 견적', value: unit(metrics?.newQuotes, '건'), aria: metricLabel('답변 대기 견적', metrics?.newQuotes, '건'), icon: 'lc-message-circle', to: '/admin/quotes' },
+        { label: '답변 대기 견적', value: unit(metrics?.newQuotes, '건'), aria: metricLabel('답변 대기 견적', metrics?.newQuotes, '건'), icon: 'lc-message-circle', to: '/admin/quote-desk/inbox' },
         { label: '7일 내 출발', value: unit(departing, '팀'), aria: metricLabel('7일 내 출발', departing, '팀'), icon: 'lc-plane-takeoff', to: '/admin/calendar' },
     ];
 
@@ -231,7 +231,7 @@ export function AdminDashboardBody({ data, loading, error, refresh }: DashboardS
                             ? <>답변을 기다리는 견적 문의 <b>{pendingInquiries.length}</b>건</>
                             : '답변을 기다리는 문의가 없습니다.'}</span>
                     {availability.inquiries && !!pendingInquiries.length
-                        && <AdminTextButton to="/admin/quotes" size="sm">견적 문의 보기</AdminTextButton>}
+                        && <AdminTextButton to="/admin/quote-desk/inbox" size="sm">견적 문의 보기</AdminTextButton>}
                 </div>
             </section>
 
@@ -261,7 +261,7 @@ export function AdminDashboardBody({ data, loading, error, refresh }: DashboardS
                     })}
                     {!pendingInquiries.length && <SectionState loading={initialLoading} complete={availability.inquiries} error={error} empty="답변을 기다리는 문의가 없습니다." />}
                 </div>
-                <div className={styles.moreRow}><AdminTextButton to="/admin/quotes" size="sm" trailing={<IconChevronRight />}>견적 문의 전체 보기</AdminTextButton></div>
+                <div className={styles.moreRow}><AdminTextButton to="/admin/quote-desk/inbox" size="sm" trailing={<IconChevronRight />}>견적 문의 전체 보기</AdminTextButton></div>
             </section>
         </div>
 
@@ -403,7 +403,7 @@ export function AdminDashboardBody({ data, loading, error, refresh }: DashboardS
                             </div>}
                         </div>
                     </div>
-                    <Link className={styles.moreLink} to="/admin/quotes">자세히 보기<DashboardIcon name="lc-arrow-right" size={16} /></Link>
+                    <Link className={styles.moreLink} to="/admin/quote-desk/inbox">자세히 보기<DashboardIcon name="lc-arrow-right" size={16} /></Link>
                 </div>
             </section>
         </div>

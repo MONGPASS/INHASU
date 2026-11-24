@@ -17,7 +17,7 @@
 | (목록에서 진입) | 고객 예약 관리 — 상품 예약 | `/admin/customer-workspace/product/:id` | `AdminReservationManage.tsx`(`customerPage`) + `v7/ReservationDetailV7.tsx` | 상세형 | 가이드·숙소·차량 고르기, 저장 전 미리보기(전체 화면), 일정표·계약 편집기(전체 화면), 휴대폰용 메뉴 |
 | (목록에서 진입) | 고객 예약 관리 — 이전 견적 | `/admin/customer-workspace/legacy-quote/:id` | 위와 같음(`customerSource="quote"`) | 상세형 | 위와 같음 |
 | (목록에서 진입) | 고객 통합 작업 — 견적 예약 | `/admin/customer-workspace/quote/:id` | `pages/AdminQuoteDesk.tsx`(`customerPage`) | 상세형(+견적 도구) | 더보기 메뉴, 발송 이력 옆 패널, 작업 화면 셋(문의 상세·견적 편집·예약 편집, 모두 React — iframe 없음) |
-| (목록 필터) | 맞춤견적 관리(이전 MILKYWAY 견적) | `/admin/quotes` | `pages/AdminQuoteManage.tsx` | 목록형 | 견적 상세 서랍, 예약 전환 선택 창 |
+| (없앰) | 맞춤견적 관리(이전 MILKYWAY 견적) — 2026-11-24 지움(운영 자료 0건) | `/admin/quotes` → 견적 문의로 넘김(`?open=<id>`는 이전 견적 고객 화면) | — | — | 이전 견적 한 건은 `/admin/customer-workspace/legacy-quote/:id`(`QuoteModals.tsx`)로 계속 열린다 |
 | 배정·자원 | 숙소 배정(옛 이름 ‘숙소 배정 · 현지 운영’) | `/admin/accommodation-ops` | `pages/AdminAccommodationOps.tsx` + **배정 보드(기본, 2026-11-21 새 디자인)** `accommodation/LodgeAssignQueue.tsx` · 표로 보기 `accommodation/LodgeAssignBoard.tsx` · 카드 보기(여행자·일정·가이드·차량). 계산 공용 `accommodation/lodgeBoardModel.ts` | 작업대형(대기열 + 상세) / 목록형(칸에서 바로 고침) | 숙소 고르기 창(`LodgePicker`: 찾기·지역·등급 칩), 숙소·등급·상태 고르기 창, 숙박 추가 |
 | 배정·자원 | 가이드·숙소·차량 — 가이드 배정 현황 | `/admin/quote-desk/resources?view=schedule` | `components/admin/guides/GuideSchedule.tsx`(목록 `GuideAssignList.tsx`, 상세 패널 `GuideDrawer.tsx`) | 대시보드형 | 가이드 상세 옆 패널, 가이드 피켓 미리보기, 배정 고르기 창 |
 | 상품 관리 | 상품 목록 | `/admin/products` | `pages/AdminProductManage.tsx` | 목록형 | 없음(삭제 확인만) |

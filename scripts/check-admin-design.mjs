@@ -47,7 +47,7 @@ const SCREENS = [
     ['고객 예약 상세(상품·이전 견적)', /(v7\/(ReservationDetailV7|v7Ui|guideMenuItems)|CustomerWorkspaceOverview|Reservation(Workflow|Documents|DocumentEditor|InlineEditor|Operations|DraftPreview)|CustomerKakaoActions|CustomerVehicleAssignment|CustomerResourcePicker|AdminDeliveryHistory|QuoteAccountLinkDialog|customer-workspace-editor|reservation-|product-customer-workspace)/],
     ['고객 통합 작업(견적)·견적 도구 틀', /(AdminQuoteDesk|quote-booking-workspace|QuoteInquiryPanel|QuoteBookingEditorPanel)/],
     ['투어 캘린더', /AdminCalendar/],
-    ['맞춤견적 관리(이전)', /(AdminQuoteManage|QuoteModals)/],
+    ['이전 견적 고객 상세', /QuoteModals/],
     ['숙소 배정 · 배정 보드(새 디자인)', /(LodgeAssignQueue|LodgePicker|lodgeBoardModel)/],
     ['숙소 배정·현지 운영', /(AdminAccommodationOps|accommodation\/)/],
     ['가이드 배정 현황', /components\/admin\/guides\//],
@@ -109,7 +109,8 @@ export function measureTsx(src) {
         rawField: fields.length,
         rawTable: count(s, /<table\b/g),
         inlineStyle: count(s, /style=\{\{/g),
-        px: count(s, new RegExp(`\\b(?:${SIZE_PROPS})\\s*:\\s*['"\`]?-?\\d`, 'g')),
+        // 스크롤 위치(scrollTo({ top: 0 }) 등)와 화면 폭 조건(matchMedia('(max-width: 760px)'))은 크기가 아니므로 세지 않는다
+        px: count(s.replace(/\.scroll(?:To|By)?\(\s*\{[^}]*\}\s*\)/g, '').replace(/matchMedia\(\s*['"`][^'"`]*['"`]\s*\)/g, ''), new RegExp(`\\b(?:${SIZE_PROPS})\\s*:\\s*['"\`]?-?\\d`, 'g')),
         hex: count(s, HEX),
         nativeDialog: count(s, /(^|[^.\w])(?:window\.)?(?:confirm|prompt)\(/gm),
     };

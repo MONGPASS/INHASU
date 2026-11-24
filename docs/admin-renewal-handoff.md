@@ -277,7 +277,13 @@ Montage를 화면에서 직접 쓰게 강제하면 단점이 있다:
 > **0% 화면 Seed 전환(2026-11-24, `feature/seed-zero-screens`)** — 남아 있던 0% 화면을 우리 관리자 부품으로 바꿨다. 화면마다 저장 API·잠금·초안·이동 보호 같은 동작은 그대로 두고 그리는 부분만 바꿨다. 전체 전환율 86%→96%(생 부품 255→83).
 > - 관리자 로그인 · 여행기획전 · 상품용 가이드·숙소 · 매거진 관리 · 홈 화면 배너: 100%. 매거진은 편집기(Quill) 안 슬라이더·위치 카드 블록의 직접 색·크기를 클래스로 옮겼다. 배너는 숨은 파일 칸 다섯 개를 `AdminFileButton`으로, 미리보기 사진을 `<img>`로 바꿨고 행동 테스트(`tests/admin-content-workflow.test.mjs`)를 새 부품 이름으로 옮겼다.
 > - 문서 템플릿: 0%→68%. 탭·템플릿 카드·가이드/숙소 탭을 바꿨고, 어디서도 쓰지 않던 일정 편집기 두 개(`ProductStyleItineraryEditor`·`ProductDayInfoItineraryEditor`, 약 450줄)를 지웠다. 남은 생 부품 20곳은 고객 문서 모양 미리보기(`TemplatePreview`, 예약 문서 편집기가 함께 씀)라 디자인 문서 7절 예외로 남긴다.
-> - 맞춤견적 관리(이전, `/admin/quotes`)는 대시보드의 ‘답변 대기 견적’·‘견적 문의 보기’가 아직 연결하고 있어 지우지 않았다(오너 결정 필요).
+> - 맞춤견적 관리(이전, `/admin/quotes`)는 운영 자료가 0건이라 2026-11-24 오너 결정으로 지웠다. 대시보드의 견적 바로가기 4곳(답변 대기 견적·견적 문의 보기·견적 문의 전체 보기·자세히 보기)은 새 견적 문의(`/admin/quote-desk/inbox`)로 바꿨고, 옛 주소는 견적 문의로 넘긴다(`?open=<id>`는 이전 견적 고객 화면).
+
+> **Seed 마무리(2026-11-24, `feature/seed-finish`)** — 화면 모양은 그대로 두고 남은 규칙 위반을 걷었다.
+> - 입력칸 초점: 일차 카드(견적서 만들기·견적 예약·상품 예약 일정표)와 관리자 공통 입력칸의 민트 테두리 + 파란 링을 Seed TextField처럼 `--adm-ink` 테두리만으로 바꿨다(숙소·식사·날짜 칸 포함).
+> - 통합 예약 목록(`AdminReservationManage.tsx`): 숙소 예약 요청서·엑셀·가이드 피켓 HTML/캔버스를 `src/utils/reservationPrintDocuments.ts`로 옮기고(내용 그대로), 수배 상태 색을 `data-tone` + CSS로 바꿔 위반 0.
+> - 세부 크기: 관리자 CSS의 px 1,137곳을 값이 똑같은 토큰으로 바꿨다(휴대폰에서 값이 바뀌는 토큰은 쓰지 않고 고정 토큰 `--adm-h-*`·`--adm-fs-large/-xl`·`--adm-space-0-5/1-5/2-5`·`--adm-radius-mid`를 더함). 토큰 단계에 없는 값과 자료로 계산되는 인라인 style은 그대로(디자인 문서 7절).
+> - 아이콘: `daangn/seed-icon`의 mobile·laptop을 받아 `IconMobile`·`IconLaptop`을 만들고 홈 화면 관리의 휴대폰·PC 표시(옛 Lucide 선)와 `smartphone` 옛 이름을 바꿨다.
 
 ## 7. 반드시 지킬 것 (요약 — 정본은 CLAUDE.md)
 

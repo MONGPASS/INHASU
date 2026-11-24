@@ -76,18 +76,23 @@
 | 구분색 | `--adm-tag-{lime,cyan,blue,violet,purple,pink,orange}` (+ `-soft` 옅은 바탕, `-solid` 채움) | Seed 색 단계(글자 700 · 바탕 50 · 채움 500): green · 민트 · blue · purple · purple(800/100/600) · pink · 원래 yellow. 사람·출처·그래프 계열처럼 서로 구분만 하는 곳에. 상태(완료·주의·오류)에는 쓰지 않는다 |
 | 글꼴 | `--adm-font` | `"Pretendard Variable"`, `"Pretendard"`, 시스템 글꼴 |
 | 글자 크기 | `--adm-fs-micro` / `-caption` / `-small` / `-body` / `-base` / `-lead` / `-section` / `-title` | 11 / 12 / 13 / 14 / 15 / 18 / 20 / 24px (좁은 화면 제목 20px) |
+| 고정 글자 크기 | `--adm-fs-large` / `--adm-fs-xl` | 16 / 20px. `-section`·`-title`·`-input`은 휴대폰에서 값이 바뀌므로, 화면 폭과 관계없이 16·20px이어야 하는 곳은 이 둘을 쓴다 |
 | 글자 크기 단계 | Seed 글자 크기 단계만 쓴다 | 11 · 12 · 13 · 14 · 15 · 16 · 18 · 20 · 24 · 26 · 32 · 34 · 42 · 48px(Seed font-size-25~1000. Seed의 10px은 관리자에서 쓰지 않는다). 중간 크기는 쓰지 않는다. `tests/admin-font-scale.test.mjs`가 관리자 CSS와 인라인 style을 검사하고, `node scripts/check-admin-font-scale.mjs --fix`가 가장 가까운 단계(한가운데면 작은 쪽)로 바꾼다 |
 | 글자 굵기·줄 간격 | `--adm-fw-*`, `--adm-lh` / `--adm-lh-tight` | Seed는 보통 400 · 굵게 700 두 가지만 쓴다(옛 이름 `medium`=400, `semibold`=700으로 이어 둠, 강조 문구만 `--adm-fw-black` 900). 읽는 글 1.5, 버튼·제목 1.35 |
 | 간격 | `--adm-space-1`~`8`, `--adm-gap-control`, `--adm-gap-section`, `--adm-pad-card`, `--adm-pad-page` | 4·8·12·16·20·24·32px, 8 / 24 / 20 / 32px (Seed 4px 단위) |
+| 반 단계 간격 | `--adm-space-0-5` / `-1-5` / `-2-5` | 2 / 6 / 10px (Seed space-2·6·10). 칩·배지·촘촘한 줄 |
 | 본문 폭 | `--adm-content-max` / `--adm-content-max-narrow` | 1440px(목록·상세·대시보드) / 960px(입력 폼). 여백 포함, 왼쪽 정렬 |
-| 모서리 | `--adm-radius-xs` / `-sm` / `-md` / `-lg` / `-pill` | 4(배지·작은 버튼) / 6(버튼·입력) / 10(카드·알림) / 16(팝업) / 9999px (Seed radius-xsmall·small·large·xlarge·full) |
+| 모서리 | `--adm-radius-xs` / `-sm` / `-mid` / `-md` / `-lg` / `-pill` | 4(배지·작은 버튼) / 6(버튼·입력) / 8(안내 상자·고르기 칸) / 10(카드·알림) / 16(팝업) / 9999px (Seed radius-xsmall·small·medium·large·xlarge·full) |
 | 높이 | `--adm-control-h` / `-sm` / `-lg` / `-xl`, 좌우 여백 `--adm-control-pad-x` | 40 / 32 / 48 / 52px, 16px (Seed control-height) |
+| 고정 높이 | `--adm-h-32` / `-36` / `-40` / `-48` / `-52` | 32 / 36 / 40 / 48 / 52px. `--adm-control-h*`는 휴대폰에서 한 칸 커지므로, 화면 폭과 관계없이 같은 높이여야 하는 곳은 이 이름을 쓴다 |
 | 그 밖 | `--adm-shadow-*`, `--adm-ring`, `--adm-scrim`, `--adm-z-*`, `--adm-ease`, `--adm-dur` / `-press`, `--adm-press-scale` | 그림자는 떠 있는 것에만(카드 `xs`는 없음), 키보드 초점 `#0489C5`(blue-600) 2px, 팝업 뒤 막 검정 50%(overlay-dim), 움직임 200ms·누름 100ms·누르면 0.95배 |
 | 휴대폰(760px 이하) | `--adm-control-h` / `-sm` / `-lg`, `--adm-fs-input`, `--adm-fs-title` / `-section`, `--adm-pad-page` / `-card`, `--adm-gap-section`, `--adm-tabbar-h` | 48 / 40 / 52px(Seed 높이 한 칸 위), 16px, 20 / 18px, 16 / 16px, 16px, 아래 메뉴 56px |
 
 - 민트 글자를 흰 바탕에 쓸 때는 `--adm-accent-strong`(`#067661`)을 쓴다(`--adm-accent` `#36D1A7`은 채움색이며 글자로 쓰면 1.9:1로 읽히지 않는다). 민트 채움 위 글자는 `--adm-on-primary`(`#032B25`).
 - 은하수 판 Seed 내보내기는 `yellow` 단계를 민트로 바꿔 두었다. 그대로 쓰면 주의·완료·주요 색이 모두 초록이라 관리자의 주의(대기·확인 필요)는 당근 Seed 원래 노랑 값을 `admin-tokens.css`에 적어 쓴다. `--seed-scale-color-yellow-*`를 주의 색으로 쓰지 않는다.
 - 간격은 4px 단위, 주요(채움) 버튼은 화면당 하나.
+- 입력칸 초점(focus)은 Seed TextField처럼 테두리만 `--adm-ink`(gray-900)로 바꾸고 바깥 띠(`box-shadow` 링)를 두지 않는다(2026-11-24). 민트 테두리·파란 링을 새로 적지 않는다. 키보드 초점 링(`--adm-ring`)은 버튼·칩 같은 누르는 부품의 `:focus-visible`에만 쓴다.
+- CSS의 크기 숫자(px)는 값이 같은 토큰으로 적는다(2026-11-24 기존 1,137곳을 바꿈, 화면은 그대로). 토큰 단계에 없는 값(3·5·7·9·14·18·22px 등)은 바꾸면 화면이 달라지므로 그대로 두고, 그 화면을 우리 부품으로 바꿀 때 함께 걷는다.
 - 상태색은 의미가 정해져 있다: 빨강=삭제·오류·미처리, 노랑=주의·대기, 초록=완료, 파랑=안내·진행, 회색=보류·종료. 꾸밈용으로 쓰지 않고, 색만으로 알리지 않고 아이콘·문장과 함께 쓴다.
 - 카드·목록 줄은 Seed처럼 그림자 없이 구분선으로 나눈다. 그림자는 메뉴·팝업·떠 있는 버튼에만.
 - 화면 본문은 `--adm-content-max`까지 넓어지고 왼쪽에 붙는다. 화면 제목과 본문의 왼쪽 선은 `--adm-pad-page`로 같다. 화면별 CSS에 최대 폭을 따로 적지 않는다(React는 `AdminLayout`의 `.content`, 견적 도구는 `admin-tools.css`가 정한다).
@@ -220,10 +225,11 @@ PC와 같은 화면·같은 부품이 휴대폰 폭에서 앱 모양으로 바�
 | 전체 테스트를 한꺼번에 돌릴 때 `customer-notifications.test.mjs`의 ‘같은 자동 이벤트…한 번만 접수한다’가 가끔 실패 | 코드 문제 아님(기록만) | 그 파일만 돌리면 매번 통과하고 main에서도 같다. 동시 실행 검사가 부하에 따라 시간 차이를 보인다 |
 | `견적관리`·`예약목록`·`예약관리`·`견적만들기`의 일부 민트 고정값(`#06c4a0` 약 17곳, 반투명 민트 20곳) | 1단계에서는 그대로 | 스크립트가 만드는 문자열 안에 있어 5단계에서 화면을 보며 바꾼다 |
 | 나가기 보호의 `window.confirm` 5곳(예약 문서·매거진·상품 편집기와 견적 도구 새로고침·편집기 전환의 ‘초안을 보관하지 못했습니다’ 확인) | 브라우저 기본 확인창 유지 | 그 자리에서 참·거짓을 돌려줘야 하는 함수라 답을 기다리는 공통 확인 창으로 바꾸면 부르는 쪽 동작이 달라진다. 화면 이동 차단(`useBlocker`) 7곳은 `adminConfirmLeave`(`src/components/admin/ui/adminLeaveConfirm.ts`)로 바꿨다. 일반 문의의 문의 패널 닫기는 2026-11-24 Seed 전환 때 부르는 쪽(목록 고르기·필터·새로고침)을 기다리게 바꿔 공통 확인 창(`adminConfirm`)이 됐다 |
-| `public/quote-day-editor.css` 끝 ‘공통 모양(정본)’ 블록의 `!important` 137곳 | 그대로 둠 | 견적서 만들기 STEP 2(정적 HTML)·견적 예약 일정표·상품 예약 일정표가 같은 일차 카드로 보이게 하려고 일부러 가장 강하게 적은 정본이다(`CLAUDE.md` 5절, `tests/quote-day-editor-design.test.mjs`). 견적 도구를 React로 옮기면(5단계) 우리 부품으로 바꾸면서 함께 걷는다 |
-| `src/styles/admin-mobile.css`의 `!important` 87곳 | 그대로 둠 | 아직 우리 부품으로 바뀌지 않은 옛 화면(0% 화면·견적 도구 iframe 바깥 틀)의 휴대폰 크기를 덮는 규칙이다. 화면마다 휴대폰에서 확인하며 걷어야 해서, 해당 화면을 Seed로 바꿀 때 그 화면 규칙을 함께 지운다 |
-| 통합 예약 목록(`AdminReservationManage.tsx`)의 `<table>` 6개·직접 색 26곳 | 그대로 둠 | 숙소에 보내는 몽골어 예약 요청서·엑셀 표의 HTML 문자열과 이름표 캔버스다. 새 창·파일·캔버스는 관리자 변수를 읽지 못한다 |
-| 아이콘: 카테고리·배너 아이콘(`MaterialIcon`), 문서 템플릿 화면 전체(`MaterialIcon as Icon`), 홈 화면 관리의 휴대폰·PC 미리보기 전환 2종(Lucide 선) | Seed 아이콘이 아님 | 카테고리·배너 아이콘은 관리자가 고른 Material 이름이 저장돼 고객 화면에 그대로 쓰이고, 문서 템플릿은 고객 문서 미리보기라 같은 모양이어야 한다. 휴대폰·PC는 저장소에 Seed 모양이 없다(`daangn/seed-icon`의 mobile·laptop을 받으면 바꾼다). 나머지 관리자 아이콘은 2026-11-24부터 모두 Seed(`ui/legacyIconNames.ts`) |
+| `public/quote-day-editor.css` 끝 ‘공통 모양(정본)’ 블록의 `!important` 139곳 | 그대로 둠 | 견적서 만들기 STEP 2(정적 HTML)·견적 예약 일정표·상품 예약 일정표가 같은 일차 카드로 보이게 하려고 일부러 가장 강하게 적은 정본이다(`CLAUDE.md` 5절, `tests/quote-day-editor-design.test.mjs`). 견적 도구를 React로 옮기면(5단계) 우리 부품으로 바꾸면서 함께 걷는다 |
+| `src/styles/admin-mobile.css`의 `!important` 87곳(2026-11-24에도 그대로) | 그대로 둠 | 아직 우리 부품으로 바뀌지 않은 옛 화면(0% 화면·견적 도구 iframe 바깥 틀)의 휴대폰 크기를 덮는 규칙이다. 화면마다 휴대폰에서 확인하며 걷어야 해서, 해당 화면을 Seed로 바꿀 때 그 화면 규칙을 함께 지운다 |
+| 숙소 예약 요청서·엑셀·가이드 피켓 HTML/캔버스(`src/utils/reservationPrintDocuments.ts`) | 직접 색·`<table>` 그대로 | 숙소에 보내는 몽골어 예약 요청서·엑셀 표의 HTML 문자열과 이름표 캔버스다. 새 창·파일·캔버스는 관리자 변수를 읽지 못한다. 2026-11-24 통합 예약 목록(`AdminReservationManage.tsx`)에서 이 파일로 옮겨 목록 화면은 위반 0이다 |
+| 자료에 따라 정해지는 인라인 `style`(막대 길이·위치·사람이 고른 색 — 가이드 배정 현황·대시보드·유입 경로·고객 상세 v7·배너·기획전·3D 아이콘·진행 단계 등) | 그대로 둠 | 값이 자료에서 계산되거나 관리자가 고른 값이라 CSS 변수 이름으로 미리 적을 수 없다 |
+| 아이콘: 카테고리·배너 아이콘(`MaterialIcon`), 문서 템플릿 화면 전체(`MaterialIcon as Icon`) | Seed 아이콘이 아님 | 카테고리·배너 아이콘은 관리자가 고른 Material 이름이 저장돼 고객 화면에 그대로 쓰이고, 문서 템플릿은 고객 문서 미리보기라 같은 모양이어야 한다. 홈 화면 관리의 휴대폰·PC 표시는 2026-11-24 `daangn/seed-icon`의 mobile·laptop을 받아 `IconMobile`·`IconLaptop`으로 바꿨다(Seed에 모니터 모양이 없어 PC는 노트북). 나머지 관리자 아이콘은 2026-11-24부터 모두 Seed(`ui/legacyIconNames.ts`) |
 | 투어 캘린더의 월간 달력 칸·일정 막대·팀 카드(`AdminCalendar.tsx`·`AdminCalendar.css`), 일반 문의의 목록 줄·첫 글자 동그라미(`AdminInquiryManage.tsx`·`.css`) | 우리 부품이 아니라 화면 CSS가 `--adm-*` 변수로 그림(`adm-cal-*`·`adm-iq-*` 버튼) | Seed에 달력 칸·메일함 줄 부품이 없다. 요약·검색·칩·보기 전환·표·배지·알림·빈 화면은 우리 부품을 쓴다 |
 | TSX 인라인 `style`의 민트 고정값(`v7Ui.tsx` 제외) | 1단계에서는 그대로 | 엑셀·인쇄용 HTML, 저장되는 기본색, 캔버스 그림과 섞여 있어 부품 교체(2~3단계) 때 함께 바꾼다 |
 | 배너·카테고리의 기본색 `#0f766e` | 바꾸지 않음 | 화면 꾸밈이 아니라 DB에 저장되는 값이다 |

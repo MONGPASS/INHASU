@@ -22,7 +22,7 @@
   "rawField": 0,
   "rawTable": 0,
   "inlineStyle": 0,
-  "px": 2,
+  "px": 0,
   "hex": 0,
   "nativeDialog": 0
  },
@@ -211,7 +211,7 @@
   "rawField": 0,
   "rawTable": 0,
   "inlineStyle": 0,
-  "px": 1,
+  "px": 0,
   "hex": 0,
   "nativeDialog": 1
  },
@@ -562,7 +562,7 @@
   "rawField": 0,
   "rawTable": 0,
   "inlineStyle": 0,
-  "px": 1,
+  "px": 0,
   "hex": 0,
   "nativeDialog": 0
  },
@@ -652,7 +652,7 @@
   "rawField": 0,
   "rawTable": 0,
   "inlineStyle": 1,
-  "px": 6,
+  "px": 5,
   "hex": 0,
   "nativeDialog": 1
  },
@@ -701,22 +701,13 @@
   "hex": 0,
   "nativeDialog": 0
  },
- "src/pages/AdminQuoteManage.tsx": {
-  "rawButton": 9,
-  "rawField": 1,
-  "rawTable": 1,
-  "inlineStyle": 12,
-  "px": 12,
-  "hex": 0,
-  "nativeDialog": 0
- },
  "src/pages/AdminReservationManage.tsx": {
   "rawButton": 0,
   "rawField": 0,
-  "rawTable": 6,
-  "inlineStyle": 1,
-  "px": 33,
-  "hex": 26,
+  "rawTable": 0,
+  "inlineStyle": 0,
+  "px": 0,
+  "hex": 0,
   "nativeDialog": 0
  },
  "src/pages/AdminResourceManage.tsx": {
@@ -780,13 +771,13 @@
  },
  "public/quote-day-editor.css": {
   "hex": 0,
-  "important": 137,
-  "rawPx": 58
+  "important": 138,
+  "rawPx": 19
  },
  "public/quote-spot-selector.css": {
   "hex": 0,
   "important": 0,
-  "rawPx": 15
+  "rawPx": 5
  },
  "src/components/admin/Admin3DIcon.css": {
   "hex": 0,
@@ -891,7 +882,7 @@
  "src/components/admin/ui/admin-ui.css": {
   "hex": 0,
   "important": 2,
-  "rawPx": 12
+  "rawPx": 2
  },
  "src/components/admin/v7/reservation-detail-cards.css": {
   "hex": 0,
@@ -926,7 +917,7 @@
  "src/pages/AdminContentManage.css": {
   "hex": 2,
   "important": 0,
-  "rawPx": 125
+  "rawPx": 46
  },
  "src/pages/AdminCourseManage.css": {
   "hex": 0,
@@ -1001,7 +992,7 @@
  "src/pages/AdminReservationBoard.module.css": {
   "hex": 0,
   "important": 0,
-  "rawPx": 190
+  "rawPx": 52
  },
  "src/pages/AdminResourceManage.css": {
   "hex": 0,
@@ -1026,22 +1017,22 @@
  "src/styles/admin-console.css": {
   "hex": 0,
   "important": 0,
-  "rawPx": 606
+  "rawPx": 236
  },
  "src/styles/admin-mobile.css": {
   "hex": 0,
   "important": 87,
-  "rawPx": 32
+  "rawPx": 10
  },
  "src/styles/admin-montage.css": {
   "hex": 0,
   "important": 4,
-  "rawPx": 52
+  "rawPx": 14
  },
  "src/styles/admin-shell-v3.css": {
   "hex": 0,
   "important": 0,
-  "rawPx": 47
+  "rawPx": 9
  },
  "src/styles/customer-workspace-editor.css": {
   "hex": 0,
@@ -1061,7 +1052,7 @@
  "src/styles/reservation-inline.css": {
   "hex": 0,
   "important": 0,
-  "rawPx": 144
+  "rawPx": 35
  },
  "src/styles/reservation-itinerary-designer.css": {
   "hex": 0,
@@ -1071,7 +1062,7 @@
  "src/styles/reservation-workspace.css": {
   "hex": 4,
   "important": 1,
-  "rawPx": 138
+  "rawPx": 44
  },
  "public/견적관리.html": {
   "hex": 19,

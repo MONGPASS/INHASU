@@ -24,15 +24,15 @@
   .admin-app-wrapper .app .admin-layout-heading > .cell-muted { display: none; }
   .admin-app-wrapper .app .admin-layout-heading { flex: 1; min-width: 0; padding: 0; overflow: hidden; }
   .admin-app-wrapper .app .page-title { overflow: hidden; font-size: var(--adm-fs-title); font-weight: var(--adm-fw-bold); line-height: var(--adm-topbar-h); letter-spacing: -.02em; white-space: nowrap; text-overflow: ellipsis; }
-  .admin-app-wrapper .app .header .admin-toolbar { flex: none; gap: 6px; min-height: 0; margin: 0 0 0 auto; padding: 0; border: 0; }
-  .admin-app-wrapper .app .header .admin-toolbar .at-icon-button { width: 40px; height: 40px; }
+  .admin-app-wrapper .app .header .admin-toolbar { flex: none; gap: var(--adm-space-1-5); min-height: 0; margin: 0 0 0 auto; padding: 0; border: 0; }
+  .admin-app-wrapper .app .header .admin-toolbar .at-icon-button { width: 40px; height: var(--adm-h-40); }
   .admin-app-wrapper .app:not(.admin-customer-layout) .admin-page-actions { display: flex; flex: 0 0 100%; flex-wrap: nowrap; gap: var(--adm-gap-control); margin: 0 calc(var(--adm-space-3) * -1) 0 calc(var(--adm-pad-page) * -1); padding: 0 var(--adm-pad-page) var(--adm-space-3); overflow-x: auto; scrollbar-width: none; }
   .admin-app-wrapper .app:not(.admin-customer-layout) .admin-page-actions::-webkit-scrollbar { display: none; }
   .admin-app-wrapper .app:not(.admin-customer-layout) .admin-page-actions > * { flex: none; }
   .admin-app-wrapper .app .admin-customer-header-actions { top: calc(var(--adm-topbar-h) - 4px); }
   /* 서랍 메뉴는 아래 메뉴의 ‘전체’로 연다. 아래 메뉴가 없는 편집 화면에서만 위 바에 메뉴 버튼을 둔다. */
   .admin-app-wrapper .app .admin-customer-menu-toggle { display: none; }
-  .admin-app-wrapper .app.is-editing .admin-customer-menu-toggle { display: grid; place-items: center; flex: none; width: 40px; height: 40px; margin-left: -8px; padding: 0; border: 0; border-radius: var(--adm-radius-sm); background: transparent; color: var(--adm-text-2); cursor: pointer; }
+  .admin-app-wrapper .app.is-editing .admin-customer-menu-toggle { display: grid; place-items: center; flex: none; width: 40px; height: var(--adm-h-40); margin-left: -8px; padding: 0; border: 0; border-radius: var(--adm-radius-sm); background: transparent; color: var(--adm-text-2); cursor: pointer; }
   .admin-app-wrapper .app.is-editing .header-in { justify-content: space-between; }
 
   /* ── 서랍형 전체 메뉴 ── */
@@ -40,7 +40,7 @@
   .admin-app-wrapper .app.admin-customer-menu-open .admin-customer-menu-panel { display: block; position: fixed; inset: 0 auto 0 0; z-index: 101; width: min(calc(var(--adm-space-8) * 10), calc(100vw - var(--adm-space-8) * 2)); overflow: hidden; border-radius: 0 var(--adm-space-5) var(--adm-space-5) 0; background: var(--adm-surface); box-shadow: var(--adm-shadow-lg); animation: admDrawerIn var(--adm-dur) var(--adm-ease); }
   .admin-app-wrapper .app.admin-customer-menu-open .side { position: static; inset: auto; width: 100%; height: 100%; padding-top: 52px; box-sizing: border-box; background: var(--adm-surface); border: 0; }
   .admin-app-wrapper .app.admin-customer-menu-open .admin-customer-menu-backdrop { display: block; position: fixed; inset: 0; z-index: 100; border: 0; background: var(--adm-scrim); cursor: pointer; }
-  .admin-app-wrapper .app.admin-customer-menu-open .admin-customer-menu-close { display: grid; place-items: center; position: absolute; top: 8px; right: 8px; z-index: 1; width: 40px; height: 40px; padding: 0; border: 0; border-radius: var(--adm-radius-sm); background: transparent; color: var(--adm-text-2); cursor: pointer; }
+  .admin-app-wrapper .app.admin-customer-menu-open .admin-customer-menu-close { display: grid; place-items: center; position: absolute; top: 8px; right: 8px; z-index: 1; width: 40px; height: var(--adm-h-40); padding: 0; border: 0; border-radius: var(--adm-radius-sm); background: transparent; color: var(--adm-text-2); cursor: pointer; }
   .admin-app-wrapper .app.admin-customer-menu-open :is(.nav-item, .nav-group-toggle) { min-height: var(--adm-control-h); font-size: var(--adm-fs-base); }
 
   /* ── 아래 고정 메뉴 ── */
@@ -66,7 +66,7 @@
   .admin-app-wrapper .app table:is(.tbl, .pd-table)[data-card-table="on"] tbody { display: block; }
   .admin-app-wrapper .app table:is(.tbl, .pd-table)[data-card-table="on"] tr { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--adm-space-3) var(--adm-space-4); padding: var(--adm-space-4); border-bottom: 1px solid var(--adm-line-subtle); }
   .admin-app-wrapper .app table:is(.tbl, .pd-table)[data-card-table="on"] tr[data-card-row="plain"] { display: block; }
-  .admin-app-wrapper .app table:is(.tbl, .pd-table)[data-card-table="on"] td { display: flex; flex-direction: column; align-items: flex-start; gap: 2px; min-width: 0; width: auto !important; padding: 0 !important; border: 0 !important; text-align: left !important; font-size: var(--adm-fs-body); }
+  .admin-app-wrapper .app table:is(.tbl, .pd-table)[data-card-table="on"] td { display: flex; flex-direction: column; align-items: flex-start; gap: var(--adm-space-0-5); min-width: 0; width: auto !important; padding: 0 !important; border: 0 !important; text-align: left !important; font-size: var(--adm-fs-body); }
   .admin-app-wrapper .app table:is(.tbl, .pd-table)[data-card-table="on"] td[data-label]:not([data-label=""])::before { content: attr(data-label); color: var(--adm-text-3); font-size: var(--adm-fs-caption); font-weight: var(--adm-fw-semibold); }
   .admin-app-wrapper .app table:is(.tbl, .pd-table)[data-card-table="on"] td[data-label=""] { display: none; }
   .admin-app-wrapper .app table:is(.tbl, .pd-table)[data-card-table="on"] td[data-primary] { grid-column: 1 / -1; order: -1; font-size: var(--adm-fs-base); }
@@ -118,7 +118,7 @@
 @media (max-width: 760px) {
   /* 바로가기 6칸: 두 칸씩, 화면을 가리지 않게 고정 해제 */
   .admin-app-wrapper .v7-root .v7-nav:not(.v7-tabs) { position: static !important; grid-template-columns: repeat(2, minmax(0, 1fr)) !important; gap: var(--adm-space-2) !important; padding: 0 !important; }
-  .admin-app-wrapper .v7-root .v7-nav .v7-nav-btn { height: var(--adm-control-h-lg) !important; padding: 0 10px !important; gap: 8px !important; border-radius: var(--adm-radius-md) !important; }
+  .admin-app-wrapper .v7-root .v7-nav .v7-nav-btn { height: var(--adm-control-h-lg) !important; padding: 0 var(--adm-space-2-5) !important; gap: var(--adm-space-2) !important; border-radius: var(--adm-radius-md) !important; }
   /* 결제·배정·분류·서류: 한 칸씩(글자가 잘리지 않게) */
   .admin-app-wrapper .v7-root .v7-quad { grid-template-columns: minmax(0, 1fr) !important; }
   /* 왼쪽·오른쪽 열: 같은 폭으로 세로로 */
@@ -128,13 +128,13 @@
   .admin-app-wrapper .v7-root .v7-stay-head { display: none !important; }
   .admin-app-wrapper .v7-root .v7-stay-row { display: flex !important; flex-wrap: wrap; align-items: center; gap: var(--adm-space-2) !important; padding: var(--adm-space-3) var(--adm-space-4) !important; }
   .admin-app-wrapper .v7-root .v7-stay-row > :nth-child(1) { flex: none; }
-  .admin-app-wrapper .v7-root .v7-stay-row > :nth-child(2) { flex: 1 1 0; min-width: 0; flex-direction: row !important; align-items: baseline; gap: 6px !important; }
+  .admin-app-wrapper .v7-root .v7-stay-row > :nth-child(2) { flex: 1 1 0; min-width: 0; flex-direction: row !important; align-items: baseline; gap: var(--adm-space-1-5) !important; }
   .admin-app-wrapper .v7-root .v7-stay-row > :nth-child(3) { flex: 0 0 100%; }
   .admin-app-wrapper .v7-root .v7-stay-row > :is(:nth-child(4), :nth-child(5)) { flex: 1 1 calc(50% - 4px); min-width: 0; }
   .admin-app-wrapper .v7-root .v7-stay-row > :nth-child(6) { flex: 0 0 100%; }
   .admin-app-wrapper .v7-root .v7-stay-row > span > button { width: 100%; max-width: none !important; min-height: var(--adm-control-h); justify-content: space-between; box-sizing: border-box; }
   /* 일정: 일차·날짜 한 줄, 제목 한 줄, 숙소 상태 한 줄 */
-  .admin-app-wrapper .v7-root .v7-day-btn { grid-template-columns: auto minmax(0, 1fr) 20px !important; gap: 4px 10px !important; padding: var(--adm-space-3) var(--adm-space-4) !important; }
+  .admin-app-wrapper .v7-root .v7-day-btn { grid-template-columns: auto minmax(0, 1fr) 20px !important; gap: var(--adm-space-1) var(--adm-space-2-5) !important; padding: var(--adm-space-3) var(--adm-space-4) !important; }
   .admin-app-wrapper .v7-root .v7-day-btn > :nth-child(3) { grid-column: 1 / -1; grid-row: 2; white-space: normal !important; }
   .admin-app-wrapper .v7-root .v7-day-btn > :nth-child(4) { grid-column: 1 / -1; grid-row: 3; justify-self: start; }
   .admin-app-wrapper .v7-root .v7-day-btn > :nth-child(5) { grid-column: 3; grid-row: 1; }
@@ -143,7 +143,7 @@
   /* 가이드·차량 줄: 이름이 잘리지 않게 고르기 버튼을 아랫줄로 */
   .admin-app-wrapper .v7-root .v7-asg-row { flex-wrap: wrap; gap: var(--adm-space-2) var(--adm-space-3) !important; padding: var(--adm-space-3) var(--adm-space-4) !important; }
   .admin-app-wrapper .v7-root .v7-asg-row > :nth-child(1) { width: auto !important; }
-  .admin-app-wrapper .v7-root .v7-asg-row > :nth-child(2) { width: 40px !important; height: 40px !important; }
+  .admin-app-wrapper .v7-root .v7-asg-row > :nth-child(2) { width: 40px !important; height: var(--adm-h-40) !important; }
   .admin-app-wrapper .v7-root .v7-asg-row > button { flex: 0 0 100%; max-width: none !important; min-height: var(--adm-control-h); justify-content: space-between; box-sizing: border-box; }
   /* 진행 단계의 설명: 줄여 쓰지 않고 두 줄까지 */
   /* 맞춤 견적 7단계: 칸이 좁아 이름이 겹치므로 지금 단계 이름만 보인다(나머지는 머리 칩·점으로) */
@@ -167,7 +167,7 @@
   .admin-app-wrapper .pm-preview { flex: none !important; width: auto !important; overflow: visible !important; padding: var(--adm-space-4) !important; border-left: 0 !important; border-top: 1px solid var(--adm-line); }
   /* 매거진 글쓰기: 설정 칸과 본문 편집기를 한 줄에 하나씩(도구줄이 잘리지 않게) */
   .admin-app-wrapper .app .mg-edit-grid { grid-template-columns: minmax(0, 1fr) !important; }
-  .admin-app-wrapper .app .mg-edit-grid .ql-toolbar { display: flex; flex-wrap: wrap; row-gap: 4px; }
+  .admin-app-wrapper .app .mg-edit-grid .ql-toolbar { display: flex; flex-wrap: wrap; row-gap: var(--adm-space-1); }
   /* 화면 가운데 뜨던 창(수동 예약 추가)도 아래 시트로 */
   .admin-app-wrapper .adm-sheet-scrim { align-items: flex-end !important; padding: 0 !important; background: var(--adm-scrim) !important; z-index: var(--adm-z-modal) !important; }
   .admin-app-wrapper .adm-sheet { max-width: none !important; max-height: 92dvh !important; box-sizing: border-box; padding: var(--adm-space-4) var(--adm-space-4) calc(var(--adm-space-4) + var(--adm-safe-bottom)) !important; border-radius: var(--adm-radius-lg) var(--adm-radius-lg) 0 0 !important; animation: admSheetIn var(--adm-dur) var(--adm-ease); }
@@ -211,14 +211,14 @@
   /* 배정: 가이드·차량·숙소 세 칸, 위에 옅은 구분선 */
   .admin-app-wrapper .v7-list-row > .v7-c-assign { display: grid !important; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--adm-space-2) !important; margin-top: var(--adm-space-1); padding-top: var(--adm-space-3); border-top: 1px solid var(--adm-line-subtle); }
   .admin-app-wrapper .v7-list-row > .v7-c-assign:empty { display: none !important; }
-  .admin-app-wrapper .v7-list-row > .v7-c-assign > button { justify-content: center; width: 100%; min-width: 0; height: 32px !important; padding: 0 6px 0 20px !important; }
+  .admin-app-wrapper .v7-list-row > .v7-c-assign > button { justify-content: center; width: 100%; min-width: 0; height: var(--adm-h-32) !important; padding: 0 var(--adm-space-1-5) 0 var(--adm-space-5) !important; }
   .admin-app-wrapper .v7-list-row > .v7-c-assign > button > svg { display: none; }
   .admin-app-wrapper .v7-list-row > .v7-c-assign > button > span { overflow: hidden; text-overflow: ellipsis; }
 
   /* ⑥ 숙소 배정 — 상태 탭은 회색 묶음 전환(글자가 겹치지 않게 옆으로 민다), 예약은 한 건이 카드 한 장 */
-  .admin-app-wrapper .la-tabs { gap: 2px; padding: 3px; border: 0; border-radius: var(--adm-radius-sm); background: var(--adm-neutral-soft); scrollbar-width: none; }
+  .admin-app-wrapper .la-tabs { gap: var(--adm-space-0-5); padding: 3px; border: 0; border-radius: var(--adm-radius-sm); background: var(--adm-neutral-soft); scrollbar-width: none; }
   .admin-app-wrapper .la-tabs::-webkit-scrollbar { display: none; }
-  .admin-app-wrapper .la-tabs button { flex: none; height: 34px; margin: 0; padding: 0 var(--adm-space-3); gap: 6px; border: 0; border-radius: calc(var(--adm-radius-sm) - 2px); }
+  .admin-app-wrapper .la-tabs button { flex: none; height: 34px; margin: 0; padding: 0 var(--adm-space-3); gap: var(--adm-space-1-5); border: 0; border-radius: calc(var(--adm-radius-sm) - 2px); }
   .admin-app-wrapper .la-tabs button b { font-size: var(--adm-fs-small); }
   .admin-app-wrapper .la-tabs button span { font-size: var(--adm-fs-small); }
   .admin-app-wrapper .la-tabs button.is-on { height: 34px; background: var(--adm-surface); box-shadow: 0 1px 2px rgba(23, 23, 25, .08), inset 0 0 0 1px var(--adm-line-subtle); }
@@ -241,10 +241,10 @@
   .admin-app-wrapper .pd-list { gap: var(--adm-space-3); margin: calc(var(--adm-space-4) * -1) calc(var(--adm-pad-page) * -1) calc(var(--adm-space-6) * -1); padding: var(--adm-space-3) var(--adm-pad-page) var(--adm-space-6); background: var(--adm-surface); }
   .admin-app-wrapper .pd-kpis { display: flex; gap: var(--adm-space-2); margin: 0 calc(var(--adm-pad-page) * -1); padding: 0 var(--adm-pad-page); overflow-x: auto; scrollbar-width: none; }
   .admin-app-wrapper .pd-kpis::-webkit-scrollbar { display: none; }
-  .admin-app-wrapper .pd-kpi, .admin-app-wrapper .pd-kpi.is-active, .admin-app-wrapper .pd-kpi.is-active:hover { flex: none; height: 32px; padding: 0 var(--adm-space-3); gap: 0; border: 0; border-radius: var(--adm-radius-sm); background: var(--adm-neutral-soft); }
+  .admin-app-wrapper .pd-kpi, .admin-app-wrapper .pd-kpi.is-active, .admin-app-wrapper .pd-kpi.is-active:hover { flex: none; height: var(--adm-h-32); padding: 0 var(--adm-space-3); gap: 0; border: 0; border-radius: var(--adm-radius-sm); background: var(--adm-neutral-soft); }
   .admin-app-wrapper .pd-kpi.is-active, .admin-app-wrapper .pd-kpi.is-active:hover { background: var(--adm-accent-soft); }
   .admin-app-wrapper .pd-kpi-icon { display: none; }
-  .admin-app-wrapper .pd-kpi > span:last-child { flex-direction: row; align-items: baseline; gap: 4px; }
+  .admin-app-wrapper .pd-kpi > span:last-child { flex-direction: row; align-items: baseline; gap: var(--adm-space-1); }
   .admin-app-wrapper .pd-kpi :is(.pd-kpi-label, strong) { color: var(--adm-text); font-size: var(--adm-fs-small); font-weight: var(--adm-fw-semibold); letter-spacing: 0; line-height: 1; }
   .admin-app-wrapper .pd-kpi.is-active :is(.pd-kpi-label, strong) { color: var(--adm-accent-strong); }
   .admin-app-wrapper .pd-card { overflow: visible; border: 0; border-radius: 0; background: transparent; }
@@ -255,16 +255,16 @@
   .admin-app-wrapper .pd-chips::-webkit-scrollbar { display: none; }
   .admin-app-wrapper .pd-chips button { flex: none; }
   /* 한 상품 = 사진(64) | 이름 / 가격 / 상태·지역·기간 배지, 아래에 조회·예약과 추천·인기, 관리 버튼 */
-  .admin-app-wrapper .app table.pd-table[data-card-table="on"] tr { grid-template-columns: 64px max-content max-content max-content minmax(0, 1fr) auto; grid-template-areas: "thumb name name name name name" "thumb price price price price price" "thumb status cat dur . ." "stats stats stats stats stats flags" "act act act act act act"; gap: 6px; padding: var(--adm-space-3) 0; border-bottom: 1px solid var(--adm-line-subtle); }
+  .admin-app-wrapper .app table.pd-table[data-card-table="on"] tr { grid-template-columns: 64px max-content max-content max-content minmax(0, 1fr) auto; grid-template-areas: "thumb name name name name name" "thumb price price price price price" "thumb status cat dur . ." "stats stats stats stats stats flags" "act act act act act act"; gap: var(--adm-space-1-5); padding: var(--adm-space-3) 0; border-bottom: 1px solid var(--adm-line-subtle); }
   .admin-app-wrapper .app table.pd-table[data-card-table="on"] tr:hover { background: transparent; }
   .admin-app-wrapper .app table.pd-table[data-card-table="on"] td[data-primary], .admin-app-wrapper .pd-table[data-card-table="on"] .pd-product { display: contents; }
   .admin-app-wrapper .pd-table[data-card-table="on"] .pd-grip { display: none; }
-  .admin-app-wrapper .pd-table[data-card-table="on"] .pd-thumb { grid-area: thumb; align-self: start; width: 64px; height: 64px; margin-right: 6px; border-radius: var(--adm-radius-sm); }
+  .admin-app-wrapper .pd-table[data-card-table="on"] .pd-thumb { grid-area: thumb; align-self: start; width: 64px; height: 64px; margin-right: var(--adm-space-1-5); border-radius: var(--adm-radius-sm); }
   .admin-app-wrapper .pd-table[data-card-table="on"] .pd-name { grid-area: name; }
   .admin-app-wrapper .pd-table[data-card-table="on"] .pd-name b { font-size: var(--adm-fs-base); font-weight: var(--adm-fw-semibold); white-space: normal; }
   .admin-app-wrapper .app table.pd-table[data-card-table="on"] td:nth-child(2) { grid-area: cat; }
   .admin-app-wrapper .app table.pd-table[data-card-table="on"] td:nth-child(3) { grid-area: dur; }
-  .admin-app-wrapper .app table.pd-table[data-card-table="on"] td:nth-child(4) { grid-area: price; flex-direction: row; align-items: baseline; gap: 6px; }
+  .admin-app-wrapper .app table.pd-table[data-card-table="on"] td:nth-child(4) { grid-area: price; flex-direction: row; align-items: baseline; gap: var(--adm-space-1-5); }
   .admin-app-wrapper .app table.pd-table[data-card-table="on"] td:nth-child(5) { grid-area: status; }
   .admin-app-wrapper .app table.pd-table[data-card-table="on"] td:nth-child(6) { grid-area: flags; justify-self: end; }
   .admin-app-wrapper .app table.pd-table[data-card-table="on"] td:nth-child(7) { grid-area: stats; justify-content: center; }
@@ -272,7 +272,7 @@
   .admin-app-wrapper .app table.pd-table[data-card-table="on"] td:is(:nth-child(2), :nth-child(3), :nth-child(4), :nth-child(5), :nth-child(6), :nth-child(7))::before { display: none; }
   .admin-app-wrapper .pd-table[data-card-table="on"] .pd-price { color: var(--adm-text-2); font-size: var(--adm-fs-body); font-weight: var(--adm-fw-medium); }
   /* 배지(AdminBadge): 상태는 채움, 지역·기간은 테두리 */
-  .admin-app-wrapper .pd-table[data-card-table="on"] .pd-status { height: 22px; padding: 0 6px; border-radius: var(--adm-radius-xs); font-size: var(--adm-fs-caption); font-weight: var(--adm-fw-semibold); }
-  .admin-app-wrapper .app table.pd-table[data-card-table="on"] td:is(:nth-child(2), :nth-child(3)) { justify-content: center; height: 22px; padding: 0 6px !important; box-sizing: border-box; border: 1px solid var(--adm-line) !important; border-radius: var(--adm-radius-xs); color: var(--adm-text-2); font-size: var(--adm-fs-caption); font-weight: var(--adm-fw-semibold); white-space: nowrap; }
+  .admin-app-wrapper .pd-table[data-card-table="on"] .pd-status { height: 22px; padding: 0 var(--adm-space-1-5); border-radius: var(--adm-radius-xs); font-size: var(--adm-fs-caption); font-weight: var(--adm-fw-semibold); }
+  .admin-app-wrapper .app table.pd-table[data-card-table="on"] td:is(:nth-child(2), :nth-child(3)) { justify-content: center; height: 22px; padding: 0 var(--adm-space-1-5) !important; box-sizing: border-box; border: 1px solid var(--adm-line) !important; border-radius: var(--adm-radius-xs); color: var(--adm-text-2); font-size: var(--adm-fs-caption); font-weight: var(--adm-fw-semibold); white-space: nowrap; }
   .admin-app-wrapper .pd-table[data-card-table="on"] .pd-stats { min-width: 0; }
 }

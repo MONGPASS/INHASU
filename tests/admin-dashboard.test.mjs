@@ -38,7 +38,7 @@ const booking = (id, type, amount) => ({ id, key: `${type}:${id}`, type, reserva
     depositPaid: true, depositReported: false, contractSigned: true });
 const inquiry = (id, type, pending = true) => ({ id, key: `${type}:${id}`, type, name: `${id} 고객`, destination: '고비 사막',
     email: '', phone: '', status: 'new', statusLabel: '신규', createdAt: '2026-10-13T15:10:00Z', pending,
-    href: type === 'quote_request' ? `/admin/quote-desk/inbox?id=${id}` : `/admin/quotes?id=${id}` });
+    href: type === 'quote_request' ? `/admin/quote-desk/inbox?id=${id}` : `/admin/customer-workspace/legacy-quote/${id}` });
 const fixture = () => ({ generatedAt: '2026-10-13T15:15:00Z', today: '2026-10-14',
     bookings: [booking('product-1', 'product', 0), booking('quote-1', 'quote_booking', 3300000)],
     inquiries: [inquiry('custom-request', 'quote_request'), inquiry('legacy-request', 'legacy_quote'), inquiry('answered-request', 'legacy_quote', false)],
@@ -71,7 +71,10 @@ test('대시보드는 서버 통합 집계를 그대로 사용하고 팀 금액 
 test('최근 상품·견적 예약과 신규 문의·오늘 업무를 각 원본 상세 주소로 연결한다', () => {
     const html = render({ data: fixture() });
     for (const href of ['/admin/reservations?id=product-1', '/admin/quote-desk/bookings?id=quote-1',
-        '/admin/quote-desk/inbox?id=custom-request', '/admin/quotes?id=legacy-request']) assert.ok(html.includes(`href="${href}"`), href);
+        '/admin/quote-desk/inbox?id=custom-request', '/admin/customer-workspace/legacy-quote/legacy-request']) assert.ok(html.includes(`href="${href}"`), href);
+    // 옛 맞춤견적 관리(/admin/quotes)는 지웠다 — 견적 바로가기는 모두 새 견적 문의로 간다
+    assert.ok(!html.includes('href="/admin/quotes'), 'old quotes page link');
+    assert.ok(html.includes('href="/admin/quote-desk/inbox"'), 'quote inbox link');
     assert.ok(html.includes('상품 예약'));
     assert.ok(html.includes('견적 예약'));
     assert.ok(html.includes('상품 고객 입금 신고 확인'));
