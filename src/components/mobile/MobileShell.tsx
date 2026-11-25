@@ -104,7 +104,8 @@ export function MobileShell({ children, home = false, title, onBack, bottomBar, 
     const [text, setText] = useState('');
     const [recent, setRecent] = useState<string[]>(readRecent);
 
-    const showSearch = home || expanded;
+    // 검색창은 접어 두고 돋보기 버튼으로 연다(홈 포함, 디자인 ‘홈 · 휴대폰’ 2026-11-25 2차).
+    const showSearch = expanded;
 
     // The header changes height between the home screen and sub screens; sticky bars follow it.
     useLayoutEffect(() => {
@@ -231,17 +232,15 @@ export function MobileShell({ children, home = false, title, onBack, bottomBar, 
                             </span>
                         </a>
                         <div style={{ display: 'flex', flex: 'none' }}>
-                            {!home && (
-                                <button
-                                    type="button"
-                                    onClick={() => { setPanelOpen(!expanded); setExpanded(!expanded); }}
-                                    aria-label="검색"
-                                    aria-expanded={expanded}
-                                    style={{ width: 44, height: 44, border: 0, borderRadius: 9999, background: expanded ? SD.gray100 : 'transparent', color: SD.gray900, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', padding: 0 }}
-                                >
-                                    <SIcon name="search" size={24} stroke={1.6} />
-                                </button>
-                            )}
+                            <button
+                                type="button"
+                                onClick={() => { setPanelOpen(!expanded); setExpanded(!expanded); }}
+                                aria-label="검색"
+                                aria-expanded={expanded}
+                                style={{ width: 44, height: 44, border: 0, borderRadius: 9999, background: expanded ? SD.gray100 : 'transparent', color: SD.gray900, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', padding: 0 }}
+                            >
+                                <SIcon name="search" size={24} stroke={1.6} />
+                            </button>
                             <button
                                 type="button"
                                 onClick={() => { if (!noticeOn) go('/mypage/notifications'); }}
@@ -273,7 +272,7 @@ export function MobileShell({ children, home = false, title, onBack, bottomBar, 
                                     value={text}
                                     onChange={(e) => { setText(e.target.value); setPanelOpen(true); }}
                                     onFocus={() => setPanelOpen(true)}
-                                    autoFocus={!home}
+                                    autoFocus
                                     enterKeyHint="search"
                                     placeholder={SEARCH_PLACEHOLDER}
                                     aria-label="투어 검색"

@@ -1,4 +1,5 @@
-import qmTours from '../../assets/mobile/quick-menu/tours.svg';
+// 투어 상품: 오너가 준 비행기 선 아이콘(2026-11-25)
+import qmTours from '../../assets/mobile/quick-menu/tours-plane.svg';
 import qmQuote from '../../assets/mobile/quick-menu/quote.svg';
 import qmMates from '../../assets/mobile/quick-menu/mates.svg';
 import qmMagazine from '../../assets/mobile/quick-menu/magazine.svg';

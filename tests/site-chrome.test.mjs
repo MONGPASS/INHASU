@@ -25,6 +25,9 @@ test('메뉴 주소·하단 메뉴·회사 정보가 사이트 원본과 같다'
     const header = read('src/components/layout-desktop/DesktopHeader.tsx'), footer = read('src/components/layout-desktop/DesktopFooter.tsx'), tabs = read('src/components/mobile/MobileTabBar.tsx');
     for (const [, label, path] of header.matchAll(/\{ id: '\w+', label: '([^']+)', path: '([^']+)'/g)) assert.ok(chrome.includes(`["${label}", "${path}"]`), `상단 메뉴 ${label}`);
     for (const [, label, path] of footer.matchAll(/\{ label: '([^']+)', path: '([^']+)' \}/g)) assert.ok(chrome.includes(`["${label}", "${path}"]`), `바닥 ${label}`);
+    const compactLinks = footer.slice(footer.indexOf('const COMPACT_LINKS'), footer.indexOf('];', footer.indexOf('const COMPACT_LINKS')));
+    assert.ok(compactLinks.length > 0, '휴대폰 바닥 링크 목록');
+    for (const [, label] of compactLinks.matchAll(/label: '([^']+)'/g)) assert.ok(chrome.slice(chrome.indexOf('COMPACT_LINKS')).includes(`["${label}",`), `휴대폰 바닥 ${label}`);
     for (const [, label, path] of tabs.matchAll(/key: '(?:home|search|booking|wish)', label: '([^']+)', path: '([^']+)'/g)) assert.ok(chrome.includes(`["${label}", "${path}"`), `하단 메뉴 ${label}`);
     assert.equal([...tabs.matchAll(/key: '(?:home|search|booking|wish)', label: '/g)].length, 4, '하단 메뉴 4칸 + 마이페이지');
     for (const fact of ['몽골리아 은하수 (SUUN ZAM)', 'Davaasuren Bilguun', '9011640064', '6124313', '+976 9594 5838 · +976 8010 7766', 'DACO센터 3층 306호', '헬로볼라', 'Davaasuren Bolor', '730-54-00614', '제2022-서울중랑-1776호', 'bolor1@hanmail.net']) {
