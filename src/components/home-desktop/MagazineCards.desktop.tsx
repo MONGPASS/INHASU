@@ -4,7 +4,7 @@ import { ResponsiveProductImage } from '../common/ResponsiveProductImage';
 import type { HomeData } from '../../hooks/useHomeData';
 import { cleanTitle, isUsableImage } from '../desktop-primitives/mwTokens';
 import { SD, SD_CONTAINER, SRoundButton, SSectionHead } from '../site-seed/seed';
-import { MAGAZINE_TINTS } from '../home/homeContent';
+import { HOME_IMG, MAGAZINE_TINTS } from '../home/homeContent';
 import { SeeAllLink } from './TourCard.desktop';
 
 interface Props {
@@ -39,7 +39,7 @@ export function MagazineCardsDesktop({ magazines }: Props) {
 
     return (
         <section id="magazine" aria-label="여행 매거진" style={{ ...SD_CONTAINER, paddingBottom: 96, display: 'flex', flexDirection: 'column', gap: 24 }}>
-            <SSectionHead icon="bookOpen" title="몽골 찐 여행 정보" sub="몽골 떠나기 전에 알고 가면 좋은 꿀팁들" more={<SeeAllLink to="/travel-guide" />} />
+            <SSectionHead icon="bookOpen" iconImage={HOME_IMG.magazineBell} title="몽골 찐 여행 정보" sub="몽골 떠나기 전에 알고 가면 좋은 꿀팁들" more={<SeeAllLink to="/travel-guide" />} />
             <div ref={viewport} role="region" aria-label="여행 매거진 목록" style={{ overflow: 'hidden', marginRight: -32, paddingRight: 32 }}>
                 <div style={{ display: 'flex', gap: GAP, transition: 'transform 400ms ease', transform: `translateX(${-shift}px)` }}>
                     {items.map((m, i) => {

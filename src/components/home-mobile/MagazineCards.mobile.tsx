@@ -1,6 +1,6 @@
 import type { HomeData } from '../../hooks/useHomeData';
 import { cleanTitle, isUsableImage } from '../desktop-primitives/mwTokens';
-import { MAGAZINE_TINTS } from '../home/homeContent';
+import { HOME_IMG, MAGAZINE_TINTS } from '../home/homeContent';
 import { MPhoto } from '../mobile/mobileUi';
 import { SD } from '../site-seed/seed';
 import { linkTo, useGo } from './homeMobileData';
@@ -14,7 +14,7 @@ export function MagazineCardsMobile({ magazines }: { magazines: HomeData['magazi
 
     return (
         <section id="magazine" aria-label="여행 매거진" style={{ paddingTop: 44, display: 'flex', flexDirection: 'column', gap: 16 }}>
-            <SectionHeadMobile icon="bookOpen" title="몽골 여행 매거진" sub="함께 떠나는 사람에 맞춰 고른 몽골 여행 이야기" link="/travel-guide" />
+            <SectionHeadMobile icon="bookOpen" iconImage={HOME_IMG.magazineBell} title="몽골 여행 매거진" sub="함께 떠나는 사람에 맞춰 고른 몽골 여행 이야기" link="/travel-guide" />
             <div data-noscroll="" style={{ ...HSCROLL, gap: 12 }}>
                 {items.map((m, i) => {
                     const title = cleanTitle(m.title);
