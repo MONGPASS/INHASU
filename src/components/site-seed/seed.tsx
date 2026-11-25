@@ -83,7 +83,7 @@ export function SSectionHead({ icon, iconImage, title, sub, more, size = 28 }: {
             <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                 <h2 style={{ margin: 0, display: 'flex', alignItems: 'center', gap: 8, fontSize: size, fontWeight: 700, lineHeight: 1.35, color: SD.gray900 }}>
                     {iconImage
-                        ? <img src={iconImage} alt="" width={34} height={34} style={{ width: 34, height: 34, objectFit: 'contain', flex: 'none' }} />
+                        ? <img src={iconImage} alt="" width={44} height={44} style={{ width: 44, height: 44, margin: '-4px 0', objectFit: 'contain', flex: 'none' }} />
                         : icon && <SIcon name={icon} size={28} stroke={1.7} />}
                     <span>{title}</span>
                 </h2>
