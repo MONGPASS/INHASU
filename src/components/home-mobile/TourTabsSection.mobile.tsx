@@ -2,6 +2,7 @@ import { useState } from 'react';
 import type { Category } from '../../types/category';
 import { inCategory, type HomeProduct } from '../home-desktop/homeDesktopData';
 import { SD } from '../site-seed/seed';
+import { HOME_IMG } from '../home/homeContent';
 import { linkTo, useGo } from './homeMobileData';
 import { ChipRow, HSCROLL, SectionHeadMobile } from './SectionHead.mobile';
 import { TourCardMobile } from './TourCard.mobile';
@@ -29,7 +30,7 @@ export function TourTabsSectionMobile({ products, categories }: Props) {
 
     return (
         <section id="tours" style={{ paddingTop: 40, display: 'flex', flexDirection: 'column', gap: 16 }}>
-            <SectionHeadMobile icon="trophyCup" title="지금 떠나기 좋은 몽골 투어" sub="한국어 가이드 동행, 게르 숙박이 포함된 투어예요" link={currentCat ? `/category/${currentCat.id}` : '/products'} />
+            <SectionHeadMobile icon="trophyCup" iconImage={HOME_IMG.trophy} title="지금 떠나기 좋은 몽골 투어" sub="한국어 가이드 동행, 게르 숙박이 포함된 투어예요" link={currentCat ? `/category/${currentCat.id}` : '/products'} />
             <ChipRow label="투어 분류" value={current.id} onChange={setTab}
                 items={tabs.map((t) => ({ id: t.id, label: t.count > 0 ? `${t.label} ${t.count}` : t.label, disabled: t.count === 0 && t.id !== 'all' }))} />
             {list.length === 0 ? (

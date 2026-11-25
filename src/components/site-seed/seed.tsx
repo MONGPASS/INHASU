@@ -76,13 +76,16 @@ export function SStar({ size = 14 }: { size?: number }) {
     );
 }
 
-/** 구역 제목(28px 아이콘 + 제목 + 설명)과 오른쪽 ‘전체 보기’. */
-export function SSectionHead({ icon, title, sub, more, size = 28 }: { icon?: string; title: string; sub?: string; more?: ReactNode; size?: number }) {
+/** 구역 제목(28px 아이콘 + 제목 + 설명)과 오른쪽 ‘전체 보기’. iconImage를 주면 선 아이콘 대신 그 그림(색 있는 아이콘)을 쓴다. */
+export function SSectionHead({ icon, iconImage, title, sub, more, size = 28 }: { icon?: string; iconImage?: string; title: string; sub?: string; more?: ReactNode; size?: number }) {
     return (
         <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'flex-end', justifyContent: 'space-between', gap: 16 }}>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                 <h2 style={{ margin: 0, display: 'flex', alignItems: 'center', gap: 8, fontSize: size, fontWeight: 700, lineHeight: 1.35, color: SD.gray900 }}>
-                    {icon && <SIcon name={icon} size={28} stroke={1.7} />}<span>{title}</span>
+                    {iconImage
+                        ? <img src={iconImage} alt="" width={34} height={34} style={{ width: 34, height: 34, objectFit: 'contain', flex: 'none' }} />
+                        : icon && <SIcon name={icon} size={28} stroke={1.7} />}
+                    <span>{title}</span>
                 </h2>
                 {sub && <p style={{ margin: 0, fontSize: 16, color: SD.gray700 }}>{sub}</p>}
             </div>

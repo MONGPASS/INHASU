@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import type { Category } from '../../types/category';
 import { MW } from '../desktop-primitives/mwTokens';
 import { SD, SD_CONTAINER, SSectionHead } from '../site-seed/seed';
+import { HOME_IMG } from '../home/homeContent';
 import { inCategory, type HomeProduct } from './homeDesktopData';
 import { SeeAllLink, TourCardDesktop } from './TourCard.desktop';
 
@@ -28,7 +29,7 @@ export function TourTabsSectionDesktop({ products, categories }: Props) {
 
     return (
         <section id="tours" style={{ ...SD_CONTAINER, paddingTop: 80, display: 'flex', flexDirection: 'column', gap: 28 }}>
-            <SSectionHead icon="trophyCup" title="지금 떠나기 좋은 몽골 투어" sub="풀패키지와 실속형 패키지에서 선택하고 떠나요!"
+            <SSectionHead icon="trophyCup" iconImage={HOME_IMG.trophy} title="지금 떠나기 좋은 몽골 투어" sub="풀패키지와 실속형 패키지에서 선택하고 떠나요!"
                 more={<SeeAllLink to={currentCat ? `/category/${currentCat.id}` : '/products'} />} />
 
             <div role="tablist" aria-label="투어 분류" style={{ display: 'flex', gap: 4, overflowX: 'auto', scrollbarWidth: 'none', marginLeft: -16, borderBottom: `1px solid ${SD.gray200}` }}>

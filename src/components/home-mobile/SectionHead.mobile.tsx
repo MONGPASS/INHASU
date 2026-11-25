@@ -6,13 +6,14 @@ import { linkTo, useGo } from './homeMobileData';
 export const HSCROLL: CSSProperties = { display: 'flex', overflowX: 'auto', padding: '0 20px', scrollPadding: '0 20px', scrollbarWidth: 'none' };
 
 /** 휴대폰 홈 구역 제목: 22px 아이콘 + 제목 + 설명, 오른쪽 ‘전체 ›’. */
-export function SectionHeadMobile({ icon, title, sub, link }: { icon: string; title: string; sub?: string; link?: string }) {
+export function SectionHeadMobile({ icon, iconImage, title, sub, link }: { icon: string; iconImage?: string; title: string; sub?: string; link?: string }) {
     const go = useGo();
     return (
         <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 12, padding: '0 20px' }}>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 4, minWidth: 0 }}>
                 <h2 style={{ margin: 0, display: 'flex', alignItems: 'center', gap: 6, fontSize: 20, fontWeight: 700, lineHeight: 1.35, color: SD.gray900, wordBreak: 'keep-all' }}>
-                    <SIcon name={icon} size={22} stroke={1.7} /><span>{title}</span>
+                    {iconImage ? <img src={iconImage} alt="" width={26} height={26} style={{ width: 26, height: 26, objectFit: 'contain', flex: 'none' }} /> : <SIcon name={icon} size={22} stroke={1.7} />}
+                    <span>{title}</span>
                 </h2>
                 {sub && <p style={{ margin: 0, fontSize: 13, color: SD.gray700 }}>{sub}</p>}
             </div>
