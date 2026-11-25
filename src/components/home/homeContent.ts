@@ -15,6 +15,8 @@ export const HOME_IMG = {
     winterForest: `${IMG}/winter-forest-ride.jpg`,
     /** ‘지금 떠나기 좋은 몽골 투어’ 제목 옆 금색 트로피(오너가 준 SVG). */
     trophy: `${IMG}/icons/trophy.svg`,
+    /** ‘이달의 추천 PICK’ 제목 옆 하트 말풍선(오너가 준 SVG — 안에 큰 PNG가 들어 있어 6MB라 176px WebP로 줄임). */
+    pickHeart: `${IMG}/icons/pick-heart.webp`,
 } as const;
 
 /** 상품을 테마로 묶는 낱말(상품 이름·분류·태그에서 찾는다). 분류 체계가 바뀌어도 이름에 낱말이 있으면 묶인다. */

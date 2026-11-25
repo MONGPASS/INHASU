@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { isUsableImage, won } from '../desktop-primitives/mwTokens';
 import { SD, SD_CONTAINER, SIcon } from '../site-seed/seed';
 import type { Category } from '../../types/category';
-import { PICK_TABS } from '../home/homeContent';
+import { HOME_IMG, PICK_TABS } from '../home/homeContent';
 import { PICK_FALLBACK, PICK_TAB_IMAGES, slotProducts, type HomeSettings } from '../home/homeSettings';
 import type { HomeProduct } from './homeDesktopData';
 import { packageLabel } from './TourCard.desktop';
@@ -65,10 +65,10 @@ export function MonthlyPickDesktop({ products, categories, settings }: { product
     return (
         <section aria-label="이달의 추천 PICK" style={{ background: SD.gray50 }}>
             <div style={{ ...SD_CONTAINER, paddingTop: 72, paddingBottom: 64, display: 'flex', flexWrap: 'wrap', gap: '40px 56px' }}>
-                <div style={{ flex: '0 0 220px', display: 'flex', flexDirection: 'column', gap: 32 }}>
+                <div style={{ flex: '0 0 248px', display: 'flex', flexDirection: 'column', gap: 32 }}>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                        <h2 style={{ margin: 0, display: 'flex', alignItems: 'center', gap: 8, fontSize: 26, fontWeight: 700, lineHeight: 1.35, color: SD.gray900 }}>
-                            <SIcon name="pushPin" size={28} stroke={1.7} /><span>이달의 추천 PICK</span>
+                        <h2 style={{ margin: 0, display: 'flex', alignItems: 'center', gap: 8, fontSize: 26, fontWeight: 700, lineHeight: 1.35, color: SD.gray900, whiteSpace: 'nowrap' }}>
+                            <img src={HOME_IMG.pickHeart} alt="" width={44} height={44} style={{ width: 44, height: 44, margin: '-4px 0', objectFit: 'contain', flex: 'none' }} /><span>이달의 추천 PICK</span>
                         </h2>
                         <p style={{ margin: 0, fontSize: 15, color: SD.gray700 }}>이번 시즌에 떠나기 좋은 몽골 여행</p>
                     </div>

@@ -3,7 +3,7 @@ import { isUsableImage, won } from '../desktop-primitives/mwTokens';
 import type { HomeProduct } from '../home-desktop/homeDesktopData';
 import { packageLabel } from '../home-desktop/TourCard.desktop';
 import type { Category } from '../../types/category';
-import { PICK_TABS } from '../home/homeContent';
+import { HOME_IMG, PICK_TABS } from '../home/homeContent';
 import { PICK_FALLBACK, PICK_TAB_IMAGES, slotProducts, type HomeSettings } from '../home/homeSettings';
 import { MPhoto } from '../mobile/mobileUi';
 import { SD } from '../site-seed/seed';
@@ -47,7 +47,7 @@ export function MonthlyPickMobile({ products, categories, settings }: { products
 
     return (
         <section aria-label="이달의 추천 PICK" style={{ background: SD.gray50, padding: '40px 0 36px', display: 'flex', flexDirection: 'column', gap: 16 }}>
-            <SectionHeadMobile icon="pushPin" title="이달의 추천 PICK" sub="이번 시즌에 떠나기 좋은 몽골 여행" />
+            <SectionHeadMobile icon="pushPin" iconImage={HOME_IMG.pickHeart} title="이달의 추천 PICK" sub="이번 시즌에 떠나기 좋은 몽골 여행" />
             <ChipRow label="추천 테마" value={current.id} onChange={setTab} items={tabs.map((t) => ({ id: t.id, label: t.label }))} />
             {list.length === 0 ? (
                 <p style={{ margin: 0, padding: '40px 20px', fontSize: 14, color: SD.gray700 }}>이 테마의 상품을 준비하고 있어요.</p>
