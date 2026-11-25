@@ -1,33 +1,37 @@
 import type { HomeData } from '../../hooks/useHomeData';
+import { useHomeSettings } from '../../hooks/useHomeSettings';
+import { SD, SD_CONTAINER } from '../site-seed/seed';
+import { ConnectSection } from '../home/ConnectSection';
+import { ROW_FALLBACK, findCategory, slotLink, slotProducts } from '../home/homeSettings';
 import { HeroCarouselDesktop } from './HeroCarousel.desktop';
 import { TourTabsSectionDesktop } from './TourTabsSection.desktop';
 import { ThemeRowSectionDesktop } from './ThemeRowSection.desktop';
+import { BenefitBandDesktop } from './BenefitBand.desktop';
+import { MonthlyPickDesktop } from './MonthlyPick.desktop';
 import { MagazineCardsDesktop } from './MagazineCards.desktop';
 import { ReviewCardsDesktop } from './ReviewCards.desktop';
-import { categoryImage, inCategory, isPublished, useHomeReviews } from './homeDesktopData';
+import { VideoPlaylistDesktop } from './VideoPlaylist.desktop';
+import { isPublished, useHomeReviews } from './homeDesktopData';
 
 interface Props {
     data: HomeData;
     isLoading: boolean;
 }
 
-/** PC home page (Claude Design "Milkyway Japan Home"). */
+/**
+ * PC 홈 (Claude Design ‘홈’, 2026-11-25).
+ * 기획전 배너 → 추천 투어(분류 탭) → 테마 줄 2개 → 혜택 띠 → 이달의 추천 PICK → 후기 → 매거진 → 영상 → 소셜·문의·협력 업체.
+ * 상품·후기·매거진·배너는 관리자에 등록한 자료이고, 고정 문구·사진은 home/homeContent.ts에 있다.
+ * 테마에 보일 상품과 혜택 배너는 관리자 ‘홈 화면 관리’에서 정한다(home/homeSettings.ts).
+ */
 export function HomeDesktop({ data, isLoading }: Props) {
-    const { reviews, stats } = useHomeReviews();
+    const { reviews } = useHomeReviews();
+    const { settings, isPending: settingsPending } = useHomeSettings();
     const { categories, magazines } = data;
     const products = data.products.filter(isPublished);
 
-    const cat = (id: string) => categories.find((c) => c.id === id);
-    const gobi = cat('gobi-desert');
-    const horse = cat('horse-riding-tour');
-    const central = cat('central-mongolia');
-
-    const gobiRow = products.filter((p) => (gobi && inCategory(p, gobi)) || (horse && inCategory(p, horse)));
-    const centralRow = central ? products.filter((p) => inCategory(p, central)) : [];
-    const firstImage = (list: typeof products) => list.find((p) => p.mainImages[0])?.mainImages[0] || '';
-
     return (
-        <>
+        <div style={{ background: SD.white, color: SD.gray900 }}>
             <HeroCarouselDesktop products={products} />
 
             {/* SEO H1 — visible to crawlers, visually offscreen */}
@@ -38,36 +42,29 @@ export function HomeDesktop({ data, isLoading }: Props) {
                 </p>
             </section>
 
-            {!isLoading && (
+            {!isLoading && !settingsPending && (
                 <>
                     <TourTabsSectionDesktop products={products} categories={categories} />
 
-                    <section style={{ maxWidth: 1200, margin: '0 auto', padding: '96px 24px 0', display: 'flex', flexDirection: 'column', gap: 72 }}>
-                        <ThemeRowSectionDesktop
-                            title="MILKYWAY × GOBI"
-                            subtitle="모래언덕·기암·공룡 화석의 땅을 누비는 고비사막 투어"
-                            products={gobiRow}
-                            stats={stats}
-                            image={categoryImage(gobi) || firstImage(gobiRow)}
-                            imageAlt="고비사막 투어 | 몽골 여행"
-                            link="/category/gobi-desert"
-                        />
-                        <ThemeRowSectionDesktop
-                            title="별밤을 만나는 중앙 몽골"
-                            subtitle="대초원·하르호린·고르히 계곡을 누비는 게르 숙박 투어"
-                            products={centralRow}
-                            stats={stats}
-                            image={categoryImage(central) || firstImage(centralRow)}
-                            imageAlt="중앙 몽골 투어 | 몽골 여행"
-                            link="/category/central-mongolia"
-                            reverse
-                        />
+                    <section aria-label="테마 여행" style={{ ...SD_CONTAINER, paddingTop: 96, display: 'flex', flexDirection: 'column', gap: 64 }}>
+                        {settings.themeRows.map((row, i) => (
+                            <ThemeRowSectionDesktop key={i} title={row.title} subtitle={row.sub} products={slotProducts(products, categories, row.categoryId, ROW_FALLBACK[i])}
+                                image={row.image} imageAlt={findCategory(categories, row.categoryId)?.name || row.title} link={slotLink(categories, row.categoryId)} reverse={i % 2 === 1} />
+                        ))}
                     </section>
+
+                    {/* 혜택 배너를 모두 지웠으면 띠가 빠지므로 그 자리의 여백만 둔다 */}
+                    {settings.bands.length > 0 ? <BenefitBandDesktop bands={settings.bands} /> : <div aria-hidden="true" style={{ height: 96 }} />}
+                    <MonthlyPickDesktop products={products} categories={categories} settings={settings} />
                 </>
             )}
 
+            {/* 후기가 없으면 후기 구역이 통째로 빠지므로 매거진 위 여백을 대신 둔다 */}
+            {reviews.length === 0 && <div aria-hidden="true" style={{ height: 96 }} />}
+            <ReviewCardsDesktop reviews={reviews} products={products} />
             <MagazineCardsDesktop magazines={magazines} />
-            <ReviewCardsDesktop reviews={reviews} />
-        </>
+            {!settingsPending && <VideoPlaylistDesktop videos={settings.videos} />}
+            <ConnectSection />
+        </div>
     );
 }

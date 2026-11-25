@@ -1,45 +1,52 @@
-import { MW } from '../desktop-primitives/mwTokens';
-import type { HomeReview } from '../home-desktop/homeDesktopData';
-import { ANIMALS, AnimalAvatar } from '../reviews-desktop/AnimalAvatar';
+import { isUsableImage } from '../desktop-primitives/mwTokens';
+import type { HomeProduct, HomeReview } from '../home-desktop/homeDesktopData';
+import { HOME_IMG } from '../home/homeContent';
+import { MPhoto } from '../mobile/mobileUi';
+import { SD, SIcon, SStar } from '../site-seed/seed';
 import { linkTo, useGo } from './homeMobileData';
-import { SectionHeadMobile } from './SectionHead.mobile';
+import { HSCROLL, SectionHeadMobile } from './SectionHead.mobile';
 
-/** "REAL REVIEWS": swipeable cards with the latest approved reviews. */
-export function ReviewCardsMobile({ reviews }: { reviews: HomeReview[] }) {
+/** 후기에 연결된 상품 사진이 없을 때 돌려 쓰는 사진. */
+const FALLBACK = [HOME_IMG.winterGer, HOME_IMG.steppeGallop, HOME_IMG.winterLake, HOME_IMG.miniDesert, HOME_IMG.winterForest];
+
+/** 믿고 보는 여행 리뷰(휴대폰): 사진 + 별점 + 세 줄 후기 + 상품·작성자 카드를 옆으로 넘긴다. 후기가 없으면 구역을 뺀다. */
+export function ReviewCardsMobile({ reviews, products }: { reviews: HomeReview[]; products: HomeProduct[] }) {
     const go = useGo();
-    const items = reviews.slice(0, 4);
+    const items = reviews.slice(0, 10);
     if (items.length === 0) return null;
 
     return (
-        <section id="reviews" style={{ padding: '48px 0 0' }}>
-            <SectionHeadMobile eyebrow="REAL REVIEWS" title="실제 여행객 후기" link="/reviews" />
-
-            <div data-noscroll="" style={{ display: 'flex', gap: 12, overflowX: 'auto', scrollSnapType: 'x mandatory', scrollbarWidth: 'none', padding: '18px 16px 2px', scrollPadding: '0 16px' }}>
-                {items.map((r, i) => (
-                    <a
-                        key={r.id || i}
-                        {...linkTo(go, `/reviews/${r.id}`)}
-                        style={{ flex: '0 0 80%', minWidth: 0, scrollSnapAlign: 'start', display: 'flex', flexDirection: 'column', gap: 12, padding: 20, border: `1px solid ${MW.line}`, borderRadius: 22, background: '#fff', color: MW.navy, boxSizing: 'border-box', textDecoration: 'none' }}
-                    >
-                        <span style={{ color: MW.star, fontSize: 14, letterSpacing: 2 }} aria-label={`평점 ${r.rating} / 5`}>
-                            {'★'.repeat(r.rating)}
-                            <span style={{ color: MW.line2 }}>{'★'.repeat(5 - r.rating)}</span>
-                        </span>
-                        <p style={{ margin: 0, fontSize: 13, lineHeight: 1.85, color: MW.ink2, display: '-webkit-box', WebkitLineClamp: 5, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
-                            {r.content}
-                        </p>
-                        <div style={{ marginTop: 'auto', display: 'flex', alignItems: 'center', gap: 10, paddingTop: 12, borderTop: `1px solid ${MW.line3}` }}>
-                            <span style={{ width: 40, height: 40, borderRadius: '50%', overflow: 'hidden', flexShrink: 0, display: 'flex' }}>
-                                <AnimalAvatar kind={ANIMALS[i % ANIMALS.length]} />
-                            </span>
-                            <span style={{ display: 'flex', flexDirection: 'column', minWidth: 0 }}>
-                                <span style={{ fontSize: 13, fontWeight: 700 }}>{r.author ? `${r.author} 님` : '고객님'}</span>
-                                <span style={{ fontSize: 11, color: MW.mute, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{r.productName}</span>
-                            </span>
-                        </div>
-                    </a>
-                ))}
+        <section id="reviews" style={{ paddingTop: 44, display: 'flex', flexDirection: 'column', gap: 16 }}>
+            <SectionHeadMobile icon="reviewStar" title="믿고 보는 여행 리뷰, REAL VIEW" sub="다녀온 분들이 직접 남긴 몽골 여행 후기예요" />
+            <div data-noscroll="" style={{ ...HSCROLL, gap: 12 }}>
+                {items.map((review, i) => {
+                    const product = products.find((p) => p.id === review.productId);
+                    const photo = product?.mainImages.find(isUsableImage) || FALLBACK[i % FALLBACK.length];
+                    return (
+                        <article key={review.id || i} style={{ flex: '0 0 200px', display: 'flex', flexDirection: 'column', border: `1px solid ${SD.gray200}`, borderRadius: 12, overflow: 'hidden', background: SD.white }}>
+                            <div style={{ position: 'relative', aspectRatio: '1 / 1', background: SD.gray100 }}>
+                                <MPhoto src={photo} alt={`${review.productName} 여행 사진`} sizes="200px" />
+                            </div>
+                            <div style={{ flex: '1 1 auto', display: 'flex', flexDirection: 'column', gap: 8, padding: 12 }}>
+                                <span role="img" aria-label={`별점 5점 만점에 ${review.rating}점`} style={{ display: 'flex', gap: 1 }}>
+                                    {Array.from({ length: 5 }, (_, k) => <span key={k} style={{ display: 'flex', color: k < review.rating ? SD.mint500 : SD.gray300 }}><SStar size={12} /></span>)}
+                                </span>
+                                <p style={{ margin: 0, fontSize: 13, lineHeight: 1.5, color: SD.gray900, display: '-webkit-box', WebkitLineClamp: 3, WebkitBoxOrient: 'vertical', overflow: 'hidden', minHeight: 58 }}>
+                                    {review.content}
+                                </p>
+                                <div style={{ marginTop: 'auto', paddingTop: 10, borderTop: `1px solid ${SD.gray200}`, display: 'flex', flexDirection: 'column', gap: 2, minWidth: 0 }}>
+                                    <span style={{ fontSize: 12, color: SD.gray700, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{review.productName}</span>
+                                    {review.author && <span style={{ fontSize: 11, color: SD.gray600 }}>{review.author} 님</span>}
+                                </div>
+                            </div>
+                        </article>
+                    );
+                })}
             </div>
+            <a {...linkTo(go, '/reviews')} style={{ margin: '8px 20px 0', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4, height: 48, border: `1px solid ${SD.gray900}`, borderRadius: 6, color: SD.gray900,
+                fontSize: 15, fontWeight: 700, textDecoration: 'none' }}>
+                후기 더 보기<SIcon name="chevronRight" size={16} stroke={1.8} />
+            </a>
         </section>
     );
 }

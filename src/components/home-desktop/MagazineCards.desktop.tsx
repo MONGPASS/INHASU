@@ -1,80 +1,84 @@
+import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ResponsiveProductImage } from '../common/ResponsiveProductImage';
 import type { HomeData } from '../../hooks/useHomeData';
-import { MW, MW_EYEBROW, MW_FONT_EN, MW_SEE_ALL, cleanTitle, isUsableImage } from '../desktop-primitives/mwTokens';
+import { cleanTitle, isUsableImage } from '../desktop-primitives/mwTokens';
+import { SD, SD_CONTAINER, SRoundButton, SSectionHead } from '../site-seed/seed';
+import { HOME_IMG, MAGAZINE_TINTS } from '../home/homeContent';
+import { SeeAllLink } from './TourCard.desktop';
 
 interface Props {
     magazines: HomeData['magazines'];
 }
 
+const CARD = 340, GAP = 20;
+
+/** 몽골 찐 여행 정보: 세로로 긴 사진 카드(아래쪽 색 덮개 + 분류·제목)를 옆으로 넘긴다. 아래에 번호·진행 선·이전·다음. */
 export function MagazineCardsDesktop({ magazines }: Props) {
     const navigate = useNavigate();
-    const items = magazines.slice(0, 3);
+    const items = magazines.slice(0, 8);
+    const viewport = useRef<HTMLDivElement>(null);
+    const [index, setIndex] = useState(0);
+    const [room, setRoom] = useState(0);
+
+    useEffect(() => {
+        const measure = () => {
+            const width = viewport.current?.clientWidth || 0;
+            setRoom(Math.max(0, items.length * CARD + Math.max(0, items.length - 1) * GAP - width));
+        };
+        measure();
+        window.addEventListener('resize', measure);
+        return () => window.removeEventListener('resize', measure);
+    }, [items.length]);
+
     if (items.length === 0) return null;
 
+    const n = items.length;
+    const shift = n > 1 ? Math.round((room * index) / (n - 1)) : 0;
+    const pad = (value: number) => String(value).padStart(2, '0');
+
     return (
-        <section id="magazine" style={{ maxWidth: 1200, margin: '0 auto', padding: '104px 24px 0' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', gap: 24, flexWrap: 'wrap', marginBottom: 28 }}>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                    <span style={MW_EYEBROW}>TRAVEL MAGAZINE</span>
-                    <h2 style={{ margin: 0, fontSize: 32, fontWeight: 900 }}>지금 떠나기 좋은 여행 코스</h2>
-                    <p style={{ margin: 0, fontSize: 14, color: MW.mute }}>몽골리아 은하수가 엄선한 최고의 여행지</p>
-                </div>
-                <a href="/travel-guide" onClick={(e) => { e.preventDefault(); navigate('/travel-guide'); }} style={MW_SEE_ALL}>
-                    전체 보기 →
-                </a>
-            </div>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(min(100%,280px),1fr))', gap: 20 }}>
-                {items.map((m) => {
-                    const title = cleanTitle(m.title);
-                    return (
-                        <a
-                            key={m.id}
-                            href={`/travel-guide/${m.id}`}
-                            onClick={(e) => { e.preventDefault(); navigate(`/travel-guide/${m.id}`); }}
-                            style={{ position: 'relative', display: 'block', aspectRatio: '3/4', borderRadius: 24, overflow: 'hidden', color: '#fff', background: MW.navySoft, transition: 'transform .2s', textDecoration: 'none' }}
-                            onMouseEnter={(e) => (e.currentTarget.style.transform = 'translateY(-4px)')}
-                            onMouseLeave={(e) => (e.currentTarget.style.transform = '')}
-                        >
-                            {isUsableImage(m.image) && (
-                                <ResponsiveProductImage src={m.image} alt={title} sizes="(max-width: 640px) calc(100vw - 48px), 384px" loading="lazy" decoding="async" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }} />
-                            )}
-                            <div style={{ position: 'absolute', left: 0, right: 0, top: 0, height: '30%', pointerEvents: 'none', background: 'linear-gradient(180deg,rgba(10,31,46,0.35) 0%,rgba(10,31,46,0) 100%)' }} />
-                            {/* Partial gradient behind the text only — the photo above stays sharp. */}
-                            <div
-                                style={{
-                                    position: 'absolute',
-                                    left: 0,
-                                    right: 0,
-                                    bottom: 0,
-                                    height: '65%',
-                                    pointerEvents: 'none',
-                                    background: 'linear-gradient(180deg,rgba(10,31,46,0) 0%,rgba(10,31,46,0.18) 25%,rgba(10,31,46,0.5) 50%,rgba(10,31,46,0.78) 75%,rgba(10,31,46,0.92) 100%)',
-                                }}
-                            />
-                            <div style={{ position: 'absolute', left: 18, right: 18, top: 18, display: 'flex', justifyContent: 'space-between', alignItems: 'center', pointerEvents: 'none' }}>
-                                <span style={{ fontFamily: MW_FONT_EN, fontSize: 10, fontWeight: 600, letterSpacing: '0.06em', background: 'rgba(255,255,255,0.22)', backdropFilter: 'blur(6px)', padding: '5px 9px', borderRadius: 6 }}>
-                                    MAGAZINE
-                                </span>
-                                <span aria-hidden="true" style={{ width: 38, height: 38, borderRadius: '50%', background: MW.mint, color: MW.navy, fontSize: 17, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                                    ✈
-                                </span>
-                            </div>
-                            <div style={{ position: 'absolute', left: 0, right: 0, bottom: 0, padding: '22px 22px 24px', display: 'flex', flexDirection: 'column', gap: 10, pointerEvents: 'none' }}>
-                                {m.category && (
-                                    <span style={{ alignSelf: 'flex-start', fontSize: 11, fontWeight: 700, color: MW.navy, background: '#fff', padding: '4px 10px', borderRadius: 999 }}>{m.category}</span>
+        <section id="magazine" aria-label="여행 매거진" style={{ ...SD_CONTAINER, paddingBottom: 96, display: 'flex', flexDirection: 'column', gap: 24 }}>
+            <SSectionHead icon="bookOpen" iconImage={HOME_IMG.magazineBell} title="몽골 찐 여행 정보" sub="몽골 떠나기 전에 알고 가면 좋은 꿀팁들" more={<SeeAllLink to="/travel-guide" />} />
+            <div ref={viewport} role="region" aria-label="여행 매거진 목록" style={{ overflow: 'hidden', marginRight: -32, paddingRight: 32 }}>
+                <div style={{ display: 'flex', gap: GAP, transition: 'transform 400ms ease', transform: `translateX(${-shift}px)` }}>
+                    {items.map((m, i) => {
+                        const title = cleanTitle(m.title);
+                        const tint = MAGAZINE_TINTS[i % MAGAZINE_TINTS.length];
+                        const href = `/travel-guide/${m.id}`;
+                        return (
+                            <a key={m.id} href={href} onClick={(e) => { e.preventDefault(); navigate(href); }}
+                                style={{ position: 'relative', flex: `0 0 ${CARD}px`, height: 452, borderRadius: 10, overflow: 'hidden', display: 'block', textDecoration: 'none', background: SD.gray900 }}>
+                                {isUsableImage(m.image) && (
+                                    <ResponsiveProductImage src={m.image} alt={title} sizes="340px" loading="lazy" decoding="async"
+                                        style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
                                 )}
-                                <h3 style={{ margin: 0, fontSize: 18, fontWeight: 700, lineHeight: 1.5, height: '3em', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
-                                    {title}
-                                </h3>
-                                <p style={{ margin: 0, fontSize: 13, lineHeight: 1.7, height: '3.4em', color: '#DDE6EC', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
-                                    {m.description}
-                                </p>
-                            </div>
-                        </a>
-                    );
-                })}
+                                <span style={{ position: 'absolute', inset: 0, background: `linear-gradient(180deg, rgba(${tint},0) 42%, rgba(${tint},0.85) 64%, rgb(${tint}) 76%, rgb(${tint}) 100%)` }} />
+                                <span style={{ position: 'absolute', left: 32, right: 32, bottom: 36, display: 'flex', flexDirection: 'column', gap: 10, color: SD.white }}>
+                                    {m.category && <span style={{ fontSize: 14, color: 'rgba(255,255,255,0.88)' }}>{m.category}</span>}
+                                    <span style={{ fontSize: 21, fontWeight: 700, lineHeight: 1.4, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden', wordBreak: 'keep-all' }}>{title}</span>
+                                </span>
+                            </a>
+                        );
+                    })}
+                </div>
             </div>
+            {n > 1 && (
+                <div style={{ display: 'flex', alignItems: 'center', gap: 20 }}>
+                    <span style={{ fontSize: 14, color: SD.gray600, fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>
+                        <strong style={{ fontSize: 18, color: SD.gray900 }}>{pad(index + 1)}</strong> / {pad(n)}
+                    </span>
+                    <div aria-hidden="true" style={{ flex: '1 1 auto', display: 'flex', gap: 6 }}>
+                        {items.map((m, k) => (
+                            <span key={m.id} style={{ flex: '1 1 0', height: 2, borderRadius: 9999, background: k <= index ? SD.gray900 : SD.gray300 }} />
+                        ))}
+                    </div>
+                    <div style={{ display: 'flex', gap: 8 }}>
+                        <SRoundButton label="이전 매거진" icon="chevronLeft" disabled={index === 0} onClick={() => setIndex(Math.max(0, index - 1))} style={{ borderColor: SD.gray300 }} />
+                        <SRoundButton label="다음 매거진" icon="chevronRight" disabled={index === n - 1} onClick={() => setIndex(Math.min(n - 1, index + 1))} style={{ borderColor: SD.gray300 }} />
+                    </div>
+                </div>
+            )}
         </section>
     );
 }

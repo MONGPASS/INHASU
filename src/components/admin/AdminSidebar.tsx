@@ -15,6 +15,8 @@ import {
 } from './ui';
 import { preloadAdminPage } from '../../lib/adminPagePreload';
 import './AdminSidebar.css';
+// 사용자 사이트 상단과 같은 로고(동그란 민트 마크)
+import logoMark from '../../assets/logo_horizontal.webp';
 
 interface AdminSidebarProps {
     activePage: string;
@@ -135,7 +137,7 @@ export const AdminSidebar: React.FC<AdminSidebarProps> = ({ activePage, rail = f
 
     const brand = (
         <Link to="/admin" className="adm-side-brand" aria-label="몽골리아 은하수 관리자 대시보드" title={rail ? '몽골리아 은하수 관리자' : undefined}>
-            <span className="adm-side-mark" aria-hidden="true">은</span>
+            <span className="adm-side-mark has-logo" aria-hidden="true"><img src={logoMark} alt="" width={32} height={32} /></span>
             {!rail && <span className="adm-side-brand-text"><b>몽골리아 은하수</b><small>{drawer ? '관리자 · 운영 계정' : '관리자'}</small></span>}
         </Link>
     );
