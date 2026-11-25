@@ -76,6 +76,13 @@ export async function onRequestPatch(context) {
     /* 고객 통합 작업의 '지금 할 일' 버튼: 견적관리 [예약 진행 기록]과 같은 예약을 서버에서 만든다 / 저장된 예약 그대로 일정표를 공개한다 */
     const acceptQuote = !!patch.acceptQuote; delete patch.acceptQuote;
     const publishItinerary = !!patch.publishItinerary; delete patch.publishItinerary;
+    /* 고객 이름 바꾸기(고객 통합 작업 머리, 2026-11-25): 빈 이름은 거절. 저장 때 name 칸과 견적서 고객명(quote.customer)도 같은 값으로 */
+    let renamed = "";
+    if (Object.hasOwn(patch, "name")) {
+      renamed = typeof patch.name === "string" ? patch.name.trim().slice(0, 60) : "";
+      if (!renamed) return json({ ok: false, error: "고객 이름을 입력해 주세요." }, 400);
+      patch.name = renamed;
+    }
 
     const row = await env.DB.prepare("SELECT data, status FROM requests WHERE id = ?").bind(id).first();
     if (!row) return json({ ok: false, error: "not found" }, 404);
@@ -175,6 +182,7 @@ export async function onRequestPatch(context) {
 
     Object.assign(rec, patch);
     if (patch.status === undefined) rec.status = prevStatus;
+    if (renamed && rec.quote && typeof rec.quote === "object" && !Array.isArray(rec.quote)) rec.quote = { ...rec.quote, customer: renamed };
 
     const now = new Date().toISOString();
     if (!hadBooking && rec.booking && !rec.booking.preparedAt) rec.booking.preparedAt = now;
@@ -247,8 +255,8 @@ export async function onRequestPatch(context) {
     }
 
     rec.activities = rec.activities.slice(-100);
-    const persisted = await env.DB.prepare("UPDATE requests SET status = ?, memo = ?, data = ?, token = ?, phone = COALESCE(?, phone) WHERE id = ? AND data = ?")
-      .bind(rec.status, rec.memo || "", JSON.stringify(rec), rec.token || "", typeof patch.phone === "string" ? patch.phone : null, id, row.data).run();
+    const persisted = await env.DB.prepare("UPDATE requests SET status = ?, memo = ?, data = ?, token = ?, phone = COALESCE(?, phone), name = COALESCE(?, name) WHERE id = ? AND data = ?")
+      .bind(rec.status, rec.memo || "", JSON.stringify(rec), rec.token || "", typeof patch.phone === "string" ? patch.phone : null, renamed || null, id, row.data).run();
     if (Number(persisted?.meta?.changes ?? persisted?.changes ?? 0) !== 1) return json({ ok:false, error:'다른 화면에서 예약이 변경되었습니다. 입력을 보관한 뒤 최신 정보를 확인해 주세요.' }, 409);
 
     const bg = async (kind, eventKey, forceManual = false) => backgroundCustomerEvent(context, { source:'quote_booking', bookingId:id, kind, eventKey, ...(forceManual ? {forceManual:true} : {}) });

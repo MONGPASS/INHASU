@@ -387,6 +387,21 @@ export const AdminQuoteDesk: React.FC = () => {
     const memoScope = `${accountId}:${bookingId || ''}`;
     const savedMemo = typeof customerRecord?.memo === 'string' ? customerRecord.memo : '';
     const memoText = memoDraft?.scope === memoScope ? memoDraft.text : savedMemo;
+    /** 고객 이름 바꾸기: PATCH { name } — 서버가 요청의 name 칸과 견적서 고객명도 같은 값으로 바꾼다. 고객에게 알림이 가지 않는다. */
+    const renameCustomer = async (name: string) => {
+        const id = bookingId;
+        if (!customerRecord || !id || quickBusy || editorBusy) return false;
+        if (editorDirty) { setEditorNotice('편집 중인 내용을 먼저 저장한 뒤 고객 이름을 바꿔 주세요.'); return false; }
+        setQuickBusy(true);
+        try {
+            const response = await fetch(`/api/requests/${encodeURIComponent(id)}`, { method: 'PATCH', cache: 'no-store',
+                headers: { 'Content-Type': 'application/json', 'x-admin-token': linkedToken.current }, body: JSON.stringify({ name }) });
+            const payload = await response.json().catch(() => null);
+            if (!response.ok || payload?.ok !== true) { adminNotify(typeof payload?.error === 'string' && payload.error ? payload.error : '고객 이름을 저장하지 못했습니다. 다시 시도해 주세요.', 'error'); return false; }
+            return true;
+        } catch { adminNotify('연결이 끊겨 고객 이름을 저장하지 못했습니다. 다시 시도해 주세요.', 'error'); return false; }
+        finally { setQuickBusy(false); setCustomerRefresh(value => value + 1); }
+    };
     /** 운영 메모 저장: 문의 상세의 상담 메모와 같은 PATCH { memo }. 고객에게 알림이 가지 않는다. */
     const saveCustomerMemo = async () => {
         const id = bookingId, account = accountId, text = memoText;
@@ -434,7 +449,7 @@ export const AdminQuoteDesk: React.FC = () => {
                                     onKeyDown={e => { if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') { e.preventDefault(); void saveCustomerMemo(); } }} />
                                 <AdminButton variant="weak" size="sm" disabled={editorBusy || customerRefreshing || quickBusy || memoText === savedMemo} onClick={() => void saveCustomerMemo()}>메모 저장</AdminButton>
                             </div>}
-                            links={{ source: v7Source, userId: accountId, onAssignmentSaved: () => setCustomerRefresh(value => value + 1) }}
+                            links={{ source: v7Source, userId: accountId, onAssignmentSaved: () => setCustomerRefresh(value => value + 1), onRename: renameCustomer }}
                             notificationActions={<CustomerKakaoActions key={`${accountId}:${bookingId}`} source="quote_booking" bookingId={bookingId!}
                                 revision={JSON.stringify([customerCheckedAt, customerRecord, recordedDelivery?.items.map(item => [item.id, item.kind, item.channel, item.state, item.at, item.error])])} disabled={editorBusy || customerRefreshing || sendingKakao || editorDirty}
                                 disabledReason={editorDirty ? '편집 중인 내용을 먼저 저장한 뒤 고객에게 발송해 주세요.' : undefined}
