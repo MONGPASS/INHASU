@@ -6,16 +6,17 @@ import { api } from '../../lib/api';
 import { clearCustomerSessionCache } from '../../lib/customerSessionCache';
 import { useUser } from '../../contexts/UserContext';
 import { useNotification } from '../../contexts/NotificationContext';
-import { BRAND, KAKAO_CHANNEL_CHAT_URL } from '../../constants/company';
-import { MW, MW_FONT, MW_FONT_EN, isUsableImage, won } from '../desktop-primitives/mwTokens';
+import { BRAND } from '../../constants/company';
+import { MW_FONT, isUsableImage, won } from '../desktop-primitives/mwTokens';
 import { RECOMMENDED_WORDS, SEARCH_PLACEHOLDER } from '../home/homeContent';
 import { DesktopFooter } from '../layout-desktop/DesktopFooter';
 import { useMe } from '../mypage-desktop/useMyPageData';
 import { SD, SD_BRAND_TEXT, SIcon } from '../site-seed/seed';
 import { MobileShellContext } from './mobileShellContext';
+import { MobileMenuSheet } from './MobileMenuSheet';
 import { MobileTabBar } from './MobileTabBar';
-import { D, KAKAO_BUBBLE, KAKAO_INK, KAKAO_YELLOW, M_GRADIENT, M_HAIR, M_TILE, QUICK_MENU } from './mobileTheme';
-import { Ico, QuickMenuBadge, TravellerAvatar } from './mobileUi';
+import { D } from './mobileTheme';
+import { Ico } from './mobileUi';
 
 /**
  * Mobile app shell (Claude Design: "Milkyway Japan Mobile").
@@ -389,86 +390,8 @@ export function MobileShell({ children, home = false, title, onBack, bottomBar, 
                 {!bottomBar && tabBar && <MobileTabBar />}
 
                 {menuOpen && (
-                    <div role="dialog" aria-modal="true" aria-label="전체 메뉴" data-mw-overlay="" style={{ position: 'fixed', inset: 0, zIndex: 10000, display: 'flex', justifyContent: 'center' }}>
-                        <div onClick={() => setMenuOpen(false)} style={{ position: 'absolute', inset: 0, background: 'rgba(10,31,46,0.45)' }} />
-                        <div style={{ position: 'relative', width: '100%', maxWidth: 480, height: '100%', display: 'flex', justifyContent: 'flex-end', pointerEvents: 'none' }}>
-                            <div style={{ position: 'relative', width: '84%', height: '100%', background: '#fff', display: 'flex', flexDirection: 'column', overflowY: 'auto', pointerEvents: 'auto', fontFamily: MW_FONT, color: MW.navy }}>
-                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '14px 16px', borderBottom: `1px solid ${M_HAIR}` }}>
-                                    <span style={{ fontSize: 15, fontWeight: 900 }}>전체 메뉴</span>
-                                    <button type="button" onClick={() => setMenuOpen(false)} aria-label="닫기" style={{ width: 44, height: 44, border: 0, background: 'transparent', fontSize: 22, color: MW.navy, cursor: 'pointer', marginRight: -10, padding: 0 }}>×</button>
-                                </div>
-
-                                <div style={{ margin: 16, padding: 16, borderRadius: 18, background: 'linear-gradient(135deg,#F1FCF8 0%,#E3F8F1 100%)', border: `1px solid ${MW.mintTint}`, display: 'flex', flexDirection: 'column', gap: 12 }}>
-                                    {logged ? (
-                                        <>
-                                            <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0 }}>
-                                                <span style={{ width: 40, height: 40, borderRadius: '50%', overflow: 'hidden', flexShrink: 0, background: MW.mintTint, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                                                    {avatar ? <img src={avatar} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : <TravellerAvatar size={40} />}
-                                                </span>
-                                                <span style={{ fontSize: 14, fontWeight: 900, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{(me?.name || me?.email?.split('@')[0] || '고객')} 님</span>
-                                            </div>
-                                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2,minmax(0,1fr))', gap: 8 }}>
-                                                <a href="/mypage" onClick={(e) => { e.preventDefault(); go('/mypage'); }} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: 46, borderRadius: 999, background: M_GRADIENT, fontSize: 14, fontWeight: 700, color: '#FFFFFF', whiteSpace: 'nowrap', textDecoration: 'none' }}>마이페이지</a>
-                                                <button type="button" onClick={logout} style={{ height: 46, borderRadius: 999, background: '#FFFFFF', border: `1.5px solid ${MW.navy}`, fontFamily: 'inherit', fontSize: 14, fontWeight: 700, color: MW.navy, whiteSpace: 'nowrap', cursor: 'pointer' }}>로그아웃</button>
-                                            </div>
-                                        </>
-                                    ) : (
-                                        <>
-                                            <span style={{ fontSize: 13, fontWeight: 700, lineHeight: 1.5, color: MW.navy, whiteSpace: 'nowrap' }}>로그인하고 예약·견적을 관리하세요</span>
-                                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2,minmax(0,1fr))', gap: 8 }}>
-                                                <a href="/login" onClick={(e) => { e.preventDefault(); go('/login'); }} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, height: 46, borderRadius: 999, background: '#FFFFFF', border: `1.5px solid ${MW.navy}`, fontSize: 14, fontWeight: 700, color: MW.navy, whiteSpace: 'nowrap', textDecoration: 'none', boxSizing: 'border-box' }}>
-                                                    <Ico d="M10 17l5-5-5-5M15 12H3M14 4h5a1 1 0 011 1v14a1 1 0 01-1 1h-5" size={16} width={2} />로그인
-                                                </a>
-                                                <a href="/login" onClick={(e) => { e.preventDefault(); go('/login'); }} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, height: 46, borderRadius: 999, background: M_GRADIENT, fontSize: 14, fontWeight: 700, color: '#FFFFFF', whiteSpace: 'nowrap', textDecoration: 'none' }}>
-                                                    <Ico d="M10 11a4 4 0 100-8 4 4 0 000 8zM3 20c.7-3.4 3.6-6 7-6 1.4 0 2.7.4 3.8 1.1M18 14v6M15 17h6" size={16} width={2} color="#FFFFFF" />회원가입
-                                                </a>
-                                            </div>
-                                        </>
-                                    )}
-                                </div>
-
-                                <div style={{ padding: '4px 16px 0', display: 'flex', flexDirection: 'column', gap: 10 }}>
-                                    <span style={{ fontFamily: MW_FONT_EN, fontSize: 10, fontWeight: 600, letterSpacing: '0.08em', color: MW.mintDeep, padding: '0 4px' }}>MENU</span>
-                                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,minmax(0,1fr))', gap: 8 }}>
-                                        {QUICK_MENU.map((item) => (
-                                            <a key={item.key} href={item.path} onClick={(e) => { e.preventDefault(); go(item.path); }} style={{ position: 'relative', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6, padding: '14px 4px 12px', borderRadius: 16, background: M_TILE, color: MW.navy, minWidth: 0, textDecoration: 'none' }}>
-                                                <span style={{ width: 46, height: 46, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                                                    <img src={item.icon} alt="" width={46} height={46} style={{ width: 46, height: 46, objectFit: 'contain' }} />
-                                                </span>
-                                                <span style={{ maxWidth: '100%', fontSize: 12, fontWeight: 700, letterSpacing: '-0.02em', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{item.label}</span>
-                                                <QuickMenuBadge item={item} />
-                                            </a>
-                                        ))}
-                                    </div>
-                                </div>
-
-                                <div style={{ padding: '24px 16px 0', display: 'flex', flexDirection: 'column', gap: 10 }}>
-                                    <span style={{ fontFamily: MW_FONT_EN, fontSize: 10, fontWeight: 600, letterSpacing: '0.08em', color: MW.mintDeep, padding: '0 4px' }}>SUPPORT</span>
-                                    <div style={{ border: `1px solid ${MW.line}`, borderRadius: 16, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
-                                        {([['알림', 'M6 16V11a6 6 0 1112 0v5l1.5 2h-15zM10 20a2 2 0 004 0', '/mypage/notifications'], ['자주 묻는 질문', D.faq, '/faq'], ['문의', D.mail, '/contact']] as const).map(([label, d, to], i) => (
-                                            <a key={to} href={to} onClick={(e) => { e.preventDefault(); go(to); }} style={{ display: 'flex', alignItems: 'center', gap: 12, height: 52, padding: '0 14px', borderTop: `1px solid ${i ? M_HAIR : 'transparent'}`, color: MW.navy, textDecoration: 'none' }}>
-                                                <span style={{ width: 32, height: 32, borderRadius: 10, background: MW.mintBg, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                                                    <Ico d={d} size={17} color={MW.mintDeep} />
-                                                </span>
-                                                <span style={{ flex: 1, fontSize: 14, fontWeight: 700, whiteSpace: 'nowrap' }}>{label}</span>
-                                                <Ico d={D.chevron} size={16} color={MW.mute2} width={2} />
-                                            </a>
-                                        ))}
-                                    </div>
-                                </div>
-
-                                <div style={{ margin: '24px 16px 24px', padding: 16, borderRadius: 18, background: MW.navySoft, color: '#FFFFFF', display: 'flex', flexDirection: 'column', gap: 12 }}>
-                                    <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-                                        <span style={{ fontSize: 14, fontWeight: 900, whiteSpace: 'nowrap' }}>한국어 완벽 지원·현지 여행사</span>
-                                        <span style={{ fontSize: 11, color: '#C4D0D8', whiteSpace: 'nowrap' }}>카카오톡 상담, 평균 3시간 이내 답변</span>
-                                    </div>
-                                    <a href={KAKAO_CHANNEL_CHAT_URL} target="_blank" rel="noopener noreferrer" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, height: 44, borderRadius: 999, background: KAKAO_YELLOW, fontSize: 14, fontWeight: 700, color: KAKAO_INK, whiteSpace: 'nowrap', textDecoration: 'none' }}>
-                                        <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true"><path fill={KAKAO_INK} d={KAKAO_BUBBLE} /></svg>카카오톡으로 상담하기
-                                    </a>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
+                    <MobileMenuSheet onClose={() => setMenuOpen(false)} go={go} logged={logged} name={me?.name || me?.email?.split("@")[0] || "고객"}
+                        avatar={avatar || undefined} unreadCount={unreadCount} onLogout={logout} />
                 )}
             </div>
         </MobileShellContext.Provider>

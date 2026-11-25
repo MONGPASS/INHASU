@@ -3,12 +3,12 @@ import { SD, SIcon } from '../site-seed/seed';
 import { CONTACT_CARDS, HOME_IMG, PARTNERS, SOCIAL_CHANNELS } from './homeContent';
 
 /**
- * 협력 업체 로고 · 문의 카드 2장 · 몽골리아 은하수의 SNS 순서(디자인 ‘소셜·문의·협력 업체’ 2차에서 업체와 SNS 자리를 맞바꿈, 2026-11-25). PC·휴대폰 홈이 함께 쓴다.
- * compact(휴대폰): SNS 아이콘을 한 줄에, 문의 카드 두 장을 나란히 작게.
- * 주소가 없는 소셜 채널은 ‘준비 중’으로 보이고 눌리지 않는다(homeContent.ts의 SOCIAL_CHANNELS).
+ * 문의 카드 2장(카카오톡 채널 · 맞춤 여행 문의). 홈 아래쪽과 휴대폰 전체 메뉴가 함께 쓴다.
+ * onNavigate: 맞춤 여행 단추를 누를 때 쓸 이동 함수(전체 메뉴는 메뉴를 닫고 이동한다). 없으면 그냥 이동한다.
  */
-export function ConnectSection({ compact = false }: { compact?: boolean }) {
+export function ContactCards({ compact = false, onNavigate }: { compact?: boolean; onNavigate?: (path: string) => void }) {
     const navigate = useNavigate();
+    const go = onNavigate ?? ((path: string) => navigate(path));
     const { kakao, estimate } = CONTACT_CARDS;
     const cover = { position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', display: 'block' } as const;
     const card = compact
@@ -20,6 +20,42 @@ export function ConnectSection({ compact = false }: { compact?: boolean }) {
     const outline = { marginTop: compact ? 6 : 8, display: 'inline-flex', alignItems: 'center', gap: compact ? 5 : 10, height: compact ? 32 : 44, padding: compact ? '0 10px' : '0 16px',
         border: '1px solid rgba(255,255,255,0.85)', borderRadius: compact ? 6 : 8, color: SD.white, fontSize: compact ? 12 : 15, fontWeight: 700, textDecoration: 'none', whiteSpace: 'nowrap' } as const;
     const shade = <span style={{ position: 'absolute', inset: 0, background: compact ? 'rgba(23,23,26,0.48)' : 'rgba(23,23,26,0.45)' }} />;
+
+    return (
+        <div style={{ display: 'flex', flexWrap: compact ? 'nowrap' : 'wrap', gap: compact ? 10 : 16 }}>
+            <div style={card}>
+                <img src={kakao.image} alt={kakao.alt} loading="lazy" decoding="async" style={cover} />
+                {shade}
+                <div style={inner}>
+                    <h3 style={title}>{kakao.title}</h3>
+                    <p style={text}>{compact ? kakao.textShort : kakao.text}</p>
+                    <a href={kakao.url} target="_blank" rel="noopener noreferrer" aria-label={`카카오톡 채널 ${kakao.button} 열기`} style={{ ...outline, fontSize: compact ? 12 : 16 }}>
+                        <SIcon name="kakao" size={compact ? 14 : 20} stroke={compact ? 2 : 1.8} />{kakao.button}
+                        {!compact && <SIcon name="search" size={18} stroke={2} />}
+                    </a>
+                </div>
+            </div>
+            <div style={card}>
+                <img src={estimate.image} alt={estimate.alt} loading="lazy" decoding="async" style={cover} />
+                {shade}
+                <div style={inner}>
+                    <h3 style={title}>{estimate.title}</h3>
+                    <p style={text}>{compact ? estimate.textShort : estimate.text}</p>
+                    <a href={estimate.path} onClick={(e) => { e.preventDefault(); go(estimate.path); }} style={{ ...outline, gap: compact ? 4 : 8, padding: compact ? '0 10px' : '0 18px' }}>
+                        {compact ? estimate.buttonShort : estimate.button}<SIcon name="arrowRight" size={compact ? 12 : 16} stroke={compact ? 2.2 : 2} />
+                    </a>
+                </div>
+            </div>
+        </div>
+    );
+}
+
+/**
+ * 협력 업체 로고 · 문의 카드 2장 · 몽골리아 은하수의 SNS 순서(디자인 ‘소셜·문의·협력 업체’ 2차에서 업체와 SNS 자리를 맞바꿈, 2026-11-25). PC·휴대폰 홈이 함께 쓴다.
+ * compact(휴대폰): SNS 아이콘을 한 줄에, 문의 카드 두 장을 나란히 작게.
+ * 주소가 없는 소셜 채널은 ‘준비 중’으로 보이고 눌리지 않는다(homeContent.ts의 SOCIAL_CHANNELS).
+ */
+export function ConnectSection({ compact = false }: { compact?: boolean }) {
     const icon = compact ? 40 : 48;
 
     return (
@@ -47,31 +83,7 @@ export function ConnectSection({ compact = false }: { compact?: boolean }) {
                     </div>
                 </div>
 
-                <div style={{ display: 'flex', flexWrap: compact ? 'nowrap' : 'wrap', gap: compact ? 10 : 16 }}>
-                    <div style={card}>
-                        <img src={kakao.image} alt={kakao.alt} loading="lazy" decoding="async" style={cover} />
-                        {shade}
-                        <div style={inner}>
-                            <h3 style={title}>{kakao.title}</h3>
-                            <p style={text}>{compact ? kakao.textShort : kakao.text}</p>
-                            <a href={kakao.url} target="_blank" rel="noopener noreferrer" aria-label={`카카오톡 채널 ${kakao.button} 열기`} style={{ ...outline, fontSize: compact ? 12 : 16 }}>
-                                <SIcon name="kakao" size={compact ? 14 : 20} stroke={compact ? 2 : 1.8} />{kakao.button}
-                                {!compact && <SIcon name="search" size={18} stroke={2} />}
-                            </a>
-                        </div>
-                    </div>
-                    <div style={card}>
-                        <img src={estimate.image} alt={estimate.alt} loading="lazy" decoding="async" style={cover} />
-                        {shade}
-                        <div style={inner}>
-                            <h3 style={title}>{estimate.title}</h3>
-                            <p style={text}>{compact ? estimate.textShort : estimate.text}</p>
-                            <a href={estimate.path} onClick={(e) => { e.preventDefault(); navigate(estimate.path); }} style={{ ...outline, gap: compact ? 4 : 8, padding: compact ? '0 10px' : '0 18px' }}>
-                                {compact ? estimate.buttonShort : estimate.button}<SIcon name="arrowRight" size={compact ? 12 : 16} stroke={compact ? 2.2 : 2} />
-                            </a>
-                        </div>
-                    </div>
-                </div>
+                <ContactCards compact={compact} />
 
                 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 18 }}>
                     <h2 style={{ margin: 0, fontSize: compact ? 17 : 20, fontWeight: 700, color: SD.gray900, textAlign: 'center' }}>몽골리아 은하수의 SNS</h2>
