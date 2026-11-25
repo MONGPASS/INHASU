@@ -1,6 +1,6 @@
 import { useNavigate } from 'react-router-dom';
 import { SD, SIcon } from '../site-seed/seed';
-import { CONTACT_CARDS, HOME_IMG, PARTNERS_ALT, SOCIAL_CHANNELS } from './homeContent';
+import { CONTACT_CARDS, PARTNERS, SOCIAL_CHANNELS } from './homeContent';
 
 /**
  * 소셜 채널 · 문의 카드 2장 · 협력 업체 로고(디자인 ‘소셜·문의·협력 업체’, 2026-11-25). PC·휴대폰 홈이 함께 쓴다.
@@ -60,11 +60,20 @@ export function ConnectSection({ compact = false }: { compact?: boolean }) {
                     <h2 style={{ margin: 0, display: 'flex', alignItems: 'center', gap: 8, paddingBottom: 14, borderBottom: `1px solid ${SD.gray200}`, fontSize: compact ? 18 : 22, fontWeight: 700, color: SD.gray900 }}>
                         은하수와 함께한 업체<SIcon name="flag" size={22} style={{ color: SD.mint600 }} />
                     </h2>
-                    {/* 로고 띠는 같은 그림 두 장을 이어 붙여 끊김 없이 흐른다(올리면 멈춤, 움직임 줄이기 설정이면 멈춤 — index.css) */}
+                    {/* 로고 띠는 같은 로고 묶음 두 벌을 이어 붙여 끊김 없이 흐른다(올리면 멈춤, 움직임 줄이기 설정이면 멈춤 — index.css).
+                        로고마다 크기가 달라 같은 높이 · 최대 너비 칸에 맞춘다. 두 번째 묶음은 화면 읽기 프로그램에서 숨긴다. */}
                     <div className="home-partner-wrap" role="region" aria-label="협력 업체 로고" style={{ overflow: 'hidden' }}>
                         <div className="home-partner-track" style={{ display: 'flex', width: 'max-content' }}>
-                            <img src={HOME_IMG.partners} alt={PARTNERS_ALT} loading="lazy" decoding="async" style={{ height: compact ? 48 : 64, width: 'auto', display: 'block', paddingRight: 48 }} />
-                            <img src={HOME_IMG.partners} alt="" aria-hidden="true" loading="lazy" decoding="async" style={{ height: compact ? 48 : 64, width: 'auto', display: 'block', paddingRight: 48 }} />
+                            {[0, 1].map((copy) => (
+                                <ul key={copy} aria-hidden={copy === 1 || undefined} style={{ display: 'flex', alignItems: 'center', gap: compact ? 36 : 56, margin: 0, padding: `0 ${compact ? 36 : 56}px 0 0`, listStyle: 'none' }}>
+                                    {PARTNERS.map((partner) => (
+                                        <li key={partner.name} style={{ flex: 'none', display: 'flex', alignItems: 'center' }}>
+                                            <img src={partner.image} alt={copy === 0 ? partner.name : ''} loading="lazy" decoding="async"
+                                                style={{ height: compact ? 40 : 52, width: 'auto', maxWidth: compact ? 150 : 200, objectFit: 'contain', display: 'block' }} />
+                                        </li>
+                                    ))}
+                                </ul>
+                            ))}
                         </div>
                     </div>
                 </div>

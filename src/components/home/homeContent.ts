@@ -13,7 +13,6 @@ export const HOME_IMG = {
     winterGer: `${IMG}/winter-ger-stars.jpg`,
     winterLake: `${IMG}/winter-lake.jpg`,
     winterForest: `${IMG}/winter-forest-ride.jpg`,
-    partners: `${IMG}/partners.png`,
 } as const;
 
 /** 상품을 테마로 묶는 낱말(상품 이름·분류·태그에서 찾는다). 분류 체계가 바뀌어도 이름에 낱말이 있으면 묶인다. */
@@ -86,7 +85,22 @@ export const CONTACT_CARDS = {
     estimate: { title: '맞춤 여행 문의', text: '몽골 여행, 아직도 일일이\n직접 예약하고 계세요?', button: '나에게 맞는 맞춤 여행', path: '/custom-estimate', image: HOME_IMG.miniDesert, alt: '미니사막 풍경' },
 } as const;
 
-export const PARTNERS_ALT = '협력 업체: KIAST, 다임스텍, 드림여성산악회, 에어비자, 한국교통안전공단, 고려대학교안암병원, 염창감리교회, 펫츠고, 비전미셔너리키즈, 제주특별자치도, 국토교통부';
+/** 협력 업체 로고(오너가 준 그림을 여백을 잘라 높이 120px WebP로 줄임, public/img/home/v2/partners/). 홈 아래쪽에서 옆으로 흐른다. */
+export const PARTNERS: Array<{ name: string; image: string }> = [
+    { name: '고려대학교안암병원', image: `${IMG}/partners/ku-anam.webp` },
+    { name: '한국교통안전공단', image: `${IMG}/partners/ts.webp` },
+    { name: '에어비자', image: `${IMG}/partners/airvisa.webp` },
+    { name: '드림여성산악회', image: `${IMG}/partners/dream-alpine.webp` },
+    { name: '다임스텍', image: `${IMG}/partners/dymstec.webp` },
+    { name: 'KIAST', image: `${IMG}/partners/kiast.webp` },
+    { name: 'ain global', image: `${IMG}/partners/ain-global.webp` },
+    { name: 'X CREW', image: `${IMG}/partners/xcrew.webp` },
+    { name: 'Mongolian Disciple Church', image: `${IMG}/partners/mongolian-disciple-church.webp` },
+    { name: '안현교회', image: `${IMG}/partners/anhyun-church.webp` },
+    { name: '한국문화역사지리학회', image: `${IMG}/partners/kchg.webp` },
+    { name: '국토교통부', image: `${IMG}/partners/molit.webp` },
+    { name: '제주특별자치도', image: `${IMG}/partners/jeju.webp` },
+];
 
 /** 매거진 카드 아래쪽을 덮는 색(카드마다 돌려 쓴다). */
 export const MAGAZINE_TINTS = ['47,93,58', '46,108,138', '43,46,92', '84,110,46'] as const;

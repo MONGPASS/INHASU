@@ -416,7 +416,7 @@ body:has([data-mw-actionbar]) .floating-line-btn {
 }
 /* 협력 업체 로고 띠: 같은 그림 두 장을 이어 왼쪽으로 흐른다. 올리면 멈춘다 */
 @keyframes home-partner-move { from { transform: translateX(0); } to { transform: translateX(-50%); } }
-.home-partner-track { animation: home-partner-move 40s linear infinite; }
+.home-partner-track { animation: home-partner-move 60s linear infinite; }
 .home-partner-wrap:hover .home-partner-track { animation-play-state: paused; }
 /* 상단 추천 검색어: 한 줄씩 위로 넘어간다 */
 @keyframes home-kw-roll { 0%, 14% { transform: translateY(0); } 17%, 31% { transform: translateY(-24px); } 34%, 48% { transform: translateY(-48px); } 51%, 65% { transform: translateY(-72px); } 68%, 82% { transform: translateY(-96px); } 85%, 100% { transform: translateY(-120px); } }
