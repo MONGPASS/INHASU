@@ -11,7 +11,12 @@ export const SD = {
     mint50: '#ECFDF7', mint100: '#D2F9E9', mint200: '#A8F2D7', mint300: '#70E5C2', mint400: '#36D1A7',
     mint500: '#12B28C', mint600: '#079475', mint700: '#067661', mint800: '#075E4E', mint900: '#074D41', mint950: '#032B25',
     red: '#D93A2B',
+    /** 로고 글자 ‘은하수’의 민트(로고 그림과 같은 브랜드 색 #27AB8F). 상단 이름 글자에만 쓴다. */
+    brandMint: '#27AB8F',
 } as const;
+
+/** 상단 이름 글자(로고 글자): 아주 굵게 · 좁은 자간. 크기는 쓰는 곳에서. */
+export const SD_BRAND_TEXT: CSSProperties = { fontWeight: 900, letterSpacing: '-0.04em', lineHeight: 1.2, whiteSpace: 'nowrap', color: SD.gray900 };
 
 /** 가운데 본문 칸(최대 1120 + 좌우 32). */
 export const SD_CONTAINER: CSSProperties = { maxWidth: 1120, margin: '0 auto', paddingLeft: 32, paddingRight: 32, boxSizing: 'border-box' };

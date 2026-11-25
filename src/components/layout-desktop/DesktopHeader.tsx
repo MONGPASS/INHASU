@@ -10,7 +10,7 @@ import { useProductCategories } from '../../hooks/useProductCategories';
 import { BRAND } from '../../constants/company';
 import { isPublishedMagazine } from '../../constants/seo';
 import { isUsableImage, won } from '../desktop-primitives/mwTokens';
-import { SD, SD_CONTAINER, SIcon } from '../site-seed/seed';
+import { SD, SD_BRAND_TEXT, SD_CONTAINER, SIcon } from '../site-seed/seed';
 import { HOME_IMG, RECOMMENDED_WORDS, SEARCH_PLACEHOLDER } from '../home/homeContent';
 
 const NAV_ITEMS: { id: string; label: string; path: string; match: (p: string) => boolean }[] = [
@@ -215,7 +215,7 @@ export function DesktopHeader() {
                         style={{ display: 'flex', alignItems: 'center', gap: 10, textDecoration: 'none', color: SD.gray900, flexShrink: 0 }}>
                         <img src={logoMark} alt="" width={48} height={48} style={{ width: 48, height: 48, objectFit: 'contain', flex: 'none' }} />
                         <span style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-                            <span style={{ fontSize: 22, fontWeight: 700, lineHeight: 1.2, whiteSpace: 'nowrap' }}>몽골리아 <span style={{ color: SD.mint600 }}>은하수</span></span>
+                            <span style={{ ...SD_BRAND_TEXT, fontSize: 24 }}>몽골리아 <span style={{ color: SD.brandMint }}>은하수</span></span>
                             <span style={{ fontSize: 12, color: SD.gray600, whiteSpace: 'nowrap' }}>{BRAND.tagline}</span>
                         </span>
                     </a>

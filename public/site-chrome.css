@@ -1,7 +1,7 @@
 /* 견적 고객 페이지의 사이트 머리·바닥·하단 메뉴 (public/site-chrome.js가 그린다).
    값은 사이트(React) 원본의 새 디자인(2026-11-25)과 같다: DesktopHeader · DesktopFooter · MobileShell · MobileTabBar (색은 src/components/site-seed/seed.tsx의 SD).
    PC 1024px 이상 / 그 아래는 휴대폰 틀(사이트의 useIsDesktop과 같은 기준). */
-:root { --sc-900: #212124; --sc-700: #4d5159; --sc-600: #868b94; --sc-300: #dcdee3; --sc-200: #eaebee; --sc-100: #f2f3f6; --sc-mint: #12B28C; --sc-mint-600: #079475; --sc-mint-deep: #067661; }
+:root { --sc-900: #212124; --sc-700: #4d5159; --sc-600: #868b94; --sc-300: #dcdee3; --sc-200: #eaebee; --sc-100: #f2f3f6; --sc-mint: #12B28C; --sc-brand-mint: #27AB8F; --sc-mint-deep: #067661; }
 
 /* 스크립트가 바꾸기 전에는 옛 머리·바닥을 잠깐 숨긴다(깜빡임 방지). 스크립트가 실패해도 2초 뒤에는 보인다. */
 .mw-header:not(.sc-ready) > *, .mw-footer:not(.sc-ready) > * { visibility: hidden; animation: sc-reveal 0s 2s forwards; }
@@ -12,8 +12,8 @@ html.sc-on .mw-header a, .sc-nav a, .sc-tabbar a, .sc-drawer a, html.sc-on .mw-f
 .sc-brand { display: flex; align-items: center; gap: 10px; flex-shrink: 0; min-width: 0; color: var(--sc-900); }
 .sc-brand img { width: 48px; height: 48px; object-fit: contain; flex: none; display: block; }
 .sc-brand-text { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
-.sc-brand-name b { font-weight: inherit; color: var(--sc-mint-600); }
-.sc-brand-name { font-size: 22px; font-weight: 700; line-height: 1.2; white-space: nowrap; color: var(--sc-900); }
+.sc-brand-name b { font-weight: inherit; color: var(--sc-brand-mint); }
+.sc-brand-name { font-size: 24px; font-weight: 900; letter-spacing: -0.04em; line-height: 1.2; white-space: nowrap; color: var(--sc-900); }
 .sc-brand-tag { font-size: 12px; color: var(--sc-600); white-space: nowrap; }
 .sc-search { display: flex; align-items: center; gap: 8px; height: 46px; padding: 0 6px 0 20px; border-radius: 9999px; box-sizing: border-box; background: var(--sc-100); }
 .sc-search:focus-within { box-shadow: inset 0 0 0 1px var(--sc-900); }
@@ -51,7 +51,7 @@ html.sc-on .mw-header a, .sc-nav a, .sc-tabbar a, .sc-drawer a, html.sc-on .mw-f
 .sc-mo .sc-brand, .sc-drawer .sc-brand { gap: 8px; }
 .sc-mo .sc-brand img, .sc-drawer .sc-brand img { width: 36px; height: 36px; }
 .sc-mo .sc-brand-text, .sc-drawer .sc-brand-text { gap: 0; }
-.sc-mo .sc-brand-name, .sc-drawer .sc-brand-name { font-size: 18px; }
+.sc-mo .sc-brand-name, .sc-drawer .sc-brand-name { font-size: 19px; }
 .sc-mo .sc-brand-tag, .sc-drawer .sc-brand-tag { font-size: 10px; }
 .sc-mo-btns { display: flex; flex: none; }
 .sc-ico { width: 44px; height: 44px; border: 0; border-radius: 50%; background: transparent; color: var(--sc-900); display: flex; align-items: center; justify-content: center; cursor: pointer; padding: 0; flex: none; font-family: inherit; }

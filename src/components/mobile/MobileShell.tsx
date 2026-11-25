@@ -11,7 +11,7 @@ import { MW, MW_FONT, MW_FONT_EN, isUsableImage, won } from '../desktop-primitiv
 import { RECOMMENDED_WORDS, SEARCH_PLACEHOLDER } from '../home/homeContent';
 import { DesktopFooter } from '../layout-desktop/DesktopFooter';
 import { useMe } from '../mypage-desktop/useMyPageData';
-import { SD, SIcon } from '../site-seed/seed';
+import { SD, SD_BRAND_TEXT, SIcon } from '../site-seed/seed';
 import { MobileShellContext } from './mobileShellContext';
 import { MobileTabBar } from './MobileTabBar';
 import { D, KAKAO_BUBBLE, KAKAO_INK, KAKAO_YELLOW, M_GRADIENT, M_HAIR, M_TILE, QUICK_MENU } from './mobileTheme';
@@ -226,7 +226,7 @@ export function MobileShell({ children, home = false, title, onBack, bottomBar, 
                         >
                             <img src={logoMark} alt="" width={36} height={36} style={{ width: 36, height: 36, objectFit: 'contain', flex: 'none' }} />
                             <span style={{ display: 'flex', flexDirection: 'column', minWidth: 0 }}>
-                                <span style={{ fontSize: 18, fontWeight: 700, lineHeight: 1.2, whiteSpace: 'nowrap' }}>몽골리아 <span style={{ color: SD.mint600 }}>은하수</span></span>
+                                <span style={{ ...SD_BRAND_TEXT, fontSize: 19 }}>몽골리아 <span style={{ color: SD.brandMint }}>은하수</span></span>
                                 <span style={{ fontSize: 10, color: SD.gray600, whiteSpace: 'nowrap' }}>{BRAND.tagline}</span>
                             </span>
                         </a>
