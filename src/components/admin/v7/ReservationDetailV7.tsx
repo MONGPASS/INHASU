@@ -14,7 +14,7 @@ import { PRODUCT_STATUS_OPTIONS, statusLabelOf } from './ReservationListV7';
 import { V7Badge, V7Menu, V7Styles, V7Toast, menuAt, type V7MenuItem, type V7MenuState } from './v7Ui';
 import { adminConfirm } from '../ui/adminFeedback';
 import {
-    AdminButton, AdminIconButton, AdminTextButton, IconBell, IconCar, IconChat, IconCheckThick, IconChevronDown, IconChevronLeft, IconChevronRight, IconClock, IconCoupon,
+    AdminButton, AdminIconButton, AdminTextButton, AdminTextInput, IconBell, IconCar, IconChat, IconCheckThick, IconChevronDown, IconChevronLeft, IconChevronRight, IconClock, IconCoupon,
     IconExternal, IconHotel, IconListCategory, IconLocation, IconMap, IconPencil, IconPerson, IconPersons, IconWrite,
 } from '../ui';
 import './reservation-detail-cards.css';
@@ -30,6 +30,8 @@ export interface ReservationDetailV7Links {
     onOperations?: (patch: Partial<ReservationOperations>) => Promise<boolean>;
     onPayment?: (field: 'deposit' | 'final', paid: boolean) => Promise<boolean>;
     onStatus?: (status: string) => Promise<void>;
+    /** 고객 이름 바꾸기(머리 카드에서 바로). 성공하면 true — 예약 원본의 이름이 바뀌어 목록·문서·배정 화면이 모두 새 이름을 읽는다. */
+    onRename?: (name: string) => Promise<boolean>;
     onAssignmentSaved?: () => void;
 }
 
@@ -78,11 +80,13 @@ export interface DetailState {
     infoMore: boolean;
     /** 고객 정보의 펼침 줄(항공편·여행자)과 여행자별 상세를 펼쳤는지 — 각각 따로 펼친다 */
     infoOpen: Record<string, boolean>; travelerOpen: Record<string, boolean>;
+    /** 머리 카드에서 고치는 중인 고객 이름(null이면 고치지 않는 중) */
+    nameDraft: string | null;
     /** 배정 카드의 박별 숙소 목록을 펼쳤는지(기본 접힘). */
     staysOpen: boolean;
 }
 export const initialDetailState = (): DetailState => ({ allItems: [], resources: null, menu: null, toast: '', saving: false, maskOn: true,
-    navSid: 'sec-plan', staysOpen: false, infoMore: false, daysAll: false, infoOpen: {}, travelerOpen: {} });
+    navSid: 'sec-plan', staysOpen: false, infoMore: false, daysAll: false, infoOpen: {}, travelerOpen: {}, nameDraft: null });
 export type DetailSet = (patch: Partial<DetailState> | ((s: DetailState) => Partial<DetailState>)) => void;
 export interface DetailEnv { mounted: { current: boolean }; toastTimer: { current: number | undefined }; root: { current: HTMLElement | null } }
 
@@ -228,10 +232,33 @@ export function reservationDetailView({ model: m, onAction, busy = false, noteCo
     const statusText = source ? statusLabelOf(source) : m.statusLabel;
     const dday = dd || (toDeparture !== null && toDeparture >= 0 ? { label: toDeparture === 0 ? 'D-DAY' : `D-${toDeparture}`, tone: toDeparture <= 7 ? 'red' : 'gray' } : null);
     const shortNo = m.bookingNumber && /^[0-9a-f-]{20,}$/i.test(m.bookingNumber) ? m.bookingNumber.slice(0, 8) : m.bookingNumber;
+    // 이름 바로 고치기: 연필(또는 이름 두 번 누르기) → 입력칸. Enter 저장 · Esc 취소. 빈 이름은 저장하지 않는다.
+    const renaming = st.nameDraft !== null && !!links?.onRename;
+    const startRename = () => { if (links?.onRename && !busy && !saving) set({ nameDraft: m.customerName || '' }); };
+    const saveRename = async () => {
+        const next = (st.nameDraft || '').trim();
+        if (!links?.onRename || saving) return;
+        if (!next) { flash('고객 이름을 입력해 주세요'); return; }
+        if (next === (m.customerName || '').trim()) { set({ nameDraft: null }); return; }
+        setSaving(true);
+        try { if (await links.onRename(next)) { if (mounted.current) set({ nameDraft: null }); flash('고객 이름을 바꿨어요'); } }
+        finally { if (mounted.current) setSaving(false); }
+    };
+    const nameBlock = renaming
+        ? <form className="cw-rename" onSubmit={e => { e.preventDefault(); void saveRename(); }}>
+            <AdminTextInput className="cw-rename-input" aria-label="고객 이름" autoFocus maxLength={60} value={st.nameDraft || ''} disabled={saving}
+                onChange={e => set({ nameDraft: e.target.value })} onKeyDown={e => { if (e.key === 'Escape') { e.preventDefault(); set({ nameDraft: null }); } }} />
+            <AdminButton type="submit" variant="primary" size="sm" disabled={saving || !(st.nameDraft || '').trim()}>저장</AdminButton>
+            <AdminButton variant="weak" size="sm" disabled={saving} onClick={() => set({ nameDraft: null })}>취소</AdminButton>
+        </form>
+        : <>
+            <h1 className="cw-hero-name" onDoubleClick={links?.onRename ? startRename : undefined}>{name}</h1>
+            {links?.onRename && <AdminIconButton size="sm" label="고객 이름 수정" className="cw-rename-btn" disabled={busy || saving} onClick={startRename}><IconPencil aria-hidden="true" /></AdminIconButton>}
+        </>;
     const hero = <section className="cw-card cw-hero" aria-label="고객 요약">
         <div className="cw-hero-main">
             <div className="cw-hero-title">
-                <h1 className="cw-hero-name">{name}</h1>
+                {nameBlock}
                 {dday && pill(dday.label, dday.tone === 'red' ? 'danger' : 'neutral')}
                 {pill(statusText, 'neutral', links?.onStatus && source?.type === 'product' ? { onClick: statusMenu, label: `진행상황 ${statusText} · 바꾸기` } : {})}
                 {m.packageInfo && pill(m.packageInfo.tier === 'full' ? '풀패키지' : m.packageInfo.tier === 'value' ? '실속형' : '패키지 미지정', 'neutral', { title: m.packageInfo.detail })}

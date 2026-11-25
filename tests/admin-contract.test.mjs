@@ -328,3 +328,22 @@ test("관리자가 입금확인완료를 누르면 고객에게 계약서 안내
 });
 
 
+
+test("고객 이름 바꾸기는 요청의 name 칸과 견적서 고객명까지 같은 값으로 저장하고 빈 이름은 거절한다", async t => {
+  const rec = { id:"req-1", name:"예전 이름", phone:"01012345678", quote:{ customer:"예전 이름", price:{ deposit:100000 } }, status:"신규" };
+  const DB = requestSQLite(t, rec), env = { ADMIN_TOKEN:"admin-secret", DB };
+  const patch = body => onRequestPatch({
+    request:new Request("https://example.com/api/requests/req-1", { method:"PATCH", headers:{ "Content-Type":"application/json", "x-admin-token":"admin-secret" }, body:JSON.stringify(body) }),
+    env, params:{ id:"req-1" }, waitUntil() {},
+  });
+  const empty = await patch({ name:"   " });
+  assert.equal(empty.status, 400); assert.equal(DB.requestWrites.length, 0);
+  const saved = await patch({ name:"  새 이름  " });
+  assert.equal(saved.status, 200);
+  assert.equal(DB.record.name, "새 이름");
+  assert.equal(DB.record.quote.customer, "새 이름"); assert.equal(DB.record.quote.price.deposit, 100000);
+  assert.equal(DB.raw.prepare("SELECT name FROM requests WHERE id='req-1'").get().name, "새 이름");
+  // 이름을 보내지 않은 저장은 name 칸을 건드리지 않는다
+  await patch({ memo:"메모만" });
+  assert.equal(DB.raw.prepare("SELECT name FROM requests WHERE id='req-1'").get().name, "새 이름");
+});

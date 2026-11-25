@@ -134,6 +134,12 @@
 .cw-hero-title { display: flex; flex-wrap: wrap; align-items: center; gap: var(--adm-space-2); }
 .cw-v8 .cw-hero-name { margin: 0 var(--adm-space-0-5) 0 0; color: var(--adm-ink); font-size: var(--adm-fs-stat); font-weight: var(--adm-fw-bold); line-height: var(--adm-lh-tight); overflow-wrap: anywhere; }
 .cw-hero-meta { color: var(--adm-text-3); font-size: var(--adm-fs-caption); }
+/* 이름 바로 고치기: 이름 옆 작은 연필, 누르면 그 자리 입력칸 + 저장·취소 */
+.cw-v8 .cw-rename-btn { margin-left: calc(var(--adm-space-1) * -1); color: var(--adm-text-3); }
+.cw-v8 .cw-rename-btn:hover:not(:disabled) { color: var(--adm-ink); }
+.cw-rename { display: flex; flex-wrap: wrap; align-items: center; gap: var(--adm-space-2); }
+.cw-v8 .cw-rename-input { width: calc(var(--adm-space-8) * 8); max-width: 100%; }
+.cw-v8 .cw-rename-input input { font-size: var(--adm-fs-xl); font-weight: var(--adm-fw-bold); }
 .cw-hero-facts { display: flex; flex-wrap: wrap; gap: var(--adm-space-2) var(--adm-space-5); }
 .cw-fact { display: inline-flex; align-items: center; gap: var(--adm-space-1-5); color: var(--adm-text); font-size: var(--adm-fs-body); }
 .cw-fact svg { flex: none; width: 1.15em; height: 1.15em; color: var(--adm-text-3); }

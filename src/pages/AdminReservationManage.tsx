@@ -1687,6 +1687,11 @@ const ReservationDetailModal = ({ reservation, onClose, onUpdate, onRefresh, upd
             ? { ...reservation, depositStatus: paid ? 'paid' : 'unpaid', status: paid && reservation.status === 'pending_payment' ? 'confirmed' : reservation.status }
             : { ...reservation, balanceStatus: paid ? 'paid' : 'unpaid' }, true),
         onStatus: async status => { await onUpdate({ ...reservation, status: status as Reservation['status'] }, true); },
+        // 고객 이름 바로 고치기: 주문 정보 수정과 같은 저장(customer_name). 편집 중인 주문 정보가 있으면 먼저 저장하게 한다.
+        ...(reservation.type !== 'quote' ? { onRename: async (name: string) => {
+            if (workspaceIsBusy() || isEditing) { setNavigationNotice('수정 중인 주문 정보를 먼저 저장하거나 취소해 주세요.'); return false; }
+            return !!await onUpdate({ ...reservation, customerName: name }, true);
+        } } : {}),
         onAssignmentSaved: onRefresh,
     };
     const overviewAction = (action: string, id?: string) => {

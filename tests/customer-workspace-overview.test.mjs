@@ -220,6 +220,31 @@ test('처리 중에는 업무·문서 버튼을 잠근다', () => {
     assert.equal(byLabel(tree, '계약서 열기').props.disabled, true);
 });
 
+test('고객 이름은 머리 카드의 연필로 그 자리에서 고치고, 저장은 연결된 onRename 하나로만 한다', async () => {
+    // 저장 연결이 없으면(이전 견적 등) 연필이 없다
+    assert.equal(byLabel(view({ model }).tree, '고객 이름 수정'), undefined);
+    const renamed = [];
+    const links = { source: null, userId: 'admin', onRename: async name => { renamed.push(name); return true; } };
+    const first = view({ model, links });
+    byLabel(first.tree, '고객 이름 수정').props.onClick();
+    assert.equal(first.st.nameDraft, '합성 고객');
+    const editing = view({ model, links }, first.st).tree;
+    const input = elements(editing, node => node.props?.['aria-label'] === '고객 이름')[0];
+    assert.ok(input); assert.equal(input.props.value, '합성 고객');
+    // 빈 이름은 저장 버튼이 잠기고 저장하지 않는다
+    input.props.onChange({ target: { value: '   ' } });
+    assert.equal(byText(view({ model, links }, first.st).tree, '저장').props.disabled, true);
+    input.props.onChange({ target: { value: '  바뀐 고객  ' } });
+    const form = elements(view({ model, links }, first.st).tree, node => node.type === 'form')[0];
+    form.props.onSubmit({ preventDefault() {} });
+    await new Promise(resolve => setTimeout(resolve, 0));
+    assert.deepEqual(renamed, ['바뀐 고객']); assert.equal(first.st.nameDraft, null);
+    // Esc는 저장 없이 닫는다
+    byLabel(view({ model, links }, first.st).tree, '고객 이름 수정').props.onClick();
+    elements(view({ model, links }, first.st).tree, node => node.props?.['aria-label'] === '고객 이름')[0].props.onKeyDown({ key: 'Escape', preventDefault() {} });
+    assert.equal(first.st.nameDraft, null); assert.deepEqual(renamed, ['바뀐 고객']);
+});
+
 test('예약 상품은 공개 링크만 새 창으로 연결하고 연결 정보가 없으면 링크를 만들지 않는다', () => {
     const bookedProduct = { name: '실제 저장 상품 <테를지>', href: '/products/saved-tour%2F3' };
     const links = elements(view({ model: { ...model, bookedProduct } }).tree, node => node.type === 'a' && node.props.href === bookedProduct.href);
