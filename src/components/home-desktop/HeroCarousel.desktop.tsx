@@ -3,7 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import { useHeroBanners } from '../../hooks/useHeroBanners';
 import type { HomeData } from '../../hooks/useHomeData';
 import { BRAND } from '../../constants/company';
-import { MW, isUsableImage, won } from '../desktop-primitives/mwTokens';
+import { isUsableImage, won } from '../desktop-primitives/mwTokens';
+import { SD, SIcon, SRoundButton } from '../site-seed/seed';
 import { ResponsiveProductImage } from '../common/ResponsiveProductImage';
 import { HeroBannerStatus } from '../common/HeroBannerStatus';
 
@@ -50,8 +51,8 @@ const FALLBACK: Slide = {
     path: '/custom-estimate',
 };
 
-const GAP = 16;
-const W = 'min(880px, calc(100vw - 96px))';
+const GAP = 12;
+const W = 'min(840px, calc(100vw - 112px))';
 
 interface Props {
     products: HomeData['products'];
@@ -128,14 +129,15 @@ export function HeroCarouselDesktop({ products }: Props) {
     return (
         <section
             aria-roledescription="carousel"
-            aria-label="추천 특집"
-            style={{ padding: '40px 0 0', overflow: 'hidden', background: '#FFFFFF' }}
+            aria-label="여행 기획전"
+            style={{ padding: '20px 0 0', overflow: 'hidden', background: SD.white }}
             onMouseEnter={() => { paused.current = true; }}
             onMouseLeave={() => { paused.current = false; }}
         >
-            <div style={{ position: 'relative', height: 'clamp(300px,36vw,400px)' }}>
+            {/* 디자인(2026-11-25): 가운데 840×380 카드 + 양옆에 이전·다음 카드가 걸쳐 보인다 */}
+            <div style={{ position: 'relative', width: W, maxWidth: '100%', aspectRatio: '840 / 380', margin: '0 auto' }}>
                 {!banners ? (
-                    <div style={{ width: W, height: '100%', margin: '0 auto', borderRadius: 28, overflow: 'hidden' }}>
+                    <div style={{ width: '100%', height: '100%', borderRadius: 16, overflow: 'hidden' }}>
                         <HeroBannerStatus error={isError} onRetry={() => { void refetch(); }} />
                     </div>
                 ) : (
@@ -143,11 +145,11 @@ export function HeroCarouselDesktop({ products }: Props) {
                     style={{
                         position: 'absolute',
                         top: 0,
-                        left: '50%',
+                        left: 0,
                         height: '100%',
                         display: 'flex',
                         gap: GAP,
-                        transform: `translateX(calc(${W} / -2 - ${offset} * (${W} + ${GAP}px)))`,
+                        transform: `translateX(calc(${offset} * (${W} + ${GAP}px) * -1))`,
                         transition: animate ? 'transform .6s cubic-bezier(.22,.7,.2,1)' : 'none',
                     }}
                 >
@@ -162,6 +164,7 @@ export function HeroCarouselDesktop({ products }: Props) {
                                 key={pos}
                                 role="group"
                                 aria-roledescription="slide"
+                                aria-label={isPrimary ? `${k + 1} / ${n}` : undefined}
                                 aria-hidden={!isPrimary || undefined}
                                 onClick={() => (isCurrent ? navigate(s.path) : goTo(pos))}
                                 style={{
@@ -169,17 +172,17 @@ export function HeroCarouselDesktop({ products }: Props) {
                                     flex: `0 0 ${W}`,
                                     width: W,
                                     height: '100%',
-                                    borderRadius: 28,
+                                    borderRadius: 16,
                                     overflow: 'hidden',
-                                    color: '#fff',
+                                    color: SD.white,
                                     cursor: 'pointer',
-                                    background: `linear-gradient(135deg, ${MW.navySoft} 0%, ${MW.mintDeep} 100%)`,
+                                    background: `linear-gradient(135deg, ${SD.gray900} 0%, ${SD.mint700} 100%)`,
                                 }}
                             >
                                 {isUsableImage(s.img) && (
                                     <ResponsiveProductImage
                                         src={s.img}
-                                        sizes="(max-width: 976px) calc(100vw - 96px), 880px"
+                                        sizes="(max-width: 952px) calc(100vw - 112px), 840px"
                                         alt={isPrimary ? `${s.title.replace(/\n/g, ' ')} | ${BRAND.tagline} ${BRAND.name}` : ''}
                                         loading={isCurrent || pos === offset + 1 ? 'eager' : 'lazy'}
                                         fetchPriority={isCurrent && k === 0 ? 'high' : 'auto'}
@@ -187,57 +190,54 @@ export function HeroCarouselDesktop({ products }: Props) {
                                         style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }}
                                     />
                                 )}
-                                <div style={{ position: 'absolute', inset: 0, pointerEvents: 'none', background: 'linear-gradient(90deg,rgba(10,31,46,0.72) 0%,rgba(10,31,46,0.35) 45%,rgba(10,31,46,0) 75%)' }} />
-                                <div style={{ position: 'absolute', inset: 0, padding: 'clamp(24px,4vw,44px)', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', pointerEvents: 'none' }}>
-                                    <div style={{ display: 'flex', flexDirection: 'column', gap: 12, maxWidth: 560 }}>
-                                        {s.eyebrow && (
-                                            <span style={{ alignSelf: 'flex-start', fontSize: 'clamp(12px,1.2vw,14px)', fontWeight: 700, color: MW.navy, background: MW.mint, padding: '5px 12px', borderRadius: 999 }}>
-                                                {s.eyebrow}
-                                            </span>
-                                        )}
-                                        <Heading
-                                            style={{ margin: 0, fontSize: 'clamp(24px,3vw,36px)', lineHeight: 1.35, fontWeight: 900, whiteSpace: 'pre-line', wordBreak: 'keep-all', overflowWrap: 'anywhere' }}
-                                        >
-                                            {s.title}
-                                        </Heading>
-                                        {s.sub && <span style={{ fontSize: 'clamp(12px,1.1vw,14px)', color: '#CDD8DF' }}>{s.sub}</span>}
-                                    </div>
-                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', gap: 12 }}>
-                                        <span style={{ fontSize: 'clamp(16px,1.6vw,20px)', fontWeight: 700 }}>{s.label}</span>
-                                        <span style={{ fontSize: 13, fontWeight: 700, background: 'rgba(255,255,255,0.16)', border: '1px solid rgba(255,255,255,0.4)', padding: '6px 14px', borderRadius: 999 }}>
-                                            자세히 보기 →
+                                <div style={{ position: 'absolute', inset: 0, pointerEvents: 'none', background: 'linear-gradient(90deg, rgba(0,0,0,0.55) 0%, rgba(0,0,0,0.25) 40%, rgba(0,0,0,0) 65%)' }} />
+                                <div style={{ position: 'absolute', left: 'clamp(20px,4vw,44px)', top: 'clamp(20px,4vw,44px)', bottom: 'clamp(16px,3vw,36px)', maxWidth: 440, display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: 10, pointerEvents: 'none' }}>
+                                    {s.eyebrow && (
+                                        <span style={{ minHeight: 26, padding: '0 10px', display: 'inline-flex', alignItems: 'center', borderRadius: 6, background: SD.mint700, color: SD.white, fontSize: 12, fontWeight: 700 }}>
+                                            {s.eyebrow}
                                         </span>
-                                    </div>
+                                    )}
+                                    {s.sub && <p style={{ margin: '4px 0 0', fontSize: 'clamp(13px,1.3vw,16px)', color: 'rgba(255,255,255,0.9)' }}>{s.sub}</p>}
+                                    <Heading
+                                        style={{ margin: 0, fontSize: 'clamp(22px,3vw,34px)', lineHeight: 1.3, fontWeight: 700, color: SD.white, whiteSpace: 'pre-line', wordBreak: 'keep-all', overflowWrap: 'anywhere' }}
+                                    >
+                                        {s.title}
+                                    </Heading>
+                                    {isCurrent && (
+                                        <span style={{ marginTop: 'auto', display: 'inline-flex', alignItems: 'center', gap: 6, height: 44, padding: '0 18px', borderRadius: 9999, background: SD.white, color: SD.gray900, fontSize: 15, fontWeight: 700 }}>
+                                            자세히 보기<SIcon name="arrowRight" size={16} stroke={2} />
+                                        </span>
+                                    )}
                                 </div>
+                                {isCurrent && looping && (
+                                    <div style={{ position: 'absolute', right: 20, bottom: 20, display: 'flex', alignItems: 'center', gap: 8 }} onClick={(e) => e.stopPropagation()}>
+                                        <span style={{ height: 32, padding: '0 12px', display: 'inline-flex', alignItems: 'center', borderRadius: 9999, background: 'rgba(0,0,0,0.5)', color: SD.white, fontSize: 13, fontWeight: 700, fontVariantNumeric: 'tabular-nums' }}>
+                                            {active + 1} / {n}
+                                        </span>
+                                        <SRoundButton label="이전 기획전" icon="chevronLeft" onClick={() => goTo(idx - 1)} style={{ border: 'none' }} />
+                                        <SRoundButton label="다음 기획전" icon="chevronRight" onClick={() => goTo(idx + 1)} style={{ border: 'none' }} />
+                                    </div>
+                                )}
                             </div>
                         );
                     })}
                 </div>
                 )}
             </div>
-            {looping && (
-                <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 6, padding: '16px 0 0' }}>
-                    {slides.map((s, k) => (
-                        <button
-                            key={s.key}
-                            type="button"
-                            aria-label={`슬라이드 ${k + 1}`}
-                            aria-current={k === active || undefined}
-                            onClick={() => goTo(n + k)}
-                            style={{
-                                width: k === active ? 28 : 6,
-                                height: 6,
-                                borderRadius: 3,
-                                border: 0,
-                                padding: 0,
-                                background: k === active ? MW.mint : MW.dot,
-                                cursor: 'pointer',
-                                transition: 'width .3s',
-                            }}
-                        />
-                    ))}
-                </div>
-            )}
+            <div style={{ display: 'flex', justifyContent: 'center', gap: 6, padding: '16px 0 40px', minHeight: 20 }}>
+                {looping && slides.map((s, k) => (
+                    <button
+                        key={s.key}
+                        type="button"
+                        aria-label={`${k + 1}번째 기획전 보기`}
+                        aria-current={k === active || undefined}
+                        onClick={() => goTo(n + k)}
+                        style={{ width: 32, height: 20, border: 'none', background: 'transparent', padding: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}
+                    >
+                        <span style={{ display: 'block', width: k === active ? 24 : 6, height: 6, borderRadius: 9999, background: k === active ? SD.mint500 : SD.gray400, transition: 'width .3s' }} />
+                    </button>
+                ))}
+            </div>
         </section>
     );
 }

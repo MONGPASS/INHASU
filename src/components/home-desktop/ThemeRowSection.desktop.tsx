@@ -1,152 +1,72 @@
-import { useEffect, useRef } from 'react';
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ResponsiveProductImage } from '../common/ResponsiveProductImage';
-import { useWishlist } from '../../hooks/useWishlist';
-import { MW, isUsableImage, won } from '../desktop-primitives/mwTokens';
-import { TypePill } from '../desktop-primitives/TypePill';
-import { FavButton } from './TourTabsSection.desktop';
-import { discountPct, type HomeProduct, type ReviewStat } from './homeDesktopData';
+import { isUsableImage } from '../desktop-primitives/mwTokens';
+import { SD, SRoundButton } from '../site-seed/seed';
+import type { HomeProduct } from './homeDesktopData';
+import { TourCardDesktop } from './TourCard.desktop';
 
 interface Props {
     title: string;
     subtitle: string;
     products: HomeProduct[];
-    stats: Record<string, ReviewStat>;
     image: string;
     imageAlt: string;
     link: string;
-    /** Photo on the left instead of the right. */
+    /** 큰 사진을 오른쪽에 둔다(기본 왼쪽). */
     reverse?: boolean;
 }
 
-const STEP = 236; // card width (220) + gap (16)
+const VISIBLE = 3;
 
-export function ThemeRowSectionDesktop({ title, subtitle, products, stats, image, imageAlt, link, reverse = false }: Props) {
+/** 테마 줄: 정사각 큰 사진 + 제목 + 상품 3개(이전·다음으로 한 개씩 넘긴다). 상품이 없으면 맞춤 견적 안내. */
+export function ThemeRowSectionDesktop({ title, subtitle, products, image, imageAlt, link, reverse = false }: Props) {
     const navigate = useNavigate();
-    const rowRef = useRef<HTMLDivElement>(null);
-    const paused = useRef(false);
-
-    const scroll = (d: 1 | -1) => {
-        const el = rowRef.current;
-        if (!el) return;
-        const max = el.scrollWidth - el.clientWidth;
-        if (d > 0 && el.scrollLeft >= max - 4) el.scrollTo({ left: 0, behavior: 'smooth' });
-        else if (d < 0 && el.scrollLeft <= 4) el.scrollTo({ left: max, behavior: 'smooth' });
-        else el.scrollBy({ left: d * STEP, behavior: 'smooth' });
-    };
-
-    useEffect(() => {
-        const t = window.setInterval(() => {
-            const el = rowRef.current;
-            if (paused.current || !el || document.visibilityState !== 'visible') return;
-            if (el.scrollWidth - el.clientWidth <= 4) return;
-            const max = el.scrollWidth - el.clientWidth;
-            if (el.scrollLeft >= max - 4) el.scrollTo({ left: 0, behavior: 'smooth' });
-            else el.scrollBy({ left: STEP, behavior: 'smooth' });
-        }, 3500);
-        return () => window.clearInterval(t);
-    }, []);
-
-    if (products.length === 0) return null;
+    const [offset, setOffset] = useState(0);
+    const n = products.length;
+    const canMove = n > VISIBLE;
+    const shown = canMove ? Array.from({ length: VISIBLE }, (_, k) => products[(offset + k) % n]) : products;
+    const move = (d: 1 | -1) => setOffset((o) => (o + d + n) % n);
 
     const photo = (
-        <a
-            href={link}
-            onClick={(e) => { e.preventDefault(); navigate(link); }}
-            aria-label={imageAlt}
-            style={{ flex: '0 1 300px', minWidth: 240, aspectRatio: '1/1', borderRadius: 28, overflow: 'hidden', display: 'block', background: MW.mintTint }}
-        >
+        <a href={link} onClick={(e) => { e.preventDefault(); navigate(link); }} aria-label={`${title} 전체 보기`}
+            style={{ flex: '0 1 340px', minWidth: 260, aspectRatio: '1 / 1', borderRadius: 20, overflow: 'hidden', display: 'block', background: SD.gray100 }}>
             {isUsableImage(image) && (
-                <ResponsiveProductImage src={image} alt={imageAlt} sizes="300px" loading="lazy" decoding="async" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
+                <ResponsiveProductImage src={image} alt={imageAlt} sizes="340px" loading="lazy" decoding="async" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
             )}
         </a>
     );
-
-    return (
-        <div style={{ display: 'flex', flexWrap: reverse ? 'wrap-reverse' : 'wrap', gap: 32, alignItems: 'stretch' }}>
-            {reverse && photo}
-            <div style={{ flex: '1 1 520px', minWidth: 0, display: 'flex', flexDirection: 'column', gap: 20 }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', gap: 16 }}>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                        <h2 style={{ margin: 0, fontSize: 26, fontWeight: 900, lineHeight: 1.3 }}>{title}</h2>
-                        <p style={{ margin: 0, fontSize: 13, color: MW.mute }}>{subtitle}</p>
-                    </div>
-                    <div style={{ display: 'flex', gap: 8, flexShrink: 0 }}>
-                        <ArrowButton label="이전" onClick={() => scroll(-1)}>‹</ArrowButton>
-                        <ArrowButton label="다음" onClick={() => scroll(1)}>›</ArrowButton>
-                    </div>
+    const body = (
+        <div style={{ flex: '1 1 520px', minWidth: 0, display: 'flex', flexDirection: 'column', gap: 24 }}>
+            <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 16 }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                    <h3 style={{ margin: 0, fontSize: 22, fontWeight: 700, lineHeight: 1.35, color: SD.gray900 }}>{title}</h3>
+                    <p style={{ margin: 0, fontSize: 14, color: SD.gray600 }}>{subtitle}</p>
                 </div>
-                <div
-                    ref={rowRef}
-                    onMouseEnter={() => { paused.current = true; }}
-                    onMouseLeave={() => { paused.current = false; }}
-                    onFocus={() => { paused.current = true; }}
-                    onBlur={() => { paused.current = false; }}
-                    style={{ display: 'flex', gap: 16, overflowX: 'auto', scrollSnapType: 'x mandatory', scrollbarWidth: 'none', paddingBottom: 4 }}
-                >
-                    {products.map((p) => (
-                        <MiniCard key={p.id} p={p} stat={stats[p.id]} />
-                    ))}
-                </div>
+                {canMove && (
+                    <div style={{ display: 'flex', gap: 8, flex: 'none' }}>
+                        <SRoundButton label={`${title} 이전`} icon="chevronLeft" onClick={() => move(-1)} />
+                        <SRoundButton label={`${title} 다음`} icon="chevronRight" onClick={() => move(1)} />
+                    </div>
+                )}
             </div>
-            {!reverse && photo}
+            {n === 0 ? (
+                <a href="/custom-estimate" onClick={(e) => { e.preventDefault(); navigate('/custom-estimate'); }}
+                    style={{ display: 'flex', flexDirection: 'column', gap: 6, padding: '32px 24px', borderRadius: 12, background: SD.gray50, color: SD.gray900, textDecoration: 'none' }}>
+                    <span style={{ fontSize: 16, fontWeight: 700 }}>이 테마의 상품을 준비하고 있어요</span>
+                    <span style={{ fontSize: 14, color: SD.gray700 }}>원하는 일정을 알려 주시면 맞춤 견적으로 안내해 드려요 →</span>
+                </a>
+            ) : (
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: 20 }}>
+                    {shown.map((p) => <TourCardDesktop key={p.id} p={p} ratio="16 / 10" sizes="240px" />)}
+                </div>
+            )}
         </div>
     );
-}
-
-function MiniCard({ p, stat }: { p: HomeProduct; stat?: ReviewStat }) {
-    const navigate = useNavigate();
-    const wishlist = useWishlist();
-    const off = discountPct(p);
-    const img = p.mainImages[0];
 
     return (
-        <a
-            href={`/products/${p.id}`}
-            onClick={(e) => { e.preventDefault(); navigate(`/products/${p.id}`); }}
-            style={{ flex: '0 0 220px', width: 220, minWidth: 0, scrollSnapAlign: 'start', display: 'flex', flexDirection: 'column', gap: 8, color: MW.navy, textDecoration: 'none' }}
-            onMouseEnter={(e) => (e.currentTarget.style.opacity = '0.9')}
-            onMouseLeave={(e) => (e.currentTarget.style.opacity = '1')}
-        >
-            <div style={{ position: 'relative', aspectRatio: '16/10', borderRadius: 18, overflow: 'hidden', background: MW.mintTint }}>
-                {isUsableImage(img) && (
-                    <ResponsiveProductImage src={img} alt={`${p.name} | ${p.category}`} sizes="220px" loading="lazy" decoding="async" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
-                )}
-                <FavButton variant="ghost" on={wishlist.has(p.id)} onToggle={() => wishlist.toggle(p)} />
-            </div>
-            <h3 style={{ margin: '4px 0 0', fontSize: 14, fontWeight: 500, lineHeight: 1.5, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                {p.duration ? `[${p.duration}] ` : ''}{p.name}
-            </h3>
-            {p.packageType && (
-                <div style={{ display: 'flex', alignItems: 'center', gap: 4, height: 22, overflow: 'hidden', marginTop: 4 }}>
-                    <TypePill type={p.packageType} />
-                </div>
-            )}
-            <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, flexWrap: 'wrap' }}>
-                {off > 0 && <span style={{ fontSize: 13, color: MW.mute2, textDecoration: 'line-through' }}>{won(p.originalPrice!)}</span>}
-                <span style={{ fontSize: 18, fontWeight: 900 }}>{won(p.price)}</span>
-            </div>
-            {stat && stat.count > 0 && (
-                <div style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 12, color: MW.mute }}>
-                    <span style={{ color: MW.star }}>★</span>
-                    {stat.avg.toFixed(1)}({stat.count})
-                </div>
-            )}
-        </a>
-    );
-}
-
-function ArrowButton({ label, onClick, children }: { label: string; onClick: () => void; children: string }) {
-    return (
-        <button
-            type="button"
-            aria-label={label}
-            onClick={onClick}
-            style={{ width: 36, height: 36, borderRadius: '50%', border: `1px solid ${MW.line}`, background: '#fff', color: MW.mintDeep, cursor: 'pointer', fontSize: 14 }}
-            onMouseEnter={(e) => (e.currentTarget.style.borderColor = MW.mintDeep)}
-            onMouseLeave={(e) => (e.currentTarget.style.borderColor = MW.line)}
-        >
-            {children}
-        </button>
+        <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'flex-start', gap: '32px 40px' }}>
+            {reverse ? <>{body}{photo}</> : <>{photo}{body}</>}
+        </div>
     );
 }

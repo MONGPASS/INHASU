@@ -400,3 +400,27 @@ body:has([data-mw-overlay]) .floating-line-btn,
 body:has([data-mw-actionbar]) .floating-line-btn {
     display: none !important;
 }
+
+/* ── 홈 새 디자인(2026-11-25) ─────────────────────────────── */
+/* 이달의 추천 PICK 넘김 막대: 가는 회색 길 + 진한 손잡이 */
+.home-pick-range { -webkit-appearance: none; appearance: none; height: 24px; background: transparent; cursor: pointer; }
+.home-pick-range::-webkit-slider-runnable-track { height: 3px; border-radius: 9999px; background: #d1d3d8; }
+.home-pick-range::-webkit-slider-thumb { -webkit-appearance: none; appearance: none; width: 240px; height: 3px; margin-top: 0; border-radius: 9999px; background: #4d5159; border: none; }
+.home-pick-range::-moz-range-track { height: 3px; border-radius: 9999px; background: #d1d3d8; }
+.home-pick-range::-moz-range-thumb { width: 240px; height: 3px; border-radius: 9999px; background: #4d5159; border: none; }
+.home-pick-range:hover::-webkit-slider-thumb, .home-pick-range:active::-webkit-slider-thumb { height: 5px; margin-top: -1px; }
+.home-pick-range:focus-visible { outline: 2px solid #075E4E; outline-offset: 4px; }
+@media (max-width: 760px) {
+    .home-pick-range::-webkit-slider-thumb { width: 96px; }
+    .home-pick-range::-moz-range-thumb { width: 96px; }
+}
+/* 협력 업체 로고 띠: 같은 그림 두 장을 이어 왼쪽으로 흐른다. 올리면 멈춘다 */
+@keyframes home-partner-move { from { transform: translateX(0); } to { transform: translateX(-50%); } }
+.home-partner-track { animation: home-partner-move 40s linear infinite; }
+.home-partner-wrap:hover .home-partner-track { animation-play-state: paused; }
+/* 상단 추천 검색어: 한 줄씩 위로 넘어간다 */
+@keyframes home-kw-roll { 0%, 14% { transform: translateY(0); } 17%, 31% { transform: translateY(-24px); } 34%, 48% { transform: translateY(-48px); } 51%, 65% { transform: translateY(-72px); } 68%, 82% { transform: translateY(-96px); } 85%, 100% { transform: translateY(-120px); } }
+.home-kw-track { animation: home-kw-roll 15s ease-in-out infinite; }
+.home-gnb { border-bottom: 3px solid transparent; }
+.home-gnb:hover, .home-gnb[aria-current="page"] { border-bottom-color: #12B28C; }
+@media (prefers-reduced-motion: reduce) { .home-partner-track, .home-kw-track { animation: none; } }
