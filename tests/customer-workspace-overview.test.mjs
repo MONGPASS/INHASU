@@ -260,26 +260,44 @@ test('일정이 예약 기간보다 길거나 짧으면 빨간 글자로 알린�
     assert.ok(!renderToStaticMarkup(view({ model: { ...short, days: days(2) } }).tree).includes('cw-warn'));
 });
 
-test('고객 정보는 세 줄만 보이고 펼치면 예약 상세·항공편·여행자·요청·예약번호를 보여 주며 개인정보는 기본으로 가린다', () => {
+test('고객 정보는 세 줄만 보이고, 펼치면 예약 상세·요청·예약번호와 항공편·여행자 펼침 줄을 보여 주며 개인정보는 기본으로 가린다', () => {
     const calls = [];
     const detailed = { ...model,
         facts: [...model.facts, { label: '이메일', value: 'local@example.invalid' }, { label: '상품', value: '실제 상품' }, { label: '접수일', value: '2026-10-19' }, { label: '주문 메모', value: '보존할 메모' }],
-        flights: [{ id: 'arrival', label: '도착편', flight: 'LOCAL-1', date: '2026-10-25', time: '12:30' }, { id: 'departure', label: '출발편' }],
-        travelers: { expected: 10, registered: 1, people: [{ id: 't1', name: '저장 여행자', details: [{ label: '여권번호', value: 'M12345678' }] }] },
+        flights: [{ id: 'arrival', label: '도착편', flight: 'LOCAL-1', date: '2026-10-25', time: '12:30', extra: [{ label: '픽업', value: '공항 미팅' }] }, { id: 'departure', label: '출발편' }],
+        travelers: { expected: 10, registered: 1, people: [{ id: 't1', name: '저장 여행자', details: [{ label: '구분', value: '성인' }, { label: '여권번호', value: 'M12345678' }] }] },
         preferences: ['보존할 요청'] };
     const first = view({ model: detailed, onAction: (...args) => calls.push(args) });
     const collapsed = renderToStaticMarkup(first.tree);
     assert.ok(!collapsed.includes('LOCAL-1')); assert.ok(!collapsed.includes('보존할 메모'));
     byLabel(first.tree, '고객 정보 펼쳐 보기').props.onClick();
     assert.equal(first.st.infoMore, true);
-    const opened = view({ model: detailed, onAction: (...args) => calls.push(args) }, first.st);
-    const markup = renderToStaticMarkup(opened.tree);
-    for (const value of ['보존할 메모', 'LOCAL-1', '1/2편 정보 등록', '1/10명 등록', '저장 여행자', '9명 여권 정보 미제출', '보존할 요청', '#same-id']) assert.ok(markup.includes(value), value);
-    assert.ok(markup.includes('010-1234***')); assert.ok(!markup.includes('010-1234-5678')); assert.ok(!markup.includes('M12345678'));
-    byLabel(opened.tree, '항공편 수정').props.onClick(); byLabel(opened.tree, '여행자 상세보기').props.onClick();
+    const disc = (st, label) => buttons(view({ model: detailed, onAction: (...args) => calls.push(args) }, st).tree).find(b => b.props.className === 'adm-cw-disc' && childrenText(b).startsWith(label));
+    // 펼침 줄은 요약만: 편명·여행자 이름·여권은 아직 없다
+    const rows = renderToStaticMarkup(view({ model: detailed }, first.st).tree);
+    for (const value of ['보존할 메모', '보존할 요청', '#same-id', '1/2편 정보 등록', '미등록 1편', '1/10명 등록', '9명 여권 정보 미제출']) assert.ok(rows.includes(value), value);
+    for (const value of ['LOCAL-1', '저장 여행자']) assert.ok(!rows.includes(value), value);
+    assert.equal(disc(first.st, '항공편').props['aria-expanded'], false);
+    // 항공편: 도착·출발편 상세(편명·날짜·몽골 도착 시간·추가 칸)
+    disc(first.st, '항공편').props.onClick();
+    assert.deepEqual(first.st.infoOpen, { flights: true });
+    const flights = renderToStaticMarkup(view({ model: detailed }, first.st).tree);
+    for (const value of ['LOCAL-1', '2026-10-25', '몽골 도착', '12:30', '공항 미팅', '편명 미등록', '>등록됨<', '>미등록<']) assert.ok(flights.includes(value), value);
+    // 여행자: 줄을 펼치면 사람 목록, 사람을 누르면 여권 정보(기본으로 가림) — 항공편과 따로 펼친다
+    disc(first.st, '여행자').props.onClick();
+    assert.deepEqual(first.st.infoOpen, { flights: true, travelers: true });
+    const person = buttons(view({ model: detailed }, first.st).tree).find(b => b.props.className === 'adm-cw-person');
+    assert.ok(childrenText(person).includes('저장 여행자') && childrenText(person).includes('성인'));
+    person.props.onClick();
+    const people = renderToStaticMarkup(view({ model: detailed }, first.st).tree);
+    assert.ok(people.includes('여권번호') && people.includes('M12******<')); assert.ok(!people.includes('M12345678'));
+    assert.ok(people.includes('010-1234***')); assert.ok(!people.includes('010-1234-5678'));
+    const opened = view({ model: detailed, onAction: (...args) => calls.push(args) }, first.st).tree;
+    byLabel(opened, '항공편 수정').props.onClick(); byLabel(opened, '여행자 상세보기').props.onClick();
     assert.deepEqual(calls, [['flights', undefined], ['travelers', undefined]]);
-    byLabel(opened.tree, '개인정보 보기').props.onClick();
-    assert.ok(renderToStaticMarkup(view({ model: detailed }, first.st).tree).includes('010-1234-5678'));
+    byLabel(opened, '개인정보 보기').props.onClick();
+    const shown = renderToStaticMarkup(view({ model: detailed }, first.st).tree);
+    assert.ok(shown.includes('010-1234-5678') && shown.includes('M12345678'));
 });
 
 test('알림·변경 이력은 저장된 기록을 모두 보여 주고 전체 이력으로 연결한다', () => {

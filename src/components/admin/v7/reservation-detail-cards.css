@@ -250,6 +250,33 @@
 .cw-row-stack { display: flex; flex-direction: column; gap: var(--adm-space-0-5); min-width: 0; padding: var(--adm-space-2) 0; }
 .cw-num { color: var(--adm-ink); font-variant-numeric: tabular-nums; }
 .cw-more { display: flex; flex-direction: column; }
+/* 고객 정보의 펼침 줄(항공편·여행자): 줄 모양 그대로 눌리고, 아래에 회색 상세 상자 */
+.cw-v8 .adm-cw-disc { display: flex; align-items: center; gap: var(--adm-space-3); box-sizing: border-box; width: 100%; min-height: calc(var(--adm-h-40) + var(--adm-space-1-5));
+  margin: 0; padding: var(--adm-space-2) 0; border: 0; border-top: var(--adm-border-width) solid var(--adm-line-subtle); background: transparent; color: inherit; font: inherit;
+  font-size: var(--adm-fs-body); text-align: left; cursor: pointer; }
+.cw-v8 .adm-cw-disc:hover .cw-row-label { color: var(--adm-ink); }
+.cw-v8 .adm-cw-disc:focus-visible, .cw-v8 .adm-cw-person:focus-visible { outline: 0; box-shadow: var(--adm-ring); }
+.cw-disc-sum { display: flex; flex: 1; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: var(--adm-space-1) var(--adm-space-2); min-width: 0; color: var(--adm-ink); text-align: right; }
+.cw-chev { display: flex; flex: none; color: var(--adm-text-3); transition: transform var(--adm-dur) var(--adm-ease); }
+.cw-chev svg { width: 1.15em; height: 1.15em; }
+[aria-expanded="true"] > .cw-chev { transform: rotate(180deg); }
+.cw-disc-body { display: flex; flex-direction: column; gap: var(--adm-space-2); margin: 0 0 var(--adm-space-3); padding: var(--adm-space-3); border-radius: var(--adm-radius-mid);
+  background: var(--adm-sunken); font-size: var(--adm-fs-small); }
+.cw-v8 .cw-disc-body > .adm-ui-text-btn { align-self: flex-end; }
+.cw-flight, .cw-person { border-radius: var(--adm-radius-mid); background: var(--adm-surface); }
+.cw-flight { display: flex; flex-direction: column; gap: var(--adm-space-1); padding: var(--adm-space-2-5) var(--adm-space-3); }
+.cw-flight-head { display: flex; align-items: center; justify-content: space-between; gap: var(--adm-space-2); color: var(--adm-ink); }
+.cw-flight-no { color: var(--adm-ink); font-size: var(--adm-fs-large); font-weight: var(--adm-fw-bold); }
+.cw-v8 .cw-flight-no.is-empty { color: var(--adm-text-3); font-weight: var(--adm-fw-bold); }
+.cw-kv { display: flex; justify-content: space-between; gap: var(--adm-space-3); color: var(--adm-text-2); font-size: var(--adm-fs-caption); }
+.cw-kv b { color: var(--adm-ink); font-variant-numeric: tabular-nums; text-align: right; overflow-wrap: anywhere; }
+.cw-v8 .adm-cw-person { display: flex; align-items: center; gap: var(--adm-space-2); box-sizing: border-box; width: 100%; margin: 0; padding: var(--adm-space-2) var(--adm-space-3);
+  border: 0; border-radius: var(--adm-radius-mid); background: transparent; color: inherit; font: inherit; text-align: left; cursor: pointer; }
+.cw-person-no { display: flex; flex: none; align-items: center; justify-content: center; width: 22px; aspect-ratio: 1; border-radius: var(--adm-radius-pill); background: var(--adm-gray-100);
+  color: var(--adm-text-2); font-size: var(--adm-fs-caption); font-weight: var(--adm-fw-bold); }
+.cw-person-name { flex: 1; min-width: 0; color: var(--adm-ink); font-size: var(--adm-fs-small); }
+.cw-person-kind { color: var(--adm-text-3); font-size: var(--adm-fs-caption); }
+.cw-person-body { display: flex; flex-direction: column; gap: var(--adm-space-1); padding: 0 var(--adm-space-3) var(--adm-space-2-5) calc(var(--adm-space-8) + var(--adm-space-1-5)); }
 /* 카드 아래 가운데 펼침 아이콘 */
 .cw-fold { display: flex; justify-content: center; margin-top: auto; padding-top: var(--adm-space-2-5); border-top: var(--adm-border-width) solid var(--adm-line-subtle); }
 .cw-v8 .cw-fold-btn { color: var(--adm-text-2); }

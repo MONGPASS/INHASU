@@ -76,11 +76,13 @@ export interface DetailState {
     daysAll: boolean;
     /** 고객 정보 카드의 예약 상세·항공편·여행자·요청·예약번호를 펼쳤는지(기본 접힘). */
     infoMore: boolean;
+    /** 고객 정보의 펼침 줄(항공편·여행자)과 여행자별 상세를 펼쳤는지 — 각각 따로 펼친다 */
+    infoOpen: Record<string, boolean>; travelerOpen: Record<string, boolean>;
     /** 배정 카드의 박별 숙소 목록을 펼쳤는지(기본 접힘). */
     staysOpen: boolean;
 }
 export const initialDetailState = (): DetailState => ({ allItems: [], resources: null, menu: null, toast: '', saving: false, maskOn: true,
-    navSid: 'sec-plan', staysOpen: false, infoMore: false, daysAll: false });
+    navSid: 'sec-plan', staysOpen: false, infoMore: false, daysAll: false, infoOpen: {}, travelerOpen: {} });
 export type DetailSet = (patch: Partial<DetailState> | ((s: DetailState) => Partial<DetailState>)) => void;
 export interface DetailEnv { mounted: { current: boolean }; toastTimer: { current: number | undefined }; root: { current: HTMLElement | null } }
 
@@ -313,6 +315,13 @@ export function reservationDetailView({ model: m, onAction, busy = false, noteCo
     const missingTravelers = travelers && travelers.expected !== null && travelers.expected > travelers.registered ? travelers.expected - travelers.registered : 0;
     const confirmedFlights = m.flights?.filter(f => f.date && f.time && f.flight).length || 0;
     const travelerNames = travelers?.people.map(p => p.name).filter(Boolean) || [];
+    /** 펼침 줄: 줄 전체가 눌리고 아래에 상세 상자가 열린다(각각 따로). 안의 버튼은 상자 안에 둔다(버튼 안에 버튼 금지). */
+    const discRow = (key: string, label: string, summary: ReactNode, body: ReactNode) => { const open = !!st.infoOpen[key]; return <React.Fragment key={key}>
+        <button type="button" className="adm-cw-disc" aria-expanded={open} aria-controls={`cw-info-${key}`} onClick={() => set(s => ({ infoOpen: { ...s.infoOpen, [key]: !open } }))}>
+            <span className="cw-row-label">{label}</span><span className="cw-disc-sum">{summary}</span><span className="cw-chev" aria-hidden="true"><IconChevronDown /></span>
+        </button>
+        {open && <div id={`cw-info-${key}`} className="cw-disc-body">{body}</div>}
+    </React.Fragment>; };
     const infoCard = <section id="sec-info" className="cw-card cw-info" aria-label="고객 정보">
         {head(IconPerson, '고객 정보', { right: <span className="cw-head-actions">
             {textBtn('복사', () => void copyInfo(), '고객 정보 복사')}
@@ -322,10 +331,28 @@ export function reservationDetailView({ model: m, onAction, busy = false, noteCo
         {m.facts.slice(0, 3).map((f, i) => row2(f.label, f.value ? maskFact(f.label, f.value, maskOn) : <span className="is-empty">미입력</span>, `${f.label}-${i}`))}
         {st.infoMore && <div id="cw-info-more" className="cw-more">
             {m.facts.slice(3).map((f, i) => row2(f.label, f.value ? maskFact(f.label, f.value, maskOn) : <span className="is-empty">미입력</span>, `more-${f.label}-${i}`))}
-            {!!m.flights?.length && row2('항공편', <>{m.flights.map(f => `${f.label} ${f.flight || '미등록'}${f.date ? ` ${f.date}` : ''}${f.time ? ` ${f.time}` : ''}`).join(' · ')}
-                <span className="cw-row-sub">{confirmedFlights}/{m.flights.length}편 정보 등록</span>{textBtn('수정', action('flights'), '항공편 수정')}</>, 'flights')}
-            {travelers && row2('여행자', <>{`${travelers.registered}${travelers.expected !== null ? `/${travelers.expected}` : ''}명 등록`}{travelerNames.length ? ` · ${travelerNames.slice(0, 3).join(', ')}${travelerNames.length > 3 ? ` 외 ${travelerNames.length - 3}명` : ''}` : ''}
-                {missingTravelers > 0 && <span className="cw-row-sub is-warn">{missingTravelers}명 여권 정보 미제출</span>}{textBtn('상세', action('travelers'), '여행자 상세보기')}</>, 'travelers')}
+            {/* 항공편(도착·출발편 상세)과 여행자(사람별 여권 정보)는 줄을 눌러 펼친다 */}
+            {!!m.flights?.length && discRow('flights', '항공편', <>{confirmedFlights}/{m.flights.length}편 정보 등록{confirmedFlights < m.flights.length && <span className="cw-row-sub is-warn">미등록 {m.flights.length - confirmedFlights}편</span>}</>, <>
+                {m.flights.map(fl => { const ok = !!(fl.date && fl.time && fl.flight); return <div key={fl.id} className="cw-flight">
+                    <div className="cw-flight-head"><b>{fl.label}</b>{pill(ok ? '등록됨' : '미등록', ok ? 'accent' : 'danger')}</div>
+                    <b className={fl.flight ? 'cw-flight-no' : 'cw-flight-no is-empty'}>{fl.flight || '편명 미등록'}</b>
+                    {[{ k: '날짜', v: fl.date }, { k: fl.id === 'departure' ? '몽골 출발' : '몽골 도착', v: fl.time }, ...(fl.extra || []).map(x => ({ k: x.label, v: x.value }))]
+                        .map((kv, i) => <div key={i} className="cw-kv"><span>{kv.k}</span><b>{kv.v || '미입력'}</b></div>)}
+                </div>; })}
+                {textBtn('항공편 수정', action('flights'), '항공편 수정')}
+            </>)}
+            {travelers && discRow('travelers', '여행자', <>{`${travelers.registered}${travelers.expected !== null ? `/${travelers.expected}` : ''}명 등록`}{missingTravelers > 0 && <span className="cw-row-sub is-warn">{missingTravelers}명 여권 정보 미제출</span>}</>, <>
+                {travelers.people.map((person, i) => { const open = !!st.travelerOpen[person.id]; return <div key={person.id} className="cw-person">
+                    <button type="button" className="adm-cw-person" aria-expanded={open} onClick={() => set(s => ({ travelerOpen: { ...s.travelerOpen, [person.id]: !open } }))}>
+                        <span className="cw-person-no">{i + 1}</span><b className="cw-person-name">{person.name || '이름 미입력'}</b>
+                        <span className="cw-person-kind">{person.details.find(d => /구분|성인|아동/.test(d.label))?.value || ''}</span>
+                        <span className="cw-chev" aria-hidden="true"><IconChevronDown /></span>
+                    </button>
+                    {open && <div className="cw-person-body">{person.details.map((kv, k) => <div key={k} className="cw-kv"><span>{kv.label}</span><b>{kv.value ? maskFact(kv.label, kv.value, maskOn) : '미입력'}</b></div>)}</div>}
+                </div>; })}
+                {!travelers.people.length && <span className="is-empty">등록된 여행자가 없습니다.</span>}
+                {textBtn('여행자 전체 상세보기', action('travelers'), '여행자 상세보기')}
+            </>)}
             {row2('요청 사항', m.preferences?.length ? m.preferences.join(' · ') : <span className="is-empty">없음</span>, 'requests')}
             {m.bookingNumber && row2('예약번호', `#${m.bookingNumber}`, 'number')}
         </div>}
