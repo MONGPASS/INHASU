@@ -2,6 +2,7 @@ import { useQuery } from '@tanstack/react-query';
 import { api } from '../lib/api';
 import type { Category } from '../types/category';
 import { isPublishedMagazine } from '../constants/seo';
+import { categoryLabel } from '../components/magazine/magazineShared';
 
 /**
  * Safely ensures a value is always a string array.
@@ -101,7 +102,8 @@ export const useHomeData = () => {
                 id: m.id,
                 title: m.title,
                 description: m.subtitle || m.description || '', // mapped from subtitle
-                category: m.category,
+                // 일본어 시절 분류(観光 등)도 한국어로 보인다(매거진 목록과 같은 categoryLabel, CLAUDE.md 3.5)
+                category: categoryLabel(m.category),
                 image: m.thumbnail || m.image || '', // mapped from thumbnail
                 isActive: isPublishedMagazine(m)
             }));
