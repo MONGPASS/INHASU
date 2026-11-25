@@ -74,12 +74,13 @@ export const HOME_VIDEOS: Array<{ title: string; tags: string; image: string; al
 ];
 
 /** 소셜 채널. 주소가 비어 있는 채널은 ‘준비 중’으로 보이고 눌리지 않는다 — 주소가 정해지면 url만 채운다. */
-export const SOCIAL_CHANNELS: Array<{ id: string; label: string; icon: string; url: string }> = [
-    { id: 'kakao', label: '카카오톡 채널', icon: 'kakao', url: KAKAO_CHANNEL_URL },
-    { id: 'instagram', label: '인스타그램', icon: 'instagram', url: '' },
-    { id: 'facebook', label: '페이스북', icon: 'share', url: '' },
-    { id: 'blog', label: '블로그', icon: 'pencil', url: '' },
-    { id: 'youtube', label: '유튜브', icon: 'youtube', url: '' },
+/** 아이콘은 오너가 준 그림(60×60 PNG, public/img/home/v2/social/). */
+export const SOCIAL_CHANNELS: Array<{ id: string; label: string; image: string; url: string }> = [
+    { id: 'kakao', label: '카카오톡 채널', image: `${IMG}/social/kakao.png`, url: KAKAO_CHANNEL_URL },
+    { id: 'instagram', label: '인스타그램', image: `${IMG}/social/instagram.png`, url: '' },
+    { id: 'facebook', label: '페이스북', image: `${IMG}/social/facebook.png`, url: '' },
+    { id: 'blog', label: '블로그', image: `${IMG}/social/blog.png`, url: '' },
+    { id: 'youtube', label: '유튜브', image: `${IMG}/social/youtube.png`, url: '' },
 ];
 
 /** 문의 카드 2장. */

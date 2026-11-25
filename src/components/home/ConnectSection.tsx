@@ -19,18 +19,16 @@ export function ConnectSection({ compact = false }: { compact?: boolean }) {
     return (
         <section aria-label="소셜 채널과 문의" style={{ width: '100%', boxSizing: 'border-box', background: SD.white, color: SD.gray900, padding: compact ? '48px 0 56px' : '64px 0 72px' }}>
             <div style={{ maxWidth: 1120, margin: '0 auto', padding: `0 ${pad}px`, boxSizing: 'border-box', display: 'flex', flexDirection: 'column', gap: compact ? 32 : 40 }}>
-                <nav aria-label="소셜 채널" style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: compact ? '16px 12px' : '16px 32px' }}>
+                <nav aria-label="소셜 채널" style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: compact ? '16px 6px' : '16px 32px' }}>
                     {SOCIAL_CHANNELS.map((channel) => {
                         const body = (
                             <>
-                                <span style={{ width: 48, height: 48, borderRadius: 9999, background: SD.gray100, color: SD.gray900, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                                    <SIcon name={channel.icon} size={22} stroke={1.6} />
-                                </span>
+                                <img src={channel.image} alt="" width={48} height={48} loading="lazy" decoding="async" style={{ width: 48, height: 48, objectFit: 'contain', display: 'block' }} />
                                 {channel.label}
                                 {!channel.url && <span style={{ fontSize: 11, color: SD.gray600 }}>준비 중</span>}
                             </>
                         );
-                        const style = { display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8, minWidth: 64, color: SD.gray700, fontSize: 12, textDecoration: 'none' } as const;
+                        const style = { display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8, minWidth: compact ? 56 : 64, color: SD.gray700, fontSize: 12, whiteSpace: 'nowrap', textDecoration: 'none' } as const;
                         return channel.url
                             ? <a key={channel.id} href={channel.url} target="_blank" rel="noopener noreferrer" style={style}>{body}</a>
                             : <span key={channel.id} aria-disabled="true" style={{ ...style, opacity: 0.6 }}>{body}</span>;
