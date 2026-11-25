@@ -6,6 +6,7 @@
  * 저장한 적이 없거나 값이 깨졌으면 homeContent.ts의 기본 문구·사진·배너를 쓴다.
  */
 import type { Category } from '../../types/category';
+import { normalizeBandColor } from './bandColors';
 import { BENEFIT_BANDS, HOME_IMG, HOME_VIDEOS, PICK_TABS, THEME_ROWS, inTheme, type ThemeKey, type ThemeProductLike } from './homeContent';
 
 export const HOME_SETTING_KEY = 'home_v2';
@@ -40,6 +41,8 @@ export interface HomeBand {
     alt: string;
     /** 누르면 가는 곳: 사이트 안 경로(/…)나 https 주소. 비우면 눌리지 않는다. */
     link: string;
+    /** 바탕색(#RRGGBB). 비우면 기본 민트(bandColors.ts의 DEFAULT_BAND_BG). 어두운 색이면 글자는 흰색으로. */
+    bg: string;
 }
 
 export interface HomeVideo {
@@ -70,7 +73,7 @@ export const PICK_FALLBACK: ThemeKey[] = PICK_TABS.filter((tab) => tab.id !== 'a
 /** PICK 탭 사진(PC 왼쪽 알약 배경). 자리마다 고정. */
 export const PICK_TAB_IMAGES: string[] = PICK_TABS.filter((tab) => tab.id !== 'all').map((tab) => tab.image);
 
-export const DEFAULT_BANDS: HomeBand[] = BENEFIT_BANDS.map((band, i) => ({ id: `band-default-${i + 1}`, ...band }));
+export const DEFAULT_BANDS: HomeBand[] = BENEFIT_BANDS.map((band, i) => ({ id: `band-default-${i + 1}`, ...band, bg: '' }));
 
 export const defaultHomeSettings = (): HomeSettings => ({
     themeRows: THEME_ROWS.map((row) => ({ title: row.title, sub: row.sub, image: row.image, categoryId: '' })),
@@ -119,6 +122,7 @@ export function parseHomeSettings(value: unknown): HomeSettings {
                 id: text(band.id, 60) || `band-${i + 1}`,
                 title: text(band.title, 120), titleShort: text(band.titleShort, 120), tags: text(band.tags, 120),
                 image: text(band.image, 600), image2: text(band.image2, 600), alt: text(band.alt, 120), link: text(band.link, 600),
+                bg: normalizeBandColor(text(band.bg, 20)),
             }))
             .filter((band) => band.title.trim())
             .slice(0, BAND_MAX);

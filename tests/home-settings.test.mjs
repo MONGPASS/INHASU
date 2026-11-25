@@ -72,3 +72,18 @@ test('영상 목록: 기본 4개, 제목 없는 영상은 빼고, 모두 지우�
     assert.equal(parseHomeSettings({ videos: [] }).videos.length, 0);
     assert.equal(parseHomeSettings({ bands: [] }).videos.length, 4, '영상을 저장한 적이 없으면 기본값');
 });
+
+test('혜택 배너 바탕색: #RRGGBB만 저장하고, 어두운 바탕이면 글자를 흰색으로', () => {
+    const colors = buildSync({ entryPoints: [fileURLToPath(new URL('../src/components/home/bandColors.tsx', import.meta.url))], bundle: true, format: 'cjs', platform: 'node', write: false, jsx: 'automatic', packages: 'external' }).outputFiles[0].text;
+    const m = { exports: {} };
+    new Function('module', 'exports', 'require', colors)(m, m.exports, () => ({ jsx: () => null, jsxs: () => null }));
+    const { normalizeBandColor, bandTextColors, BAND_PRESETS } = m.exports;
+    assert.equal(normalizeBandColor(' #ffe4e1 '), '#FFE4E1');
+    for (const bad of ['red', '#fff', '#12345g', 'url(x)', '#1234567']) assert.equal(normalizeBandColor(bad), '', bad);
+    assert.equal(bandTextColors('#1E3A5F').title, '#ffffff', '어두운 남색');
+    assert.equal(bandTextColors('#ECFDF7').title, '#212124', '옅은 민트');
+    assert.ok(BAND_PRESETS.every(p => bandTextColors(p.color).title === '#212124'), '기본 색은 모두 밝은 바탕');
+    const s = parseHomeSettings({ bands: [{ id: 'a', title: 'x', bg: '#fff1e8' }, { id: 'b', title: 'y', bg: 'javascript:1' }] });
+    assert.deepEqual(s.bands.map(b => b.bg), ['#FFF1E8', '']);
+    assert.ok(defaultHomeSettings().bands.every(b => b.bg === ''), '기본 배너는 기본 민트');
+});

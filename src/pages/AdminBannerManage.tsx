@@ -244,7 +244,7 @@ export const AdminBannerManage: React.FC = () => {
         if (await adminConfirm('이 영상을 목록에서 삭제할까요?')) changeExtras(previous => ({ ...previous, videos: previous.videos.filter(v => v.id !== id) }));
     };
     const changeTab = (index: number, field: keyof HomePickTab, value: string) => changeExtras(previous => ({ ...previous, pickTabs: previous.pickTabs.map((tab, i) => i === index ? { ...tab, [field]: value } : tab) }));
-    const addBand = () => changeExtras(previous => ({ ...previous, bands: [...previous.bands, { id: `band-${Date.now()}`, title: '', titleShort: '', tags: '', image: '', image2: '', alt: '', link: '' }] }));
+    const addBand = () => changeExtras(previous => ({ ...previous, bands: [...previous.bands, { id: `band-${Date.now()}`, title: '', titleShort: '', tags: '', image: '', image2: '', alt: '', link: '', bg: '' }] }));
     const changeBand = (id: string, field: keyof HomeBand, value: string) => changeExtras(previous => ({ ...previous, bands: previous.bands.map(b => b.id === id ? { ...b, [field]: value } : b) }));
     const moveBand = (index: number, step: number) => { if (!task.current.busy()) changeExtras(previous => ({ ...previous, bands: moveAdminRow(previous.bands, index, step) })); };
     const deleteBand = async (id: string) => {
@@ -383,6 +383,7 @@ export const AdminBannerManage: React.FC = () => {
         if (isLoading || loadError || !dirty.current) return;
         // 제목이 없는 혜택 배너는 홈에 그릴 수 없다 — 저장 전에 알려 준다.
         if (extrasRef.current.bands.some(b => !b.title.trim())) { setNotice('혜택 배너의 제목을 입력해 주세요. 쓰지 않는 배너는 삭제해 주세요.'); return; }
+        if (extrasRef.current.bands.some(b => b.bg.trim() && !/^#[0-9a-fA-F]{6}$/.test(b.bg.trim()))) { setNotice('혜택 배너 바탕색은 #RRGGBB 형식으로 적어 주세요.'); return; }
         if (extrasRef.current.themeRows.some(r => !r.title.trim())) { setNotice('테마 줄의 제목을 입력해 주세요.'); return; }
         if (extrasRef.current.videos.some(v => !v.title.trim())) { setNotice('영상의 제목을 입력해 주세요. 쓰지 않는 영상은 삭제해 주세요.'); return; }
         if (extrasRef.current.videos.some(v => v.url.trim() && !/^https:\/\//.test(v.url.trim()))) { setNotice('영상 링크는 https:// 로 시작하는 주소를 적어 주세요.'); return; }

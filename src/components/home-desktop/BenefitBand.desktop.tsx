@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { safeBandLink, type HomeBand } from '../home/homeSettings';
+import { DEFAULT_BAND_BG, bandTextColors } from '../home/bandColors';
 import { linkTo, useGo } from '../home-mobile/homeMobileData';
 import { SD, SD_CONTAINER, SIcon } from '../site-seed/seed';
 
@@ -12,17 +13,19 @@ export function BenefitBandDesktop({ bands }: { bands: HomeBand[] }) {
     const i = index % n;
     const band = bands[i];
     const href = safeBandLink(band.link);
+    const bg = band.bg || DEFAULT_BAND_BG;
+    const ink = bandTextColors(bg);
     const arrow = { width: 32, height: 32, border: 'none', background: 'transparent', color: SD.white, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', padding: 0 } as const;
     const textBox = { flex: '1 1 420px', display: 'flex', flexDirection: 'column', gap: 10, padding: '28px 0', textDecoration: 'none' } as const;
     const text = (
         <>
-            <span style={{ fontSize: 26, fontWeight: 700, lineHeight: 1.4, color: SD.gray900, whiteSpace: 'pre-line' }}>{band.title}</span>
-            {band.tags && <span style={{ fontSize: 15, color: SD.gray700 }}>{band.tags}</span>}
+            <span style={{ fontSize: 26, fontWeight: 700, lineHeight: 1.4, color: ink.title, whiteSpace: 'pre-line' }}>{band.title}</span>
+            {band.tags && <span style={{ fontSize: 15, color: ink.tags }}>{band.tags}</span>}
         </>
     );
 
     return (
-        <section aria-roledescription="carousel" aria-label="혜택 안내" style={{ marginTop: 96, background: SD.mint50 }}>
+        <section aria-roledescription="carousel" aria-label="혜택 안내" style={{ marginTop: 96, background: bg, transition: 'background 200ms' }}>
             <div style={{ ...SD_CONTAINER, minHeight: 180, display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: 24 }}>
                 {href ? <a {...linkTo(go, href)} style={textBox}>{text}</a> : <div style={textBox}>{text}</div>}
                 <div style={{ position: 'relative', flex: 'none', display: 'flex', alignItems: 'center', minHeight: 150, margin: '16px 0' }}>
