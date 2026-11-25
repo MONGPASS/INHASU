@@ -1,7 +1,7 @@
-import type { ReactNode } from 'react';
+import { useState, type ReactNode } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { KAKAO_CHANNEL_CHAT_URL, KAKAO_CHANNEL_URL } from '../../constants/company';
-import { SD, SD_CONTAINER } from '../site-seed/seed';
+import { SD, SD_CONTAINER, SIcon } from '../site-seed/seed';
 
 interface FooterLink {
     label: string;
@@ -58,8 +58,8 @@ const KOREA_AGENCY: Array<[string, string]> = [
     ['이메일', 'bolor1@hanmail.net'],
 ];
 
-const MongoliaFlag = () => (
-    <svg width="32" height="16" viewBox="0 0 48 24" role="img" aria-label="몽골 국기" style={{ flex: 'none', borderRadius: 2 }}>
+const MongoliaFlag = ({ height = 16 }: { height?: number }) => (
+    <svg width={height * 2} height={height} viewBox="0 0 48 24" role="img" aria-label="몽골 국기" style={{ flex: 'none', borderRadius: 2 }}>
         <rect width="48" height="24" fill="#C4272F" /><rect x="16" width="16" height="24" fill="#015197" />
         <g fill="#F9CF02">
             <path d="M8 2.2l0.9 1.8h-1.8z" /><path d="M6.6 3.6l0.7 1.4h-1.4zM9.4 3.6l0.7 1.4h-1.4z" /><circle cx="8" cy="6.8" r="1.3" />
@@ -77,8 +77,8 @@ const bars = (x: number, y: number, rotate: number, rows: Array<'full' | 'split'
             : <g key={i}><rect x="-3.6" y={-3.1 + i * 2.4} width="3.1" height="1.4" /><rect x="0.5" y={-3.1 + i * 2.4} width="3.1" height="1.4" /></g>)}
     </g>
 );
-const KoreaFlag = () => (
-    <svg width="24" height="16" viewBox="0 0 36 24" role="img" aria-label="대한민국 국기" style={{ flex: 'none', borderRadius: 2, boxShadow: `0 0 0 1px ${SD.gray300}` }}>
+const KoreaFlag = ({ height = 16 }: { height?: number }) => (
+    <svg width={height * 1.5} height={height} viewBox="0 0 36 24" role="img" aria-label="대한민국 국기" style={{ flex: 'none', borderRadius: 2, boxShadow: `0 0 0 1px ${SD.gray300}` }}>
         <rect width="36" height="24" fill="#ffffff" />
         <g transform="rotate(33.69 18 12)"><circle cx="18" cy="12" r="6" fill="#0047A0" /><path d="M12 12A6 6 0 0 1 24 12A3 3 0 0 1 18 12A3 3 0 0 0 12 12Z" fill="#CD2E3A" /></g>
         <g fill="#000000">
@@ -105,11 +105,84 @@ function CompanyBlock({ flag, title, rows, extra }: { flag: ReactNode; title: st
     );
 }
 
+/** 휴대폰 바닥의 링크 한 줄(디자인 ‘사이트 하단’ 2차 compact). */
+const COMPACT_LINKS: FooterLink[] = [
+    { label: '회사 소개', path: '/about' },
+    { label: '여행 후기', path: '/reviews' },
+    { label: '자주 묻는 질문', path: '/faq' },
+    { label: '카카오톡 문의', href: KAKAO_CHANNEL_CHAT_URL },
+    { label: '예약 내역 확인', path: '/mypage/reservations' },
+];
+const pick = (rows: Array<[string, string]>, label: string) => rows.find(([k]) => k === label)?.[1] || '';
+
+/**
+ * 휴대폰 바닥(디자인 ‘사이트 하단’ 2026-11-25 2차 compact): 이름 · 소개 한 줄 · 링크 한 줄 → 접힌 ‘사업자 정보’(몽골 본사·한국 대리점)
+ * → 저작권·약관. 회사 정보 값은 PC 바닥과 같은 HEAD_OFFICE·KOREA_AGENCY에서 읽는다.
+ */
+function CompactFooter() {
+    const navigate = useNavigate();
+    const [open, setOpen] = useState(false);
+    const go = (path: string) => (e: React.MouseEvent) => { e.preventDefault(); navigate(path); };
+    const linkStyle = { display: 'inline-flex', alignItems: 'center', minHeight: 36, color: SD.gray700, fontSize: 13, textDecoration: 'none' } as const;
+    const head = { margin: '0 0 2px', display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, fontWeight: 700, color: SD.gray900 } as const;
+    const line = { margin: 0 } as const;
+    const h = (label: string) => pick(HEAD_OFFICE, label), k = (label: string) => pick(KOREA_AGENCY, label);
+    return (
+        <footer style={{ width: '100%', boxSizing: 'border-box', background: SD.gray50, color: SD.gray900, padding: '28px 20px 24px' }}>
+            <p style={{ margin: 0, fontSize: 16, fontWeight: 700, color: SD.gray900 }}>몽골리아 은하수</p>
+            <p style={{ margin: '4px 0 0', fontSize: 12, color: SD.gray600 }}>한국어 가이드와 함께하는 몽골 여행 전문 여행사</p>
+            <nav aria-label="하단 링크" style={{ marginTop: 14, display: 'flex', flexWrap: 'wrap', columnGap: 16 }}>
+                {COMPACT_LINKS.map((it) => it.path
+                    ? <a key={it.label} href={it.path} onClick={go(it.path)} style={linkStyle}>{it.label}</a>
+                    : <a key={it.label} href={it.href} target="_blank" rel="noopener noreferrer" style={linkStyle}>{it.label}</a>)}
+            </nav>
+            <div style={{ marginTop: 12, borderTop: `1px solid ${SD.gray200}` }}>
+                <button type="button" aria-expanded={open} aria-controls="footer-business-info" onClick={() => setOpen(!open)}
+                    style={{ width: '100%', minHeight: 44, padding: 0, border: 'none', background: 'transparent', display: 'flex', alignItems: 'center', justifyContent: 'space-between', color: SD.gray700, fontFamily: 'inherit',
+                        fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>
+                    사업자 정보<SIcon name={open ? 'chevronUp' : 'chevronDown'} size={14} stroke={2} />
+                </button>
+                {open && (
+                    <div id="footer-business-info" style={{ display: 'flex', flexDirection: 'column', gap: 14, padding: '4px 0 8px', fontSize: 11, lineHeight: 1.7, color: SD.gray600 }}>
+                        <div>
+                            <p style={head}><MongoliaFlag height={10} />몽골 본사</p>
+                            <p style={line}>{h('상호')} · 대표 {h('대표')}</p>
+                            <p style={line}>사업자등록번호 {h('사업자등록번호')} · 관광사업등록번호 {h('관광사업등록번호')}</p>
+                            <p style={line}>전화 {h('전화')}</p>
+                            <p style={line}>{h('주소')}</p>
+                        </div>
+                        <div>
+                            <p style={head}><KoreaFlag height={10} />한국 대리점</p>
+                            <p style={line}>{k('상호')} · 대표 {k('대표')}</p>
+                            <p style={line}>사업자등록번호 {k('사업자등록번호')}</p>
+                            <p style={line}>통신판매업신고 {k('통신판매업신고')}</p>
+                            <p style={line}>이메일 {k('이메일')}</p>
+                            <p style={line}>문의 <a href={KAKAO_CHANNEL_URL} target="_blank" rel="noopener noreferrer" style={{ color: SD.gray900, fontWeight: 700, textDecoration: 'underline', textUnderlineOffset: 3 }}>카카오톡 채널</a></p>
+                        </div>
+                    </div>
+                )}
+            </div>
+            <div style={{ paddingTop: 12, borderTop: `1px solid ${SD.gray200}`, display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
+                <p style={{ margin: 0, fontSize: 11, color: SD.gray600 }}>© 2026 Mongolia Milky Way.</p>
+                <nav aria-label="약관" style={{ display: 'flex', gap: 14, fontSize: 12 }}>
+                    <a href="/terms-of-service" onClick={go('/terms-of-service')} style={{ color: SD.gray700, textDecoration: 'none' }}>이용약관</a>
+                    <a href="/privacy-policy" onClick={go('/privacy-policy')} style={{ color: SD.gray900, fontWeight: 700, textDecoration: 'none' }}>개인정보처리방침</a>
+                </nav>
+            </div>
+        </footer>
+    );
+}
+
 /**
  * 사이트 하단(Claude Design ‘사이트 하단’, 2026-11-25): 맞춤 견적 안내 → 링크 3묶음 → 몽골 본사·한국 대리점 → 저작권·약관.
- * 휴대폰(MobileShell)도 같은 부품을 `compact`(좌우 20px, 좁은 간격)로 쓴다.
+ * 휴대폰(MobileShell)은 `compact`로 짧은 바닥(CompactFooter)을 쓴다.
  */
 export function DesktopFooter({ compact = false }: { compact?: boolean } = {}) {
+    if (compact) return <CompactFooter />;
+    return <WideFooter />;
+}
+
+function WideFooter() {
     const navigate = useNavigate();
     const { pathname } = useLocation();
     // 홈은 바로 위에 문의 카드가 있고, 맞춤 견적 화면은 그 자체가 목적지라 안내 띠를 뺀다.
@@ -120,11 +193,11 @@ export function DesktopFooter({ compact = false }: { compact?: boolean } = {}) {
 
     return (
         <footer style={{ width: '100%', boxSizing: 'border-box', background: SD.white, color: SD.gray900, borderTop: `1px solid ${SD.gray200}` }}>
-            <div style={compact ? { ...SD_CONTAINER, paddingLeft: 20, paddingRight: 20 } : SD_CONTAINER}>
+            <div style={SD_CONTAINER}>
                 {showCta && (
-                    <section aria-label="맞춤 견적 안내" style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: compact ? 16 : 24, padding: compact ? 20 : 32, marginTop: compact ? 32 : 48, borderRadius: 12, background: SD.gray50 }}>
+                    <section aria-label="맞춤 견적 안내" style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 24, padding: 32, marginTop: 48, borderRadius: 12, background: SD.gray50 }}>
                         <div style={{ flex: '1 1 280px', display: 'flex', flexDirection: 'column', gap: 6 }}>
-                            <h2 style={{ margin: 0, fontSize: compact ? 18 : 22, fontWeight: 700, lineHeight: 1.35, color: SD.gray900 }}>원하는 일정으로 맞춤 견적을 받아 보세요</h2>
+                            <h2 style={{ margin: 0, fontSize: 22, fontWeight: 700, lineHeight: 1.35, color: SD.gray900 }}>원하는 일정으로 맞춤 견적을 받아 보세요</h2>
                             <p style={{ margin: 0, fontSize: 14, lineHeight: 1.5, color: SD.gray600 }}>견적은 무료예요. 한국어 담당 직원이 24시간 안에 답변해 드려요.</p>
                         </div>
                         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
@@ -134,7 +207,7 @@ export function DesktopFooter({ compact = false }: { compact?: boolean } = {}) {
                     </section>
                 )}
 
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: compact ? '28px 24px' : 40, padding: compact ? '40px 0 28px' : '56px 0 40px' }}>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 40, padding: '56px 0 40px' }}>
                     <div style={{ flex: '2 1 280px', display: 'flex', flexDirection: 'column', gap: 12, maxWidth: 340 }}>
                         <p style={{ margin: 0, fontSize: 18, fontWeight: 700, color: SD.gray900 }}>몽골리아 은하수</p>
                         <p style={{ margin: 0, fontSize: 13, color: SD.gray600 }}>Mongolia Milky Way (SUUN ZAM)</p>
@@ -156,7 +229,7 @@ export function DesktopFooter({ compact = false }: { compact?: boolean } = {}) {
                     ))}
                 </div>
 
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: compact ? '28px 24px' : '32px 48px', padding: compact ? '28px 0' : '32px 0', borderTop: `1px solid ${SD.gray200}` }}>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '32px 48px', padding: '32px 0', borderTop: `1px solid ${SD.gray200}` }}>
                     <CompanyBlock flag={<MongoliaFlag />} title="몽골 본사" rows={HEAD_OFFICE} />
                     <CompanyBlock flag={<KoreaFlag />} title="한국 대리점" rows={KOREA_AGENCY} extra={<>
                         <dt style={{ color: SD.gray600 }}>문의</dt>

@@ -51,13 +51,6 @@ export const BENEFIT_BANDS: Array<{ title: string; titleShort: string; tags: str
     { title: '함께 떠날 동행을 찾아보세요\n여행 경비는 나누고 추억은 두 배로', titleShort: '함께 떠날 동행을\n찾아보세요', tags: '#동행 찾기 #혼자여도 괜찮아요', image: HOME_IMG.miniDesert, image2: HOME_IMG.winterForest, alt: '낙타를 타고 있는 여행자들', link: '/travel-mates' },
 ];
 
-/** 휴대폰 홈 기획전 아래의 여행 약속 3가지. */
-export const HOME_PROMISES: Array<{ icon: string; title: string; sub: string }> = [
-    { icon: 'chatLines', title: '한국어 가이드', sub: '처음부터 끝까지' },
-    { icon: 'mapPin', title: '현지 여행사', sub: '울란바토르 본사' },
-    { icon: 'clock', title: '24시간 답변', sub: '맞춤 견적 무료' },
-];
-
 /** 검색창 안내 문구(PC·휴대폰 공통). */
 export const SEARCH_PLACEHOLDER = '겨울 은하수 투어 예약 받고 있어요';
 
@@ -87,10 +80,12 @@ export const SOCIAL_CHANNELS: Array<{ id: string; label: string; image: string; 
     { id: 'youtube', label: '유튜브', image: `${IMG}/social/youtube.png`, url: 'https://www.youtube.com/@mongolia_inhasu' },
 ];
 
-/** 문의 카드 2장. */
+/** 문의 카드 2장. textShort·buttonShort는 휴대폰(좁은 카드 두 장 나란히)용. kakao.button은 카카오톡에서 찾는 채널 이름(디자인 2차). */
 export const CONTACT_CARDS = {
-    kakao: { title: 'CONTACT US', text: '예약과 문의는 은하수 투어 카카오톡으로\n쉽고 편하게 확인해 보세요', button: '카카오톡 상담', url: KAKAO_CHANNEL_CHAT_URL, image: HOME_IMG.steppeRiders, alt: '초원 풍경' },
-    estimate: { title: '맞춤 여행 문의', text: '몽골 여행, 아직도 일일이\n직접 예약하고 계세요?', button: '나에게 맞는 맞춤 여행', path: '/custom-estimate', image: HOME_IMG.miniDesert, alt: '미니사막 풍경' },
+    kakao: { title: 'CONTACT US', text: '예약과 문의는 은하수 투어 카카오톡으로\n쉽고 편하게 확인해 보세요', textShort: '예약과 문의는 카카오톡으로\n쉽고 편하게 확인해요', button: 'mongoltour',
+        url: KAKAO_CHANNEL_CHAT_URL, image: HOME_IMG.steppeRiders, alt: '초원 풍경' },
+    estimate: { title: '맞춤 여행 문의', text: '몽골 여행, 아직도 일일이\n직접 예약하고 계세요?', textShort: '몽골 여행, 아직도\n직접 예약하세요?', button: '나에게 맞는 맞춤 여행', buttonShort: '맞춤 여행 보기',
+        path: '/custom-estimate', image: HOME_IMG.miniDesert, alt: '미니사막 풍경' },
 } as const;
 
 /** 협력 업체 로고(오너가 준 그림을 여백을 잘라 높이 120px WebP로 줄임, public/img/home/v2/partners/). 홈 아래쪽에서 옆으로 흐른다. */

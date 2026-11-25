@@ -61,6 +61,19 @@
     return '<form class="sc-search" role="search" action="/products" method="get"><input name="q" type="search" placeholder="겨울 은하수 투어 예약 받고 있어요" aria-label="투어 검색" autocomplete="off">' +
       '<button type="submit" aria-label="검색">' + svg(ICON.search, 20, 1.8) + '</button></form>';
   };
+  var pick = function (list, label) { var row = list.filter(function (r) { return r[0] === label; })[0]; return row ? row[1] : ""; };
+  // 휴대폰 바닥(사이트 MobileShell의 짧은 바닥과 같은 모양): 링크 한 줄 + 접힌 사업자 정보(<details>, 스크립트 없이 열고 닫힌다)
+  var COMPACT_LINKS = [["회사 소개", "/about"], ["여행 후기", "/reviews"], ["자주 묻는 질문", "/faq"], ["카카오톡 문의", KAKAO + "/chat"], ["예약 내역 확인", "/mypage/reservations"]];
+  var compactFooter = function () {
+    var h = function (l) { return esc(pick(HEAD_OFFICE, l)); }, k = function (l) { return esc(pick(KOREA_AGENCY, l)); };
+    return '<div class="sc-foot-m"><p class="sc-foot-m-name">몽골리아 은하수</p><p class="sc-foot-m-tag">한국어 가이드와 함께하는 몽골 여행 전문 여행사</p>' +
+      '<nav aria-label="하단 링크" class="sc-foot-m-links">' + COMPACT_LINKS.map(function (item) { return link(item); }).join("") + '</nav>' +
+      '<details class="sc-foot-m-info"><summary>사업자 정보</summary>' +
+        '<div><p class="sc-foot-m-h">' + FLAG_MN + '몽골 본사</p><p>' + h("상호") + ' · 대표 ' + h("대표") + '</p><p>사업자등록번호 ' + h("사업자등록번호") + ' · 관광사업등록번호 ' + h("관광사업등록번호") + '</p><p>전화 ' + h("전화") + '</p><p>' + h("주소") + '</p></div>' +
+        '<div><p class="sc-foot-m-h">' + FLAG_KR + '한국 대리점</p><p>' + k("상호") + ' · 대표 ' + k("대표") + '</p><p>사업자등록번호 ' + k("사업자등록번호") + '</p><p>통신판매업신고 ' + k("통신판매업신고") + '</p><p>이메일 ' + k("이메일") + '</p></div>' +
+      '</details>' +
+      '<div class="sc-foot-m-legal"><span>© 2026 Mongolia Milky Way.</span><div>' + link(["이용약관", "/terms-of-service"]) + link(["개인정보처리방침", "/privacy-policy"], "sc-strong") + '</div></div></div>';
+  };
   var rows = function (list, extra) {
     return '<dl>' + list.map(function (row) { return '<dt>' + esc(row[0]) + '</dt><dd>' + esc(row[1]) + '</dd>'; }).join("") + (extra || "") + '</dl>';
   };
@@ -91,7 +104,7 @@
       }).join("") + '</div></div>';
     header.insertAdjacentElement("afterend", nav);
 
-    if (footer) footer.innerHTML = '<div class="sc-foot">' +
+    if (footer) footer.innerHTML = compactFooter() + '<div class="sc-foot">' +
       '<div class="sc-foot-cols"><div class="sc-foot-brand"><p class="sc-foot-name">몽골리아 은하수</p><p class="sc-foot-en">Mongolia Milky Way (SUUN ZAM)</p>' +
         '<p>한국어에 능통한 현지 가이드가 함께하는 몽골 여행·투어 전문 여행사예요.</p></div>' +
         FOOT.map(function (col) { return '<div class="sc-foot-col"><span>' + col[0] + '</span>' + col[1].map(function (item) { return link(item); }).join("") + '</div>'; }).join("") + '</div>' +

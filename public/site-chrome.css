@@ -93,7 +93,31 @@ html.sc-on .mw-footer a.sc-kakao { color: var(--sc-900); font-weight: 700; text-
 html.sc-on .mw-footer .sc-foot-legal a { color: var(--sc-700); font-weight: 400; text-decoration: none; }
 html.sc-on .mw-footer .sc-foot-legal a.sc-strong { color: var(--sc-900); font-weight: 700; }
 
+/* ── 휴대폰 바닥(짧은 모양) — PC에서는 숨기고, 휴대폰에서는 PC 바닥 대신 보인다 ── */
+.sc-foot-m { display: none; background: var(--sc-100); padding: 28px 20px 24px; color: var(--sc-900); }
+.sc-foot-m p { margin: 0; }
+.sc-foot-m .sc-foot-m-name { font-size: 16px; font-weight: 700; }
+.sc-foot-m .sc-foot-m-tag { margin-top: 4px; font-size: 12px; color: var(--sc-600); }
+.sc-foot-m-links { margin-top: 14px; display: flex; flex-wrap: wrap; column-gap: 16px; }
+html.sc-on .mw-footer .sc-foot-m-links a { display: inline-flex; align-items: center; min-height: 36px; color: var(--sc-700); font-size: 13px; font-weight: 400; text-decoration: none; }
+.sc-foot-m-info { margin-top: 12px; border-top: 1px solid var(--sc-200); font-size: 11px; line-height: 1.7; color: var(--sc-600); }
+.sc-foot-m-info summary { display: flex; align-items: center; justify-content: space-between; min-height: 44px; list-style: none; cursor: pointer; color: var(--sc-700); font-size: 13px; font-weight: 700; }
+.sc-foot-m-info summary::-webkit-details-marker { display: none; }
+.sc-foot-m-info summary::after { content: ""; width: 7px; height: 7px; margin-right: 3px; border-right: 2px solid currentColor; border-bottom: 2px solid currentColor; transform: rotate(45deg) translateY(-2px); }
+.sc-foot-m-info[open] summary::after { transform: rotate(-135deg) translateY(-2px); }
+.sc-foot-m-info > div { padding: 4px 0 8px; }
+.sc-foot-m-info > div + div { padding-top: 6px; }
+.sc-foot-m-h { margin-bottom: 2px !important; display: flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 700; color: var(--sc-900); }
+.sc-foot-m-h svg { width: auto; height: 10px; flex: none; border-radius: 2px; }
+.sc-foot-m-legal { padding-top: 12px; border-top: 1px solid var(--sc-200); display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; font-size: 11px; color: var(--sc-600); }
+.sc-foot-m-legal > div { display: flex; gap: 14px; font-size: 12px; }
+html.sc-on .mw-footer .sc-foot-m-legal a { color: var(--sc-700); font-weight: 400; text-decoration: none; }
+html.sc-on .mw-footer .sc-foot-m-legal a.sc-strong { color: var(--sc-900); font-weight: 700; }
+
 @media (max-width: 1023px) {
+  html.sc-on .mw-footer { border-top: 0; }
+  .sc-foot-m { display: block; }
+  .sc-foot { display: none; }
   html.sc-on .mw-header { position: sticky; top: 0; z-index: 20; background: #fff; border-bottom: 1px solid var(--sc-200); }
   /* 하단 메뉴가 본문·떠 있는 버튼을 가리지 않게 */
   html.sc-on body { padding-bottom: calc(66px + env(safe-area-inset-bottom)); }
