@@ -1,23 +1,19 @@
 import { useState } from 'react';
 import type { Category } from '../../types/category';
-import { useWishlist } from '../../hooks/useWishlist';
-import { MW, MW_FONT_EN } from '../desktop-primitives/mwTokens';
-import { inCategory, type HomeProduct, type ReviewStat } from '../home-desktop/homeDesktopData';
-import { MEmpty } from '../mobile/mobileUi';
-import { useGo } from './homeMobileData';
-import { SectionHeadMobile } from './SectionHead.mobile';
-import { TourGridCardMobile } from './TourCard.mobile';
+import { inCategory, type HomeProduct } from '../home-desktop/homeDesktopData';
+import { SD } from '../site-seed/seed';
+import { linkTo, useGo } from './homeMobileData';
+import { ChipRow, HSCROLL, SectionHeadMobile } from './SectionHead.mobile';
+import { TourCardMobile } from './TourCard.mobile';
 
 interface Props {
     products: HomeProduct[];
     categories: Category[];
-    stats: Record<string, ReviewStat>;
 }
 
-/** "TOURS": category pills over a two-column grid of tour cards. */
-export function TourTabsSectionMobile({ products, categories, stats }: Props) {
+/** 지금 떠나기 좋은 몽골 투어: 추천 + 분류 칩(상품 수, 0개 칩은 눌리지 않음) + 옆으로 넘기는 상품 카드. */
+export function TourTabsSectionMobile({ products, categories }: Props) {
     const go = useGo();
-    const wishlist = useWishlist();
     const [tab, setTab] = useState('all');
 
     const tabs = [
@@ -26,51 +22,24 @@ export function TourTabsSectionMobile({ products, categories, stats }: Props) {
     ];
     const current = tabs.find((t) => t.id === tab) || tabs[0];
     const currentCat = categories.find((c) => c.id === current.id);
-    const list = currentCat
+    const list = (currentCat
         ? products.filter((p) => inCategory(p, currentCat))
-        : [...products].sort((a, b) => Number(b.isFeatured || b.isPopular) - Number(a.isFeatured || a.isPopular));
+        : [...products].sort((a, b) => Number(b.isFeatured || b.isPopular) - Number(a.isFeatured || a.isPopular))
+    ).slice(0, 10);
 
     return (
-        <section id="tours" style={{ padding: '44px 0 0' }}>
-            <SectionHeadMobile
-                eyebrow="TOURS"
-                title="몽골 투어 상품"
-                link={currentCat ? `/category/${currentCat.id}` : '/products'}
-                linkLabel="전체 보기 →"
-            />
-
-            <div role="tablist" data-noscroll="" style={{ display: 'flex', gap: 8, overflowX: 'auto', scrollbarWidth: 'none', padding: '16px 16px 4px' }}>
-                {tabs.map((t) => {
-                    const on = t.id === current.id;
-                    return (
-                        <button
-                            key={t.id}
-                            type="button"
-                            role="tab"
-                            aria-selected={on}
-                            onClick={() => setTab(t.id)}
-                            style={{
-                                flexShrink: 0, display: 'flex', alignItems: 'center', gap: 6, height: 38, padding: '0 14px', borderRadius: 999,
-                                border: `1px solid ${on ? MW.navy : MW.line}`, background: on ? MW.navy : '#FFFFFF',
-                                fontFamily: 'inherit', fontSize: 13, fontWeight: 700, color: on ? '#FFFFFF' : MW.ink3, cursor: 'pointer', whiteSpace: 'nowrap',
-                            }}
-                        >
-                            {t.label}
-                            <span style={{ fontFamily: MW_FONT_EN, fontSize: 10, color: on ? MW.mintLight : MW.mute2 }}>{t.count}</span>
-                        </button>
-                    );
-                })}
-            </div>
-
+        <section id="tours" style={{ paddingTop: 40, display: 'flex', flexDirection: 'column', gap: 16 }}>
+            <SectionHeadMobile icon="trophyCup" title="지금 떠나기 좋은 몽골 투어" sub="한국어 가이드 동행, 게르 숙박이 포함된 투어예요" link={currentCat ? `/category/${currentCat.id}` : '/products'} />
+            <ChipRow label="투어 분류" value={current.id} onChange={setTab}
+                items={tabs.map((t) => ({ id: t.id, label: t.count > 0 ? `${t.label} ${t.count}` : t.label, disabled: t.count === 0 && t.id !== 'all' }))} />
             {list.length === 0 ? (
-                <div style={{ padding: '16px 16px 0' }}>
-                    <MEmpty text="현재 등록된 투어가 없습니다." action={{ label: '맞춤 견적으로 상담하기', onClick: () => go('/custom-estimate') }} />
+                <div style={{ margin: '0 20px', border: `1px dashed ${SD.gray300}`, borderRadius: 12, padding: '36px 20px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10, textAlign: 'center' }}>
+                    <p style={{ margin: 0, fontSize: 14, color: SD.gray700 }}>현재 등록된 투어가 없습니다.</p>
+                    <a {...linkTo(go, '/custom-estimate')} style={{ fontSize: 13, fontWeight: 700, color: SD.mint700, textDecoration: 'none' }}>맞춤 견적으로 상담해 보세요 →</a>
                 </div>
             ) : (
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2,minmax(0,1fr))', gap: '22px 12px', padding: '16px 16px 0' }}>
-                    {list.map((p) => (
-                        <TourGridCardMobile key={p.id} p={p} stat={stats[p.id]} fav={wishlist.has(p.id)} onFav={() => wishlist.toggle(p)} />
-                    ))}
+                <div data-noscroll="" style={{ ...HSCROLL, gap: 12 }}>
+                    {list.map((p) => <TourCardMobile key={p.id} p={p} />)}
                 </div>
             )}
         </section>

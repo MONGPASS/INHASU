@@ -10,7 +10,7 @@ import { BRAND } from '../../constants/company';
 import { isPublishedMagazine } from '../../constants/seo';
 import { isUsableImage, won } from '../desktop-primitives/mwTokens';
 import { SD, SD_CONTAINER, SIcon } from '../site-seed/seed';
-import { HOME_IMG, RECOMMENDED_WORDS } from '../home/homeContent';
+import { HOME_IMG, RECOMMENDED_WORDS, SEARCH_PLACEHOLDER } from '../home/homeContent';
 
 const NAV_ITEMS: { id: string; label: string; path: string; match: (p: string) => boolean }[] = [
     { id: 'tours', label: '투어 상품', path: '/products', match: (p) => p === '/products' || p.startsWith('/category/') || p.startsWith('/products/') },
@@ -227,7 +227,7 @@ export function DesktopHeader() {
                                 onFocus={() => { window.clearTimeout(blurTimer.current); setFocused(true); }}
                                 onBlur={() => { blurTimer.current = window.setTimeout(() => setFocused(false), 150); }}
                                 onKeyDown={(e) => { if (e.key === 'Escape') closeSearch(); }}
-                                placeholder="겨울 은하수 투어 예약 받고 있어요"
+                                placeholder={SEARCH_PLACEHOLDER}
                                 aria-label="투어 검색"
                                 aria-expanded={focused}
                                 aria-controls="site-search-panel"

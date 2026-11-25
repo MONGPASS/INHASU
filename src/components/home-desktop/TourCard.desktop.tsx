@@ -19,7 +19,7 @@ export function CardBadge({ children }: { children: ReactNode }) {
 }
 
 /** 사진 위 오른쪽의 찜 버튼(누르는 칸 44px, 보이는 원 32px). 로그인하지 않았으면 로그인으로 보낸다(useWishlist). */
-export function HeartButton({ product, inset = 10 }: { product: HomeProduct; inset?: number }) {
+export function HeartButton({ product, inset = 10, small = false }: { product: HomeProduct; inset?: number; small?: boolean }) {
     const wishlist = useWishlist();
     const on = wishlist.has(product.id);
     return (
@@ -27,8 +27,8 @@ export function HeartButton({ product, inset = 10 }: { product: HomeProduct; ins
             onClick={(e) => { e.preventDefault(); e.stopPropagation(); wishlist.toggle(product); }}
             style={{ position: 'absolute', right: inset - 6, top: inset - 6, width: 44, height: 44, border: 'none', borderRadius: 9999, background: 'transparent', display: 'flex',
                 alignItems: 'center', justifyContent: 'center', cursor: 'pointer', padding: 0 }}>
-            <span style={{ width: 32, height: 32, borderRadius: 9999, background: SD.white, color: on ? SD.red : SD.gray900, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <svg width="18" height="18" viewBox="0 0 24 24" fill={on ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+            <span style={{ width: small ? 28 : 32, height: small ? 28 : 32, borderRadius: 9999, background: SD.white, color: on ? SD.red : SD.gray900, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <svg width={small ? 16 : 18} height={small ? 16 : 18} viewBox="0 0 24 24" fill={on ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                     <path d="M12 20s-7.5-4.6-7.5-10.2A4.3 4.3 0 0 1 12 7a4.3 4.3 0 0 1 7.5 2.8C19.5 15.4 12 20 12 20z" />
                 </svg>
             </span>

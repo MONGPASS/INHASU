@@ -1,44 +1,42 @@
-import { useWishlist } from '../../hooks/useWishlist';
-import { MW, MW_FONT_EN, isUsableImage } from '../desktop-primitives/mwTokens';
-import type { HomeProduct, ReviewStat } from '../home-desktop/homeDesktopData';
+import type { HomeProduct } from '../home-desktop/homeDesktopData';
 import { MPhoto } from '../mobile/mobileUi';
+import { SD } from '../site-seed/seed';
 import { linkTo, useGo } from './homeMobileData';
-import { TourRowCardMobile } from './TourCard.mobile';
+import { HSCROLL } from './SectionHead.mobile';
+import { TourCardMobile } from './TourCard.mobile';
 
 interface Props {
     title: string;
     subtitle: string;
     products: HomeProduct[];
-    stats: Record<string, ReviewStat>;
     image: string;
     imageAlt: string;
     link: string;
 }
 
-/** Category feature: a wide photo banner over a swipeable row of that category's tours. */
-export function ThemeRowSectionMobile({ title, subtitle, products, stats, image, imageAlt, link }: Props) {
+/** 테마 줄: 가로 사진 띠(왼쪽 어두운 덮개 + 제목) 아래에 옆으로 넘기는 상품 카드. 상품이 없으면 맞춤 견적 안내 한 줄. */
+export function ThemeRowSectionMobile({ title, subtitle, products, image, imageAlt, link }: Props) {
     const go = useGo();
-    const wishlist = useWishlist();
-    if (products.length === 0) return null;
-
+    const list = products.slice(0, 8);
     return (
-        <section style={{ padding: '48px 0 0' }}>
-            <a
-                {...linkTo(go, link)}
-                style={{ display: 'block', margin: '0 16px', position: 'relative', borderRadius: 24, overflow: 'hidden', aspectRatio: '16/9', background: MW.navySoft, textDecoration: 'none' }}
-            >
-                {isUsableImage(image) && <MPhoto src={image} alt={imageAlt} sizes="(max-width: 480px) 100vw, 480px" />}
-                <div style={{ position: 'absolute', inset: 0, pointerEvents: 'none', background: 'linear-gradient(90deg,rgba(10,31,46,0.7) 0%,rgba(10,31,46,0) 70%)' }} />
-                <div style={{ position: 'absolute', left: 20, bottom: 18, right: 20, display: 'flex', flexDirection: 'column', gap: 4, color: '#fff', pointerEvents: 'none' }}>
-                    <h2 style={{ margin: 0, fontFamily: MW_FONT_EN, fontSize: 20, fontWeight: 700 }}>{title}</h2>
-                    <span style={{ fontSize: 12, color: '#EAF7F3' }}>{subtitle}</span>
-                </div>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+            <a {...linkTo(go, link)} style={{ position: 'relative', display: 'block', margin: '0 20px', height: 150, borderRadius: 14, overflow: 'hidden', textDecoration: 'none', background: SD.gray100 }}>
+                <MPhoto src={image} alt={imageAlt} sizes="(max-width: 480px) 90vw, 440px" />
+                <span style={{ position: 'absolute', inset: 0, background: 'linear-gradient(90deg, rgba(0,0,0,0.6) 0%, rgba(0,0,0,0) 75%)' }} />
+                <span style={{ position: 'absolute', left: 18, right: 18, top: 0, bottom: 0, display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: 4, color: SD.white }}>
+                    <span style={{ fontSize: 18, fontWeight: 700, wordBreak: 'keep-all' }}>{title}</span>
+                    <span style={{ fontSize: 13, color: 'rgba(255,255,255,0.9)' }}>{subtitle}</span>
+                </span>
             </a>
-            <div data-noscroll="" style={{ display: 'flex', gap: 12, overflowX: 'auto', scrollSnapType: 'x mandatory', scrollbarWidth: 'none', padding: '18px 16px 0', scrollPadding: '0 16px' }}>
-                {products.map((p) => (
-                    <TourRowCardMobile key={p.id} p={p} stat={stats[p.id]} fav={wishlist.has(p.id)} onFav={() => wishlist.toggle(p)} />
-                ))}
-            </div>
-        </section>
+            {list.length === 0 ? (
+                <a {...linkTo(go, '/custom-estimate')} style={{ margin: '0 20px', padding: '14px 16px', borderRadius: 10, background: SD.gray50, color: SD.gray700, fontSize: 13, textDecoration: 'none' }}>
+                    이 테마의 상품을 준비하고 있어요. <strong style={{ color: SD.mint700 }}>맞춤 견적으로 먼저 상담하기 →</strong>
+                </a>
+            ) : (
+                <div data-noscroll="" style={{ ...HSCROLL, gap: 12 }}>
+                    {list.map((p) => <TourCardMobile key={p.id} p={p} width={140} />)}
+                </div>
+            )}
+        </div>
     );
 }

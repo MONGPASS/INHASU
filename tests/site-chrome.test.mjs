@@ -16,16 +16,16 @@ test('견적 고객 페이지는 사이트 머리·바닥 스크립트를 부르
         assert.match(html, /<header class="mw-header[^"]*">/, `${page}: 스크립트가 실패해도 보일 기존 머리`);
         if (!page.startsWith('확정일정표')) assert.match(html, /<footer class="mw-footer[^"]*">/, page); // 확정일정표 문서는 원래 바닥이 없다
     }
-    assert.ok(fs.existsSync(new URL('../public/img/brand/site-logo.webp', import.meta.url)));
-    assert.deepEqual(fs.readFileSync(new URL('../public/img/brand/site-logo.webp', import.meta.url)), fs.readFileSync(new URL('../src/assets/logo_horizontal.webp', import.meta.url)), '사이트와 같은 로고 파일');
 });
 
-test('메뉴 주소·하단 탭·회사 정보가 사이트 원본과 같다', () => {
+// 새 디자인(2026-11-25)의 머리는 로고 그림 없이 이름 글자만 쓴다. 회사 정보는 ‘이름 · 값’ 표라 값으로 비교한다.
+test('메뉴 주소·하단 메뉴·회사 정보가 사이트 원본과 같다', () => {
     const header = read('src/components/layout-desktop/DesktopHeader.tsx'), footer = read('src/components/layout-desktop/DesktopFooter.tsx'), tabs = read('src/components/mobile/MobileTabBar.tsx');
     for (const [, label, path] of header.matchAll(/\{ id: '\w+', label: '([^']+)', path: '([^']+)'/g)) assert.ok(chrome.includes(`["${label}", "${path}"]`), `상단 메뉴 ${label}`);
     for (const [, label, path] of footer.matchAll(/\{ label: '([^']+)', path: '([^']+)' \}/g)) assert.ok(chrome.includes(`["${label}", "${path}"]`), `바닥 ${label}`);
-    for (const [, label, path] of tabs.matchAll(/key: '(?:home|tours|mates|review)', label: '([^']+)', path: '([^']+)'/g)) assert.ok(chrome.includes(`["${label}", "${path}"`), `하단 탭 ${label}`);
-    for (const fact of ['사업자등록번호: 9011640064', '관광사업등록번호: 6124313', '사업자등록번호: 730-54-00614', '제2022-서울중랑-1776호', '+976 9594 5838', 'bolor1@hanmail.net']) {
+    for (const [, label, path] of tabs.matchAll(/key: '(?:home|search|booking|wish)', label: '([^']+)', path: '([^']+)'/g)) assert.ok(chrome.includes(`["${label}", "${path}"`), `하단 메뉴 ${label}`);
+    assert.equal([...tabs.matchAll(/key: '(?:home|search|booking|wish)', label: '/g)].length, 4, '하단 메뉴 4칸 + 마이페이지');
+    for (const fact of ['몽골리아 은하수 (SUUN ZAM)', 'Davaasuren Bilguun', '9011640064', '6124313', '+976 9594 5838 · +976 8010 7766', 'DACO센터 3층 306호', '헬로볼라', 'Davaasuren Bolor', '730-54-00614', '제2022-서울중랑-1776호', 'bolor1@hanmail.net']) {
         assert.ok(footer.includes(fact) && chrome.includes(fact), fact);
     }
     assert.ok(chrome.includes(read('src/constants/company.ts').match(/KAKAO_CHANNEL_URL = '([^']+)'/)[1]));
@@ -47,8 +47,8 @@ function run({ search = '', embedded = false, withHeader = true } = {}) {
 
 test('고객이 직접 연 문서에서만 머리·바닥을 바꾸고 관리자 미리보기·인쇄·끼운 화면은 그대로 둔다', () => {
     const shown = run({ search: '?t=token' });
-    assert.match(shown.header.innerHTML, /site-logo\.webp/); assert.match(shown.header.innerHTML, /action="\/products"/);
-    assert.match(shown.footer.innerHTML, /몽골본사/); assert.equal(shown.appended.length, 2, '하단 탭과 메뉴 서랍');
+    assert.match(shown.header.innerHTML, /몽골리아 은하수/); assert.match(shown.header.innerHTML, /action="\/products"/);
+    assert.match(shown.footer.innerHTML, /몽골 본사/); assert.match(shown.footer.innerHTML, /한국 대리점/); assert.equal(shown.appended.length, 2, '하단 메뉴와 메뉴 서랍');
     assert.ok(shown.root.classList.contains('sc-on')); assert.ok(shown.header.classList.contains('sc-ready'));
     assert.doesNotMatch(shown.header.innerHTML + shown.footer.innerHTML, /token/, '고객 링크 값을 머리·바닥에 넣지 않는다');
     for (const search of ['?adminId=abc&preview=1', '?t=token&adminPrint=1', '?t=token&print=1']) {

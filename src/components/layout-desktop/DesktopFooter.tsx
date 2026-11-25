@@ -92,9 +92,9 @@ const KoreaFlag = () => (
 
 function CompanyBlock({ flag, title, rows, extra }: { flag: ReactNode; title: string; rows: Array<[string, string]>; extra?: ReactNode }) {
     return (
-        <div style={{ flex: '1 1 360px', display: 'flex', flexDirection: 'column', gap: 12 }}>
+        <div style={{ flex: '1 1 280px', minWidth: 0, display: 'flex', flexDirection: 'column', gap: 12 }}>
             <h3 style={{ margin: 0, display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, fontWeight: 700, color: SD.gray900 }}>{flag}<span>{title}</span></h3>
-            <dl style={{ margin: 0, display: 'grid', gridTemplateColumns: '112px minmax(0, 1fr)', columnGap: 12, rowGap: 6, fontSize: 13, lineHeight: 1.5 }}>
+            <dl style={{ margin: 0, display: 'grid', gridTemplateColumns: '104px minmax(0, 1fr)', columnGap: 12, rowGap: 6, fontSize: 13, lineHeight: 1.5 }}>
                 {rows.map(([label, value]) => [
                     <dt key={`${label}-k`} style={{ color: SD.gray600 }}>{label}</dt>,
                     <dd key={`${label}-v`} style={{ margin: 0, color: SD.gray700 }}>{value}</dd>,
@@ -105,8 +105,11 @@ function CompanyBlock({ flag, title, rows, extra }: { flag: ReactNode; title: st
     );
 }
 
-/** 사이트 하단(Claude Design ‘사이트 하단’, 2026-11-25): 맞춤 견적 안내 → 링크 3묶음 → 몽골 본사·한국 대리점 → 저작권·약관. */
-export function DesktopFooter() {
+/**
+ * 사이트 하단(Claude Design ‘사이트 하단’, 2026-11-25): 맞춤 견적 안내 → 링크 3묶음 → 몽골 본사·한국 대리점 → 저작권·약관.
+ * 휴대폰(MobileShell)도 같은 부품을 `compact`(좌우 20px, 좁은 간격)로 쓴다.
+ */
+export function DesktopFooter({ compact = false }: { compact?: boolean } = {}) {
     const navigate = useNavigate();
     const { pathname } = useLocation();
     // 홈은 바로 위에 문의 카드가 있고, 맞춤 견적 화면은 그 자체가 목적지라 안내 띠를 뺀다.
@@ -117,11 +120,11 @@ export function DesktopFooter() {
 
     return (
         <footer style={{ width: '100%', boxSizing: 'border-box', background: SD.white, color: SD.gray900, borderTop: `1px solid ${SD.gray200}` }}>
-            <div style={SD_CONTAINER}>
+            <div style={compact ? { ...SD_CONTAINER, paddingLeft: 20, paddingRight: 20 } : SD_CONTAINER}>
                 {showCta && (
-                    <section aria-label="맞춤 견적 안내" style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 24, padding: 32, marginTop: 48, borderRadius: 12, background: SD.gray50 }}>
-                        <div style={{ flex: '1 1 360px', display: 'flex', flexDirection: 'column', gap: 6 }}>
-                            <h2 style={{ margin: 0, fontSize: 22, fontWeight: 700, lineHeight: 1.35, color: SD.gray900 }}>원하는 일정으로 맞춤 견적을 받아 보세요</h2>
+                    <section aria-label="맞춤 견적 안내" style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: compact ? 16 : 24, padding: compact ? 20 : 32, marginTop: compact ? 32 : 48, borderRadius: 12, background: SD.gray50 }}>
+                        <div style={{ flex: '1 1 280px', display: 'flex', flexDirection: 'column', gap: 6 }}>
+                            <h2 style={{ margin: 0, fontSize: compact ? 18 : 22, fontWeight: 700, lineHeight: 1.35, color: SD.gray900 }}>원하는 일정으로 맞춤 견적을 받아 보세요</h2>
                             <p style={{ margin: 0, fontSize: 14, lineHeight: 1.5, color: SD.gray600 }}>견적은 무료예요. 한국어 담당 직원이 24시간 안에 답변해 드려요.</p>
                         </div>
                         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
@@ -131,7 +134,7 @@ export function DesktopFooter() {
                     </section>
                 )}
 
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 40, padding: '56px 0 40px' }}>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: compact ? '28px 24px' : 40, padding: compact ? '40px 0 28px' : '56px 0 40px' }}>
                     <div style={{ flex: '2 1 280px', display: 'flex', flexDirection: 'column', gap: 12, maxWidth: 340 }}>
                         <p style={{ margin: 0, fontSize: 18, fontWeight: 700, color: SD.gray900 }}>몽골리아 은하수</p>
                         <p style={{ margin: 0, fontSize: 13, color: SD.gray600 }}>Mongolia Milky Way (SUUN ZAM)</p>
@@ -153,7 +156,7 @@ export function DesktopFooter() {
                     ))}
                 </div>
 
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '32px 48px', padding: '32px 0', borderTop: `1px solid ${SD.gray200}` }}>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: compact ? '28px 24px' : '32px 48px', padding: compact ? '28px 0' : '32px 0', borderTop: `1px solid ${SD.gray200}` }}>
                     <CompanyBlock flag={<MongoliaFlag />} title="몽골 본사" rows={HEAD_OFFICE} />
                     <CompanyBlock flag={<KoreaFlag />} title="한국 대리점" rows={KOREA_AGENCY} extra={<>
                         <dt style={{ color: SD.gray600 }}>문의</dt>

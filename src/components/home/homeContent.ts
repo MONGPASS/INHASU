@@ -31,17 +31,27 @@ export const inTheme = (p: ThemeProductLike, theme: ThemeKey) => {
 };
 
 /** 테마 줄 2개: 왼쪽·오른쪽 큰 사진 + 상품 3개. 상품이 없으면 맞춤 견적 안내를 보여 준다. */
-export const THEME_ROWS: Array<{ theme: ThemeKey; title: string; sub: string; image: string; imageAlt: string; link: string }> = [
-    { theme: 'winter', title: '지금 떠나기 좋은 겨울 몽골', sub: '눈 덮인 초원과 은하수를 만나는 겨울 코스', image: HOME_IMG.miniDesert, imageAlt: '낙타를 타고 있는 여행자들', link: '/products' },
-    { theme: 'ride', title: '#초원질주 #몽골 승마 투어', sub: '대초원을 말로 달리는 가장 몽골다운 방법', image: HOME_IMG.steppeGallop, imageAlt: '초원에서 말을 타고 달리는 여행자들', link: '/products' },
+export const THEME_ROWS: Array<{ theme: ThemeKey; title: string; sub: string; subShort: string; image: string; imageAlt: string; link: string }> = [
+    { theme: 'winter', title: '지금 떠나기 좋은 겨울 몽골', sub: '눈 덮인 초원과 은하수를 만나는 겨울 코스', subShort: '눈 덮인 초원과 은하수를 만나요', image: HOME_IMG.miniDesert, imageAlt: '낙타를 타고 있는 여행자들', link: '/products' },
+    { theme: 'ride', title: '#초원질주 #몽골 승마 투어', sub: '대초원을 말로 달리는 가장 몽골다운 방법', subShort: '가장 몽골다운 방법', image: HOME_IMG.steppeGallop, imageAlt: '초원에서 말을 타고 달리는 여행자들', link: '/products' },
 ];
 
-/** 혜택 안내 띠(넘겨 보는 3장). */
-export const BENEFIT_BANDS: Array<{ title: string; tags: string; image: string; image2: string; alt: string; link: string }> = [
-    { title: '맞춤 견적은 무료예요\n원하는 일정과 인원만 알려주세요', tags: '#한국어 상담 #24시간 안에 답변', image: HOME_IMG.steppeRiders, image2: HOME_IMG.camelRider, alt: '초원에서 말을 타는 여행자들', link: '/custom-estimate' },
-    { title: '겨울 은하수 투어 예약 받고 있어요\n별이 쏟아지는 몽골의 겨울 밤', tags: '#테를지 #대자연 #2박 3일부터', image: HOME_IMG.winterGer, image2: HOME_IMG.winterLake, alt: '은하수 아래 눈 덮인 게르', link: '/products' },
-    { title: '함께 떠날 동행을 찾아보세요\n여행 경비는 나누고 추억은 두 배로', tags: '#동행 찾기 #혼자여도 괜찮아요', image: HOME_IMG.miniDesert, image2: HOME_IMG.winterForest, alt: '낙타를 타고 있는 여행자들', link: '/travel-mates' },
+/** 혜택 안내 띠(넘겨 보는 3장). titleShort는 휴대폰용 짧은 제목. */
+export const BENEFIT_BANDS: Array<{ title: string; titleShort: string; tags: string; image: string; image2: string; alt: string; link: string }> = [
+    { title: '맞춤 견적은 무료예요\n원하는 일정과 인원만 알려주세요', titleShort: '맞춤 견적은 무료예요\n원하는 일정만 알려주세요', tags: '#한국어 상담 #24시간 안에 답변', image: HOME_IMG.steppeRiders, image2: HOME_IMG.camelRider, alt: '초원에서 말을 타는 여행자들', link: '/custom-estimate' },
+    { title: '겨울 은하수 투어 예약 받고 있어요\n별이 쏟아지는 몽골의 겨울 밤', titleShort: '겨울 은하수 투어\n예약 받고 있어요', tags: '#테를지 #대자연 #2박 3일부터', image: HOME_IMG.winterGer, image2: HOME_IMG.winterLake, alt: '은하수 아래 눈 덮인 게르', link: '/products' },
+    { title: '함께 떠날 동행을 찾아보세요\n여행 경비는 나누고 추억은 두 배로', titleShort: '함께 떠날 동행을\n찾아보세요', tags: '#동행 찾기 #혼자여도 괜찮아요', image: HOME_IMG.miniDesert, image2: HOME_IMG.winterForest, alt: '낙타를 타고 있는 여행자들', link: '/travel-mates' },
 ];
+
+/** 휴대폰 홈 기획전 아래의 여행 약속 3가지. */
+export const HOME_PROMISES: Array<{ icon: string; title: string; sub: string }> = [
+    { icon: 'chatLines', title: '한국어 가이드', sub: '처음부터 끝까지' },
+    { icon: 'mapPin', title: '현지 여행사', sub: '울란바토르 본사' },
+    { icon: 'clock', title: '24시간 답변', sub: '맞춤 견적 무료' },
+];
+
+/** 검색창 안내 문구(PC·휴대폰 공통). */
+export const SEARCH_PLACEHOLDER = '겨울 은하수 투어 예약 받고 있어요';
 
 /** 이달의 추천 PICK 왼쪽 탭. */
 export const PICK_TABS: Array<{ id: 'all' | ThemeKey; label: string; image: string }> = [
