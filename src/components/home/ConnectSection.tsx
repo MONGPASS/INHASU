@@ -1,6 +1,6 @@
 import { useNavigate } from 'react-router-dom';
 import { SD, SIcon } from '../site-seed/seed';
-import { CONTACT_CARDS, PARTNERS, SOCIAL_CHANNELS } from './homeContent';
+import { CONTACT_CARDS, HOME_IMG, PARTNERS, SOCIAL_CHANNELS } from './homeContent';
 
 /**
  * 소셜 채널 · 문의 카드 2장 · 협력 업체 로고(디자인 ‘소셜·문의·협력 업체’, 2026-11-25). PC·휴대폰 홈이 함께 쓴다.
@@ -58,7 +58,7 @@ export function ConnectSection({ compact = false }: { compact?: boolean }) {
 
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
                     <h2 style={{ margin: 0, display: 'flex', alignItems: 'center', gap: 8, paddingBottom: 14, borderBottom: `1px solid ${SD.gray200}`, fontSize: compact ? 18 : 22, fontWeight: 700, color: SD.gray900 }}>
-                        은하수와 함께한 업체<SIcon name="flag" size={22} style={{ color: SD.mint600 }} />
+                        <img src={HOME_IMG.partnersHands} alt="" width={compact ? 54 : 66} height={compact ? 26 : 32} style={{ width: compact ? 54 : 66, height: compact ? 26 : 32, objectFit: 'contain', flex: 'none' }} />은하수와 함께한 업체
                     </h2>
                     {/* 로고 띠는 같은 로고 묶음 두 벌을 이어 붙여 끊김 없이 흐른다(올리면 멈춤, 움직임 줄이기 설정이면 멈춤 — index.css).
                         로고마다 크기가 달라 같은 높이 · 최대 너비 칸에 맞춘다. 두 번째 묶음은 화면 읽기 프로그램에서 숨긴다. */}
