@@ -19,8 +19,8 @@ export const HOME_IMG = {
     pickHeart: `${IMG}/icons/pick-heart.webp`,
     /** ‘몽골 찐 여행 정보 · 몽골 여행 매거진’ 제목 옆 금색 종(오너가 준 SVG를 176px WebP로 줄임). */
     magazineBell: `${IMG}/icons/magazine.webp`,
-    /** ‘은하수와 함께한 업체’ 제목 앞 악수 그림(오너가 준 SVG — 6MB라 높이 96px WebP로 줄임). */
-    partnersHands: `${IMG}/icons/partners.webp`,
+    /** ‘은하수와 함께한 업체’ 제목 앞 전구 그림(오너가 준 SVG — 안에 큰 PNG가 들어 있어 447KB라 여백을 잘라 높이 144px WebP로 줄임). */
+    partnersIcon: `${IMG}/icons/partners-bulb.webp`,
 } as const;
 
 /** 상품을 테마로 묶는 낱말(상품 이름·분류·태그에서 찾는다). 분류 체계가 바뀌어도 이름에 낱말이 있으면 묶인다. */
