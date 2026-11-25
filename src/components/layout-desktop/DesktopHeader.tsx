@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState, type CSSProperties, type FormEvent, type ReactNode } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
+import logoMark from '../../assets/logo_horizontal.webp';
 import { api } from '../../lib/api';
 import { useUser } from '../../contexts/UserContext';
 import { openKakaoConsultation } from '../../lib/consultation';
@@ -211,9 +212,12 @@ export function DesktopHeader() {
             <div style={{ background: SD.white }}>
                 <div style={{ ...SD_CONTAINER, minHeight: 84, display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '12px 32px' }}>
                     <a href="/" onClick={(e) => { e.preventDefault(); navigate('/'); }} aria-label={`${BRAND.name} 홈`}
-                        style={{ display: 'flex', flexDirection: 'column', gap: 2, textDecoration: 'none', color: SD.gray900, flexShrink: 0 }}>
-                        <span style={{ fontSize: 22, fontWeight: 700, lineHeight: 1.2, whiteSpace: 'nowrap' }}>{BRAND.name}</span>
-                        <span style={{ fontSize: 12, color: SD.gray600, whiteSpace: 'nowrap' }}>{BRAND.tagline}</span>
+                        style={{ display: 'flex', alignItems: 'center', gap: 10, textDecoration: 'none', color: SD.gray900, flexShrink: 0 }}>
+                        <img src={logoMark} alt="" width={48} height={48} style={{ width: 48, height: 48, objectFit: 'contain', flex: 'none' }} />
+                        <span style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                            <span style={{ fontSize: 22, fontWeight: 700, lineHeight: 1.2, whiteSpace: 'nowrap' }}>몽골리아 <span style={{ color: SD.mint600 }}>은하수</span></span>
+                            <span style={{ fontSize: 12, color: SD.gray600, whiteSpace: 'nowrap' }}>{BRAND.tagline}</span>
+                        </span>
                     </a>
 
                     <div style={{ position: 'relative', flex: '1 1 280px', maxWidth: 400, minWidth: 180 }}>

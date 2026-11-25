@@ -6,6 +6,7 @@
 (function () {
   "use strict";
   var KAKAO = "https://pf.kakao.com/_BSLaxl";
+  var LOGO = "/img/brand/site-logo.webp";
   var NAV = [["투어 상품", "/products"], ["동행 찾기", "/travel-mates"], ["여행 후기", "/reviews"], ["여행 가이드", "/travel-guide"], ["맞춤 견적", "/custom-estimate"]];
   var SUB = [["여행 기획전", "/promotions"], ["고객센터", "/faq"]];
   var MENU = [
@@ -54,7 +55,8 @@
     return '<a' + (cls ? ' class="' + cls + '"' : '') + ' href="' + esc(pair[1]) + '"' + (out ? ' target="_blank" rel="noopener noreferrer"' : '') + '>' + (inner || "") + esc(pair[0]) + '</a>';
   };
   var svg = function (d, size, width) { return '<svg width="' + size + '" height="' + size + '" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="' + (width || 1.6) + '" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + d + '</svg>'; };
-  var brand = '<a class="sc-brand" href="/" aria-label="몽골리아 은하수 홈"><span class="sc-brand-name">몽골리아 은하수</span><span class="sc-brand-tag">몽골 여행·몽골 투어 전문</span></a>';
+  var brand = '<a class="sc-brand" href="/" aria-label="몽골리아 은하수 홈"><img src="' + LOGO + '" alt="" width="48" height="48">' +
+    '<span class="sc-brand-text"><span class="sc-brand-name">몽골리아 <b>은하수</b></span><span class="sc-brand-tag">몽골 여행·몽골 투어 전문</span></span></a>';
   var searchForm = function () {
     return '<form class="sc-search" role="search" action="/products" method="get"><input name="q" type="search" placeholder="겨울 은하수 투어 예약 받고 있어요" aria-label="투어 검색" autocomplete="off">' +
       '<button type="submit" aria-label="검색">' + svg(ICON.search, 20, 1.8) + '</button></form>';

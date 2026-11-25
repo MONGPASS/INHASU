@@ -14,6 +14,9 @@
 .adm-side-brand { display: flex; flex: 1; align-items: center; gap: calc(var(--adm-space-1) * 2.5); min-width: 0; border-radius: var(--adm-radius-sm); color: var(--adm-ink); text-decoration: none; }
 .adm-side-brand:focus-visible { outline: 0; box-shadow: var(--adm-ring); }
 .adm-side-mark { display: grid; place-items: center; flex: none; width: var(--adm-space-8); height: var(--adm-space-8); border-radius: var(--adm-radius-sm); background: var(--adm-accent); color: var(--adm-on-primary); font-size: var(--adm-fs-base); font-weight: var(--adm-fw-bold); }
+/* 로고 그림을 넣은 마크: 민트 바탕 대신 그림만(사용자 사이트 상단과 같은 로고) */
+.adm-side-mark.has-logo { overflow: hidden; background: transparent; }
+.adm-side-mark.has-logo img { display: block; width: 100%; height: 100%; object-fit: contain; }
 .adm-side-brand-text { display: flex; flex-direction: column; min-width: 0; }
 .adm-side-brand-text b { font-size: var(--adm-fs-base); font-weight: var(--adm-fw-bold); line-height: calc(var(--adm-space-1) * 5); white-space: nowrap; }
 .adm-side-brand-text small { color: var(--adm-text-2); font-size: var(--adm-fs-caption); line-height: var(--adm-space-4); }

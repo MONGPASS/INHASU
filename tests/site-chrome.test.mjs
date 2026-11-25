@@ -16,9 +16,11 @@ test('견적 고객 페이지는 사이트 머리·바닥 스크립트를 부르
         assert.match(html, /<header class="mw-header[^"]*">/, `${page}: 스크립트가 실패해도 보일 기존 머리`);
         if (!page.startsWith('확정일정표')) assert.match(html, /<footer class="mw-footer[^"]*">/, page); // 확정일정표 문서는 원래 바닥이 없다
     }
+    assert.ok(fs.existsSync(new URL('../public/img/brand/site-logo.webp', import.meta.url)));
+    assert.deepEqual(fs.readFileSync(new URL('../public/img/brand/site-logo.webp', import.meta.url)), fs.readFileSync(new URL('../src/assets/logo_horizontal.webp', import.meta.url)), '사이트와 같은 로고 파일');
 });
 
-// 새 디자인(2026-11-25)의 머리는 로고 그림 없이 이름 글자만 쓴다. 회사 정보는 ‘이름 · 값’ 표라 값으로 비교한다.
+// 회사 정보는 ‘이름 · 값’ 표라 값으로 비교한다.
 test('메뉴 주소·하단 메뉴·회사 정보가 사이트 원본과 같다', () => {
     const header = read('src/components/layout-desktop/DesktopHeader.tsx'), footer = read('src/components/layout-desktop/DesktopFooter.tsx'), tabs = read('src/components/mobile/MobileTabBar.tsx');
     for (const [, label, path] of header.matchAll(/\{ id: '\w+', label: '([^']+)', path: '([^']+)'/g)) assert.ok(chrome.includes(`["${label}", "${path}"]`), `상단 메뉴 ${label}`);
@@ -47,7 +49,7 @@ function run({ search = '', embedded = false, withHeader = true } = {}) {
 
 test('고객이 직접 연 문서에서만 머리·바닥을 바꾸고 관리자 미리보기·인쇄·끼운 화면은 그대로 둔다', () => {
     const shown = run({ search: '?t=token' });
-    assert.match(shown.header.innerHTML, /몽골리아 은하수/); assert.match(shown.header.innerHTML, /action="\/products"/);
+    assert.match(shown.header.innerHTML, /site-logo\.webp/); assert.match(shown.header.innerHTML, /몽골리아 <b>은하수<\/b>/); assert.match(shown.header.innerHTML, /action="\/products"/);
     assert.match(shown.footer.innerHTML, /몽골 본사/); assert.match(shown.footer.innerHTML, /한국 대리점/); assert.equal(shown.appended.length, 2, '하단 메뉴와 메뉴 서랍');
     assert.ok(shown.root.classList.contains('sc-on')); assert.ok(shown.header.classList.contains('sc-ready'));
     assert.doesNotMatch(shown.header.innerHTML + shown.footer.innerHTML, /token/, '고객 링크 값을 머리·바닥에 넣지 않는다');

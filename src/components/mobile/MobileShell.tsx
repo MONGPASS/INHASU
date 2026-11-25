@@ -1,6 +1,7 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState, type FormEvent, type ReactNode } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
+import logoMark from '../../assets/logo_horizontal.webp';
 import { api } from '../../lib/api';
 import { clearCustomerSessionCache } from '../../lib/customerSessionCache';
 import { useUser } from '../../contexts/UserContext';
@@ -221,10 +222,13 @@ export function MobileShell({ children, home = false, title, onBack, bottomBar, 
                             href="/"
                             onClick={(e) => { e.preventDefault(); go('/'); }}
                             aria-label={`${BRAND.name} 홈`}
-                            style={{ display: 'flex', flexDirection: 'column', minWidth: 0, color: SD.gray900, textDecoration: 'none' }}
+                            style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0, color: SD.gray900, textDecoration: 'none' }}
                         >
-                            <span style={{ fontSize: 18, fontWeight: 700, lineHeight: 1.2, whiteSpace: 'nowrap' }}>{BRAND.name}</span>
-                            <span style={{ fontSize: 10, color: SD.gray600, whiteSpace: 'nowrap' }}>{BRAND.tagline}</span>
+                            <img src={logoMark} alt="" width={36} height={36} style={{ width: 36, height: 36, objectFit: 'contain', flex: 'none' }} />
+                            <span style={{ display: 'flex', flexDirection: 'column', minWidth: 0 }}>
+                                <span style={{ fontSize: 18, fontWeight: 700, lineHeight: 1.2, whiteSpace: 'nowrap' }}>몽골리아 <span style={{ color: SD.mint600 }}>은하수</span></span>
+                                <span style={{ fontSize: 10, color: SD.gray600, whiteSpace: 'nowrap' }}>{BRAND.tagline}</span>
+                            </span>
                         </a>
                         <div style={{ display: 'flex', flex: 'none' }}>
                             {!home && (
