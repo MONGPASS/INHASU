@@ -77,10 +77,10 @@ export const HOME_VIDEOS: Array<{ title: string; tags: string; image: string; al
 /** 아이콘은 오너가 준 그림(60×60 PNG, public/img/home/v2/social/). */
 export const SOCIAL_CHANNELS: Array<{ id: string; label: string; image: string; url: string }> = [
     { id: 'kakao', label: '카카오톡 채널', image: `${IMG}/social/kakao.png`, url: KAKAO_CHANNEL_URL },
-    { id: 'instagram', label: '인스타그램', image: `${IMG}/social/instagram.png`, url: '' },
-    { id: 'facebook', label: '페이스북', image: `${IMG}/social/facebook.png`, url: '' },
-    { id: 'blog', label: '블로그', image: `${IMG}/social/blog.png`, url: '' },
-    { id: 'youtube', label: '유튜브', image: `${IMG}/social/youtube.png`, url: '' },
+    { id: 'instagram', label: '인스타그램', image: `${IMG}/social/instagram.png`, url: 'https://www.instagram.com/mongolia_inhasu/' },
+    { id: 'facebook', label: '페이스북', image: `${IMG}/social/facebook.png`, url: 'https://www.facebook.com/mongoliasky.co.kr/' },
+    { id: 'blog', label: '블로그', image: `${IMG}/social/blog.png`, url: 'https://blog.naver.com/tulgabolor2' },
+    { id: 'youtube', label: '유튜브', image: `${IMG}/social/youtube.png`, url: 'https://www.youtube.com/@mongolia_inhasu' },
 ];
 
 /** 문의 카드 2장. */
