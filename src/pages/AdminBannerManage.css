@@ -135,6 +135,7 @@
 .hm-tab-thumb .hm-cover { filter: brightness(0.6); }
 .hm-tab-name { flex: 1 1 calc(var(--adm-space-8) * 5); min-width: 0; }
 .hm-tab-cat { flex: 2 1 calc(var(--adm-space-8) * 8); min-width: 0; }
+.hm-video-thumb { position: relative; overflow: hidden; width: 100%; aspect-ratio: 16 / 9; border-radius: var(--adm-radius-md); background: var(--adm-gray-100); }
 .hm-band-headtext { flex: 1; }
 .hm-band-pv { display: flex; align-items: center; justify-content: space-between; gap: var(--adm-space-3); padding: var(--adm-space-4); border-radius: var(--adm-radius-md); background: var(--adm-accent-soft); }
 .hm-band-pv-text { display: flex; flex-direction: column; gap: var(--adm-space-1); min-width: 0; }

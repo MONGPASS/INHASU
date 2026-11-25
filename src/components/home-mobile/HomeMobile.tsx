@@ -72,7 +72,7 @@ export function HomeMobile({ data, isLoading }: Props) {
 
             <ReviewCardsMobile reviews={reviews} products={products} />
             <MagazineCardsMobile magazines={magazines} />
-            <VideoPlaylistMobile />
+            {!settingsPending && <VideoPlaylistMobile videos={settings.videos} />}
             <ConnectSection compact />
         </div>
     );

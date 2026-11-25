@@ -7,7 +7,7 @@ import { fileURLToPath } from 'node:url';
 const code = buildSync({ entryPoints: [fileURLToPath(new URL('../src/components/home/homeSettings.ts', import.meta.url))], bundle: true, format: 'cjs', platform: 'node', write: false }).outputFiles[0].text;
 const module = { exports: {} };
 new Function('module', 'exports', code)(module, module.exports);
-const { parseHomeSettings, serializeHomeSettings, slotProducts, slotLink, safeBandLink, defaultHomeSettings } = module.exports;
+const { parseHomeSettings, serializeHomeSettings, slotProducts, slotLink, safeBandLink, defaultHomeSettings, youtubeId, videoThumb, safeVideoLink } = module.exports;
 
 const categories = [{ id: 'gobi-desert', name: '고비사막' }, { id: 'horse-riding-tour', name: '승마 여행' }];
 const products = [
@@ -49,4 +49,26 @@ test('혜택 배너 링크는 사이트 안 경로와 https만 쓴다', () => {
     assert.equal(safeBandLink(' https://pf.kakao.com/x '), 'https://pf.kakao.com/x');
     for (const bad of ['//evil.example', 'javascript:alert(1)', 'http://x.com', 'products']) assert.equal(safeBandLink(bad), '', bad);
     assert.ok(defaultHomeSettings().bands.every(b => safeBandLink(b.link)), '기본 배너 링크는 모두 사용 가능');
+});
+
+test('영상: 유튜브 주소에서 id를 꺼내 썸네일을 만들고, 링크는 https만 쓴다', () => {
+    const id = 'dQw4w9WgXcQ';
+    for (const url of [`https://www.youtube.com/watch?v=${id}&t=1s`, `https://youtu.be/${id}?si=x`, `https://m.youtube.com/shorts/${id}`, `https://www.youtube.com/embed/${id}`, `https://youtube.com/live/${id}`]) {
+        assert.equal(youtubeId(url), id, url);
+    }
+    for (const url of ['', 'not a url', 'https://www.youtube.com/@mongolia_inhasu', 'https://vimeo.com/12345', `https://evil.example/watch?v=${id}`]) assert.equal(youtubeId(url), '', url);
+    assert.equal(videoThumb({ image: '', url: `https://youtu.be/${id}` }, 0), `https://i.ytimg.com/vi/${id}/hqdefault.jpg`);
+    assert.equal(videoThumb({ image: '/api/images/a.webp', url: `https://youtu.be/${id}` }, 0), '/api/images/a.webp', '직접 올린 사진이 먼저');
+    assert.match(videoThumb({ image: '', url: '' }, 1), /^\/img\/home\/v2\//, '링크가 없으면 기본 사진');
+    assert.equal(safeVideoLink(' https://youtu.be/x '), 'https://youtu.be/x');
+    for (const bad of ['http://youtu.be/x', 'javascript:alert(1)', '//youtu.be/x']) assert.equal(safeVideoLink(bad), '', bad);
+});
+
+test('영상 목록: 기본 4개, 제목 없는 영상은 빼고, 모두 지우면 빈 목록', () => {
+    assert.equal(defaultHomeSettings().videos.length, 4);
+    assert.ok(defaultHomeSettings().videos.every(v => v.url === ''), '기본은 모두 준비 중');
+    const s = parseHomeSettings({ videos: [{ id: 'a', title: '승마', url: ' https://youtu.be/dQw4w9WgXcQ ' }, { id: 'b', title: ' ' }, 'x'] });
+    assert.deepEqual(s.videos.map(v => v.id), ['a']); assert.equal(s.videos[0].url, 'https://youtu.be/dQw4w9WgXcQ');
+    assert.equal(parseHomeSettings({ videos: [] }).videos.length, 0);
+    assert.equal(parseHomeSettings({ bands: [] }).videos.length, 4, '영상을 저장한 적이 없으면 기본값');
 });

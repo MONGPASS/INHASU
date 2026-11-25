@@ -63,7 +63,7 @@ export function HomeDesktop({ data, isLoading }: Props) {
             {reviews.length === 0 && <div aria-hidden="true" style={{ height: 96 }} />}
             <ReviewCardsDesktop reviews={reviews} products={products} />
             <MagazineCardsDesktop magazines={magazines} />
-            <VideoPlaylistDesktop />
+            {!settingsPending && <VideoPlaylistDesktop videos={settings.videos} />}
             <ConnectSection />
         </div>
     );

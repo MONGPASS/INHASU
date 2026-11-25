@@ -12,7 +12,8 @@ import { useAdminContentGuard } from '../hooks/useAdminContentGuard';
 import { createAdminContentTask, withUploadedImage, moveAdminRow } from '../utils/adminContentWorkflow';
 import { HomeBandsEditor } from '../components/admin/home/HomeBandsEditor';
 import { HomeThemeSlotsEditor, type SlotCategory, type SlotProduct } from '../components/admin/home/HomeThemeSlotsEditor';
-import { BAND_MAX, HOME_SETTING_KEY, defaultHomeSettings, parseHomeSettings, serializeHomeSettings, type HomeBand, type HomePickTab, type HomeSettings, type HomeThemeRow } from '../components/home/homeSettings';
+import { HomeVideosEditor } from '../components/admin/home/HomeVideosEditor';
+import { BAND_MAX, VIDEO_MAX, HOME_SETTING_KEY, defaultHomeSettings, parseHomeSettings, serializeHomeSettings, type HomeBand, type HomePickTab, type HomeSettings, type HomeThemeRow, type HomeVideo } from '../components/home/homeSettings';
 import './AdminBannerManage.css';
 import { adminConfirm, adminNotify } from '../components/admin/ui/adminFeedback';
 
@@ -148,7 +149,7 @@ export const AdminBannerManage: React.FC = () => {
     const [links, setLinks] = useState<QuickLink[]>([]);
     const [eventBanners, setEventBanners] = useState<EventBanner[]>([]);
     const [categoryTabs, setCategoryTabs] = useState<CategoryTab[]>([]);
-    // 새 홈의 테마 줄·추천 PICK 탭·혜택 배너(설정 표 home_v2). 배너 표와 따로 저장하지만 같은 ‘변경사항 저장’ 버튼을 쓴다.
+    // 새 홈의 테마 줄·추천 PICK 탭·혜택 배너·영상(설정 표 home_v2). 배너 표와 따로 저장하지만 같은 ‘변경사항 저장’ 버튼을 쓴다.
     const [extras, setExtras] = useState<HomeSettings>(defaultHomeSettings);
     const [slotProducts, setSlotProducts] = useState<SlotProduct[]>([]);
     const [slotCategories, setSlotCategories] = useState<SlotCategory[]>([]);
@@ -236,6 +237,12 @@ export const AdminBannerManage: React.FC = () => {
 
     // 테마 줄 · PICK 탭 · 혜택 배너
     const changeRow = (index: number, field: keyof HomeThemeRow, value: string) => changeExtras(previous => ({ ...previous, themeRows: previous.themeRows.map((row, i) => i === index ? { ...row, [field]: value } : row) }));
+    const addVideo = () => changeExtras(previous => ({ ...previous, videos: [...previous.videos, { id: `video-${Date.now()}`, title: '', tags: '', url: '', image: '' }] }));
+    const changeVideo = (id: string, field: keyof HomeVideo, value: string) => changeExtras(previous => ({ ...previous, videos: previous.videos.map(v => v.id === id ? { ...v, [field]: value } : v) }));
+    const moveVideo = (index: number, step: number) => { if (!task.current.busy()) changeExtras(previous => ({ ...previous, videos: moveAdminRow(previous.videos, index, step) })); };
+    const deleteVideo = async (id: string) => {
+        if (await adminConfirm('이 영상을 목록에서 삭제할까요?')) changeExtras(previous => ({ ...previous, videos: previous.videos.filter(v => v.id !== id) }));
+    };
     const changeTab = (index: number, field: keyof HomePickTab, value: string) => changeExtras(previous => ({ ...previous, pickTabs: previous.pickTabs.map((tab, i) => i === index ? { ...tab, [field]: value } : tab) }));
     const addBand = () => changeExtras(previous => ({ ...previous, bands: [...previous.bands, { id: `band-${Date.now()}`, title: '', titleShort: '', tags: '', image: '', image2: '', alt: '', link: '' }] }));
     const changeBand = (id: string, field: keyof HomeBand, value: string) => changeExtras(previous => ({ ...previous, bands: previous.bands.map(b => b.id === id ? { ...b, [field]: value } : b) }));
@@ -340,7 +347,7 @@ export const AdminBannerManage: React.FC = () => {
         setBanners(previous => moveAdminRow(previous, index, step)); markUnsaved();
     };
     // Capture the target once and apply only its image to the latest form state.
-    type UploadType = 'banner' | 'pcBanner' | 'icon' | 'event' | 'category' | 'band' | 'band2' | 'row';
+    type UploadType = 'banner' | 'pcBanner' | 'icon' | 'event' | 'category' | 'band' | 'band2' | 'row' | 'video';
     const handleUpload = async (file: File | undefined, type: UploadType, id: string) => {
         if (!file || !id || isLoading || loadError) return;
         const release = task.current.begin('upload'); if (!release) return;
@@ -353,7 +360,8 @@ export const AdminBannerManage: React.FC = () => {
             if (type === 'icon') setLinks(previous => withUploadedImage(previous, id, 'image', url));
             if (type === 'event') setEventBanners(previous => withUploadedImage(previous, id, 'image', url));
             if (type === 'category') setCategoryTabs(previous => withUploadedImage(previous, id, 'bannerImage', url));
-            if (type === 'row') changeExtras(previous => ({ ...previous, themeRows: previous.themeRows.map((row, i) => String(i) === id ? { ...row, image: url } : row) }));
+            if (type === 'video') changeExtras(previous => ({ ...previous, videos: withUploadedImage(previous.videos, id, 'image', url) }));
+            else if (type === 'row') changeExtras(previous => ({ ...previous, themeRows: previous.themeRows.map((row, i) => String(i) === id ? { ...row, image: url } : row) }));
             else if (type === 'band' || type === 'band2') changeExtras(previous => ({ ...previous, bands: withUploadedImage(previous.bands, id, type === 'band' ? 'image' : 'image2', url) }));
             else markUnsaved();
         } catch (error: any) { if (mounted.current) setNotice(error?.message || '이미지를 업로드하지 못했습니다. 입력한 내용은 유지됩니다. 다시 선택해 주세요.'); }
@@ -376,6 +384,8 @@ export const AdminBannerManage: React.FC = () => {
         // 제목이 없는 혜택 배너는 홈에 그릴 수 없다 — 저장 전에 알려 준다.
         if (extrasRef.current.bands.some(b => !b.title.trim())) { setNotice('혜택 배너의 제목을 입력해 주세요. 쓰지 않는 배너는 삭제해 주세요.'); return; }
         if (extrasRef.current.themeRows.some(r => !r.title.trim())) { setNotice('테마 줄의 제목을 입력해 주세요.'); return; }
+        if (extrasRef.current.videos.some(v => !v.title.trim())) { setNotice('영상의 제목을 입력해 주세요. 쓰지 않는 영상은 삭제해 주세요.'); return; }
+        if (extrasRef.current.videos.some(v => v.url.trim() && !/^https:\/\//.test(v.url.trim()))) { setNotice('영상 링크는 https:// 로 시작하는 주소를 적어 주세요.'); return; }
         const release = task.current.begin('save'); if (!release) return;
         setBusy('save'); setNotice('');
         const snapshot = dataRef.current, extrasSnapshot = extrasRef.current;
@@ -420,7 +430,7 @@ export const AdminBannerManage: React.FC = () => {
         : savedAt ? `${savedAt} 저장됨 · 홈에 공개 중` : '홈에 공개된 내용과 같아요';
     const statusTone = loadError ? 'is-error' : busy || isLoading ? 'is-busy' : hasUnsavedChanges ? 'is-dirty' : 'is-clean';
     const jumps: [string, string, number][] = [
-        ['메인 배너', 'hm-banner', banners.length], ['테마 줄 · PICK', 'hm-slots', extras.themeRows.length], ['혜택 배너', 'hm-band', extras.bands.length],
+        ['메인 배너', 'hm-banner', banners.length], ['테마 줄 · PICK', 'hm-slots', extras.themeRows.length], ['혜택 배너', 'hm-band', extras.bands.length], ['영상', 'hm-video', extras.videos.length],
         ...(legacyOpen ? [['바로가기 아이콘', 'hm-icon', links.length], ['이벤트 배너', 'hm-event', eventBanners.length], ['여행지 테마', 'hm-theme', categoryTabs.length]] as [string, string, number][] : []),
     ];
     const anyBannerOpen = banners.some(b => isOpen(b.id));
@@ -648,6 +658,12 @@ export const AdminBannerManage: React.FC = () => {
                         extras.bands.length < BAND_MAX ? { label: '배너 추가', onClick: addBand } : undefined)}
                     <HomeBandsEditor value={extras.bands} onChange={changeBand} onMove={moveBand} onDelete={(id) => void deleteBand(id)} onUpload={(file, id, field) => handleUpload(file, field === 'image' ? 'band' : 'band2', id)} />
                     {extras.bands.length === 0 && <AdminEmpty icon={<IconMegaphone />} title="혜택 배너가 없어요" description="지금은 홈에 혜택 띠가 보이지 않아요." action={<AdminButton size="sm" variant="secondary" leading={<IconPlus />} onClick={addBand}>배너 추가</AdminButton>} />}
+
+                    {/* ============ 영상 PLAY LIST (새 홈) ============ */}
+                    {sectionHead('hm-video', '영상 PLAY LIST', extras.videos.length, '유튜브 링크만 붙여 넣으면 썸네일이 자동으로 들어가요. 저장하면 홈에 바로 반영돼요. 모두 지우면 홈에서 이 구역이 빠져요.',
+                        extras.videos.length < VIDEO_MAX ? { label: '영상 추가', onClick: addVideo } : undefined)}
+                    <HomeVideosEditor value={extras.videos} onChange={changeVideo} onMove={moveVideo} onDelete={(id) => void deleteVideo(id)} onUpload={(file, id) => handleUpload(file, 'video', id)} />
+                    {extras.videos.length === 0 && <AdminEmpty icon={<IconImage />} title="영상이 없어요" description="지금은 홈에 영상 구역이 보이지 않아요." action={<AdminButton size="sm" variant="secondary" leading={<IconPlus />} onClick={addVideo}>영상 추가</AdminButton>} />}
 
                     {/* ============ 예전 홈 구역(새 홈에 보이지 않음) ============ */}
                     <div className="hm-legacy">

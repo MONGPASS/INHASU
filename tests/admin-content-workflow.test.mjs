@@ -9,7 +9,7 @@ import { readFileSync } from 'node:fs';
 // 우리 관리자 부품·아이콘(components/admin/ui)은 이름 문자열로 바꿔 얕게 그린다(부품 안쪽은 그리지 않는다).
 const PAGES = ['src/pages/AdminBannerManage.tsx', 'src/pages/AdminCategoryManage.tsx'];
 // 홈 화면 관리가 끼워 쓰는 새 홈 편집 부품(테마 줄·PICK·혜택 배너)도 같은 부품 모음을 '../ui'로 가져온다.
-const HOME_PARTS = ['src/components/admin/home/HomeThemeSlotsEditor.tsx', 'src/components/admin/home/HomeBandsEditor.tsx'];
+const HOME_PARTS = ['src/components/admin/home/HomeThemeSlotsEditor.tsx', 'src/components/admin/home/HomeBandsEditor.tsx', 'src/components/admin/home/HomeVideosEditor.tsx'];
 const namedImports = (from, files = PAGES) => [...new Set(files.flatMap(file => [...readFileSync(file, 'utf8').matchAll(new RegExp(`import\\s*\\{([^}]*)\\}\\s*from\\s*'${from}'`, 'g'))]
     .flatMap(m => m[1].split(',').map(name => name.trim()).filter(name => name && !name.startsWith('type ')))))];
 const stubModule = names => names.map(name => name === 'cx' ? `export const cx=(...a)=>a.filter(Boolean).join(' ');` : `export const ${name}='${name}';`).join('');

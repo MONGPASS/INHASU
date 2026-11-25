@@ -1,15 +1,16 @@
 /**
- * 관리자가 정하는 홈 설정(2026-11-25): 테마 줄 2개 · 이달의 추천 PICK 탭 3개 · 혜택 배너.
+ * 관리자가 정하는 홈 설정(2026-11-25): 테마 줄 2개 · 이달의 추천 PICK 탭 3개 · 혜택 배너 · 영상 PLAY LIST.
  * 관리자 ‘사이트 관리 → 홈 화면 관리’에서 고치고, 설정 표(settings)의 `home_v2` 한 칸에 JSON으로 저장한다(GET/PUT /api/settings).
  * 테마 줄·PICK 탭은 문구와 카테고리 하나만 고른다 — 그 카테고리의 판매 중 상품이 자동으로 나온다(상품을 하나하나 고르지 않는다).
  * 카테고리를 고르지 않았거나 그 카테고리가 지워졌으면 상품 이름·분류·태그의 낱말로 묶는다(homeContent.ts의 THEME_WORDS).
  * 저장한 적이 없거나 값이 깨졌으면 homeContent.ts의 기본 문구·사진·배너를 쓴다.
  */
 import type { Category } from '../../types/category';
-import { BENEFIT_BANDS, PICK_TABS, THEME_ROWS, inTheme, type ThemeKey, type ThemeProductLike } from './homeContent';
+import { BENEFIT_BANDS, HOME_IMG, HOME_VIDEOS, PICK_TABS, THEME_ROWS, inTheme, type ThemeKey, type ThemeProductLike } from './homeContent';
 
 export const HOME_SETTING_KEY = 'home_v2';
 export const BAND_MAX = 8;
+export const VIDEO_MAX = 12;
 
 export interface HomeThemeRow {
     title: string;
@@ -41,6 +42,17 @@ export interface HomeBand {
     link: string;
 }
 
+export interface HomeVideo {
+    id: string;
+    title: string;
+    /** 해시태그 문구(예: #초원질주 #승마). */
+    tags: string;
+    /** 영상 주소(https). 비우면 홈에 ‘준비 중’으로 보이고 눌리지 않는다. */
+    url: string;
+    /** 직접 올린 썸네일. 비우면 유튜브 썸네일을 쓰고, 유튜브 주소가 아니면 기본 사진을 쓴다. */
+    image: string;
+}
+
 export interface HomeSettings {
     /** 테마 줄 2개(순서 고정). */
     themeRows: HomeThemeRow[];
@@ -48,6 +60,8 @@ export interface HomeSettings {
     pickTabs: HomePickTab[];
     /** 혜택 배너. 빈 배열로 저장하면 홈에서 이 띠가 빠진다. */
     bands: HomeBand[];
+    /** 영상 PLAY LIST. 빈 배열로 저장하면 홈에서 이 구역이 빠진다. */
+    videos: HomeVideo[];
 }
 
 /** 자리마다 카테고리를 고르지 않았을 때 쓰는 낱말 묶음. */
@@ -62,6 +76,7 @@ export const defaultHomeSettings = (): HomeSettings => ({
     themeRows: THEME_ROWS.map((row) => ({ title: row.title, sub: row.sub, image: row.image, categoryId: '' })),
     pickTabs: PICK_TABS.filter((tab) => tab.id !== 'all').map((tab) => ({ label: tab.label, categoryId: '' })),
     bands: DEFAULT_BANDS.map((band) => ({ ...band })),
+    videos: HOME_VIDEOS.map((video, i) => ({ id: `video-default-${i + 1}`, title: video.title, tags: video.tags, url: video.url, image: '' })),
 });
 
 const text = (value: unknown, max: number) => (typeof value === 'string' ? value.slice(0, max) : '');
@@ -108,7 +123,43 @@ export function parseHomeSettings(value: unknown): HomeSettings {
             .filter((band) => band.title.trim())
             .slice(0, BAND_MAX);
     }
+    if (Array.isArray(source.videos)) {
+        settings.videos = source.videos
+            .map(record)
+            .filter((video): video is Record<string, unknown> => !!video)
+            .map((video, i) => ({
+                id: text(video.id, 60) || `video-${i + 1}`,
+                title: text(video.title, 80), tags: text(video.tags, 80), url: text(video.url, 600).trim(), image: text(video.image, 600),
+            }))
+            .filter((video) => video.title.trim())
+            .slice(0, VIDEO_MAX);
+    }
     return settings;
+}
+
+/** 유튜브 주소에서 영상 id를 꺼낸다(watch?v= · youtu.be/ · shorts/ · embed/ · live/). 유튜브가 아니면 빈 글자. */
+export function youtubeId(url: string): string {
+    let parsed: URL;
+    try { parsed = new URL((url || '').trim()); } catch { return ''; }
+    const host = parsed.hostname.replace(/^(www\.|m\.|music\.)/, '');
+    const ok = (id: string | null | undefined) => (id && /^[\w-]{11}$/.test(id) ? id : '');
+    if (host === 'youtu.be') return ok(parsed.pathname.split('/')[1]);
+    if (host !== 'youtube.com' && host !== 'youtube-nocookie.com') return '';
+    if (parsed.pathname === '/watch') return ok(parsed.searchParams.get('v'));
+    const [, kind, id] = parsed.pathname.split('/');
+    return ['shorts', 'embed', 'live', 'v'].includes(kind) ? ok(id) : '';
+}
+
+/** 영상 링크로 쓸 수 있는 주소(https만). 그 밖은 빈 글자 — ‘준비 중’ 카드가 된다. */
+export const safeVideoLink = (url: string) => (/^https:\/\/[^\s]+$/.test((url || '').trim()) ? url.trim() : '');
+
+const VIDEO_FALLBACK_IMAGES = [HOME_IMG.steppeRiders, HOME_IMG.winterGer, HOME_IMG.miniDesert, HOME_IMG.winterLake, HOME_IMG.steppeGallop, HOME_IMG.winterForest];
+
+/** 영상 카드 썸네일: 직접 올린 사진 → 유튜브 썸네일 → 자리별 기본 사진. */
+export function videoThumb(video: Pick<HomeVideo, 'image' | 'url'>, index: number): string {
+    if (video.image) return video.image;
+    const id = youtubeId(video.url);
+    return id ? `https://i.ytimg.com/vi/${id}/hqdefault.jpg` : VIDEO_FALLBACK_IMAGES[index % VIDEO_FALLBACK_IMAGES.length];
 }
 
 /** 저장할 JSON 글자. 제목 없는 혜택 배너는 뺀다. */

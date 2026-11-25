@@ -13,6 +13,7 @@ export function useHomeSettings(): { settings: HomeSettings; isPending: boolean 
         queryFn: async () => parseHomeSettings((await api.settings.get(HOME_SETTING_KEY))?.value),
         staleTime: 1000 * 60,
         refetchOnWindowFocus: 'always',
+        refetchInterval: 60_000,
         retry: 1,
     });
     const fallback = useMemo(defaultHomeSettings, []);

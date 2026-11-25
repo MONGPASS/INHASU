@@ -62,10 +62,7 @@ export const PICK_TABS: Array<{ id: 'all' | ThemeKey; label: string; image: stri
     { id: 'desert', label: '미니사막', image: HOME_IMG.miniDesert },
 ];
 
-/**
- * 영상 PLAY LIST. 주소(url)가 비어 있으면 ‘준비 중’으로 보이고 눌리지 않는다.
- * 유튜브 주소가 정해지면 url과 title·tags를 채운다(썸네일을 바꾸려면 image도).
- */
+/** 영상 PLAY LIST의 기본값. 관리자가 ‘홈 화면 관리 → 영상 PLAY LIST’에서 링크·제목을 정한다(homeSettings.ts). */
 export const HOME_VIDEOS: Array<{ title: string; tags: string; image: string; alt: string; url: string }> = [
     { title: '초원을 달리는 몽골 승마 투어', tags: '#초원질주 #승마', image: HOME_IMG.steppeRiders, alt: '초원 승마 영상', url: '' },
     { title: '게르에서 만나는 겨울 은하수', tags: '#겨울 은하수 #게르', image: HOME_IMG.winterGer, alt: '은하수 게르 영상', url: '' },
