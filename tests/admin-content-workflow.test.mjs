@@ -8,7 +8,9 @@ import { readFileSync } from 'node:fs';
 // HTTP/upload adapters are deferred; no DOM, browser or external service is used.
 // 우리 관리자 부품·아이콘(components/admin/ui)은 이름 문자열로 바꿔 얕게 그린다(부품 안쪽은 그리지 않는다).
 const PAGES = ['src/pages/AdminBannerManage.tsx', 'src/pages/AdminCategoryManage.tsx'];
-const namedImports = from => [...new Set(PAGES.flatMap(file => [...readFileSync(file, 'utf8').matchAll(new RegExp(`import\\s*\\{([^}]*)\\}\\s*from\\s*'${from}'`, 'g'))]
+// 홈 화면 관리가 끼워 쓰는 새 홈 편집 부품(테마 줄·PICK·혜택 배너)도 같은 부품 모음을 '../ui'로 가져온다.
+const HOME_PARTS = ['src/components/admin/home/HomeThemeSlotsEditor.tsx', 'src/components/admin/home/HomeBandsEditor.tsx'];
+const namedImports = (from, files = PAGES) => [...new Set(files.flatMap(file => [...readFileSync(file, 'utf8').matchAll(new RegExp(`import\\s*\\{([^}]*)\\}\\s*from\\s*'${from}'`, 'g'))]
     .flatMap(m => m[1].split(',').map(name => name.trim()).filter(name => name && !name.startsWith('type ')))))];
 const stubModule = names => names.map(name => name === 'cx' ? `export const cx=(...a)=>a.filter(Boolean).join(' ');` : `export const ${name}='${name}';`).join('');
 const result = await build({ stdin: { contents: `
@@ -18,13 +20,13 @@ const result = await build({ stdin: { contents: `
     plugins: [{ name: 'content-event-fixture', setup(builder) {
         builder.onResolve({ filter: /^react$|^react\/jsx-runtime$|^react-router-dom$/ }, args => ({ path: args.path, namespace: 'fixture' }));
         builder.onResolve({ filter: /\/(AdminLayout|Icon|api|upload|adminFeedback)$/ }, args => ({ path: args.path.split('/').at(-1), namespace: 'fixture' }));
-        builder.onResolve({ filter: /\/components\/admin\/ui$/ }, () => ({ path: 'admin-ui', namespace: 'fixture' }));
+        builder.onResolve({ filter: /\/components\/admin\/ui$|^\.\.\/ui$/ }, () => ({ path: 'admin-ui', namespace: 'fixture' }));
         builder.onLoad({ filter: /.*/, namespace: 'fixture' }, ({ path }) => ({ loader: 'js', contents:
             path === 'react' ? `export const useState=(...a)=>globalThis.h.useState(...a),useRef=(...a)=>globalThis.h.useRef(...a),useEffect=(...a)=>globalThis.h.useEffect(...a),useCallback=(...a)=>globalThis.h.useCallback(...a);export default {useState,useRef,useEffect,useCallback};`
             : path === 'react/jsx-runtime' ? `export const Fragment='fragment';export const jsx=(type,props,key)=>({type,props,key});export const jsxs=jsx;`
             : path === 'react-router-dom' ? `export const useBlocker=predicate=>{globalThis.h.predicate=predicate;return globalThis.h.blocker};`
             : path === 'AdminLayout' ? `export const AdminLayout='layout';`
-            : path === 'admin-ui' ? stubModule(namedImports('../components/admin/ui'))
+            : path === 'admin-ui' ? stubModule([...new Set([...namedImports('../components/admin/ui'), ...namedImports('../ui', HOME_PARTS)])])
             : path === 'Icon' ? `export const Icon='icon';export const MaterialIcon='icon';`
             : path === 'adminFeedback' ? `export const adminNotify=()=>{};export const adminConfirm=async m=>(typeof window!=='undefined'&&window.confirm?!!window.confirm(typeof m==='string'?m:m.message):true);`
             : path === 'api' ? `export const api=new Proxy({}, {get:(_,key)=>globalThis.adapters.api[key]});`
@@ -44,7 +46,10 @@ const initialBanner = () => ({ banners: [
     { id: 'a', image: '/img/a.webp', title: '첫 배너', subtitle: '', tag: '' },
     { id: 'b', image: '/img/b.webp', title: '둘째 배너', subtitle: '', tag: '' },
 ], quickLinks: [], eventBanners: [], categoryTabs: [] });
+// 홈 화면 관리는 배너와 함께 새 홈 설정(home_v2)·상품·카테고리를 읽는다. 테스트가 따로 주지 않으면 빈 자료로 응답한다.
+const HOME_DEFAULTS = { settings: { get: async () => ({ key: 'home_v2', value: null }), save: async () => ({ success: true }) }, products: { list: async () => [] } };
 function setup(adapters) {
+    adapters = { ...adapters, api: { ...HOME_DEFAULTS, categories: { list: async () => [] }, ...(adapters.api || {}) } };
     const listeners = new Map(), module = { exports: {} };
     const context = vm.createContext({ module, exports: module.exports, adapters, structuredClone,
         setTimeout: () => 1, window: { confirm: () => false, addEventListener: (name, fn) => listeners.set(name, fn), removeEventListener: name => listeners.delete(name) },
@@ -228,4 +233,42 @@ test('실제 이동 guard는 미저장 배너의 Back·메뉴 이동과 새로�
     h.render(); await tick(); assert.equal(resets, 1); assert.equal(proceeds, 0); // 공통 확인 창은 답을 기다린다
     app.context.window.confirm = () => true;
     h.blocker = { ...h.blocker, location: { key: 'menu-2' } }; h.render(); await tick(); assert.equal(proceeds, 1);
+});
+
+test('홈 화면 관리의 테마 줄·혜택 배너는 설정(home_v2)으로만 저장하고 배너 표는 건드리지 않는다', async () => {
+    let bannerSaves = 0; const settingSaves = [];
+    const saved = JSON.stringify({ themeRows: [{ title: '겨울 줄', sub: '', image: '/img/w.jpg', categoryId: '' }, { title: '승마 줄', sub: '설명', image: '/img/r.jpg', categoryId: '' }],
+        pickTabs: [{ label: '탭1', categoryId: '' }], bands: [{ id: 'band-1', title: '첫 혜택\n둘째 줄', link: '/custom-estimate' }] });
+    const app = setup({ api: {
+        banners: { get: async () => initialBanner(), save: async () => { bannerSaves++; } },
+        settings: { get: async key => ({ key, value: key === 'home_v2' ? saved : null }), save: async (key, value) => { settingSaves.push([key, value]); } },
+        categories: { list: async () => [{ id: 'horse-riding-tour', name: '승마 여행', is_active: 1, type: 'product' }, { id: 'mag', name: '매거진', type: 'magazine' }] },
+        products: { list: async () => [{ id: 'p1', name: '승마 3박', category: '승마 여행', status: 'active' }, { id: 'p2', name: '내린 상품', category: '승마 여행', status: 'inactive' }] },
+    } });
+    const h = app.mount(app.AdminBannerManage); await tick(); h.render();
+    const slots = find(h.tree, n => typeof n.props?.onRow === 'function');
+    assert.deepEqual(Array.from(slots.props.categories, c => c.id), ['horse-riding-tour'], '상품 카테고리만 고를 수 있다');
+    assert.deepEqual(Array.from(slots.props.products, p => p.id), ['p1'], '판매 중 상품만 센다');
+    assert.equal(slots.props.rows[1].title, '승마 줄');
+    slots.props.onRow(1, 'categoryId', 'horse-riding-tour'); h.render();
+    assert.equal(saveButton(h.tree).props.disabled, false);
+    await saveButton(h.tree).props.onClick(); h.render();
+    assert.equal(bannerSaves, 0, '바뀌지 않은 배너 표는 다시 저장하지 않는다');
+    assert.equal(settingSaves.length, 1); assert.equal(settingSaves[0][0], 'home_v2');
+    const sent = JSON.parse(settingSaves[0][1]);
+    assert.equal(sent.themeRows[1].categoryId, 'horse-riding-tour'); assert.equal(sent.themeRows[0].title, '겨울 줄');
+    assert.equal(sent.pickTabs.length, 3, '모자란 탭은 기본값으로 채운다'); assert.equal(sent.bands[0].title, '첫 혜택\n둘째 줄');
+    // 제목 없는 테마 줄은 저장하지 않는다
+    find(h.tree, n => typeof n.props?.onRow === 'function').props.onRow(0, 'title', '  '); h.render();
+    await saveButton(h.tree).props.onClick();
+    assert.equal(settingSaves.length, 1);
+});
+
+test('홈 설정을 읽지 못하면 편집을 막아 저장된 테마 줄을 기본값으로 덮어쓰지 않는다', async () => {
+    let saves = 0;
+    const app = setup({ api: { banners: { get: async () => initialBanner(), save: async () => { saves++; } }, settings: { get: async () => { throw new Error('settings down'); }, save: async () => { saves++; } } } });
+    const h = app.mount(app.AdminBannerManage); await tick(); h.render();
+    assert.equal(saveButton(h.tree).props.disabled, true);
+    await saveButton(h.tree).props.onClick();
+    assert.equal(saves, 0);
 });

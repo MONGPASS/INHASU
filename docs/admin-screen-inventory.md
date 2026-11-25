@@ -29,7 +29,7 @@
 | 고객·콘텐츠 | FAQ 관리 | `/admin/faq` | `pages/AdminFAQManage.tsx`(+ `AdminFAQManage.css`) | 목록형(2026-11-21 우리 부품 전환) | FAQ 편집 창·분류 이름 수정 창(`AdminDialog`). 탭 FAQ 목록·카테고리 관리·투어 공통 FAQ |
 | (FAQ에서 진입) | 상품별 FAQ | `/admin/tour-faqs` | `pages/AdminTourFAQManage.tsx` + `TourFAQEditor.tsx`(+ `.css`) | 입력형(2026-11-21 우리 부품 전환) | 없음 |
 | 고객·콘텐츠 | 매거진 관리 | `/admin/magazines` | `pages/AdminMagazineManage.tsx` | 목록형 → 입력형(글 쓰기) | 지도 위치 고르기, 분류 편집 창 |
-| 사이트 관리 | 홈 화면 관리(배너) | `/admin/banners` | `pages/AdminBannerManage.tsx` | 입력형 | 없음 |
+| 사이트 관리 | 홈 화면 관리(메인 배너 · 테마 줄·PICK 탭 카테고리 · 혜택 배너, 예전 구역은 접힘) | `/admin/banners` | `pages/AdminBannerManage.tsx` + `components/admin/home/` | 입력형 | 없음 |
 | 사이트 관리 | 여행기획전 관리 | `/admin/promotions` | `pages/AdminPromotionManage.tsx` | 목록형 | 기획전 편집 창 |
 | (메뉴 없음) | 상품용 가이드 | `/admin/guides` | `pages/AdminGuideManage.tsx` | 목록형 | 가이드 등록 창 |
 | (메뉴 없음) | 상품용 숙소 | `/admin/accommodations` | `pages/AdminAccommodationManage.tsx` | 목록형 | 숙소 등록 창 |

@@ -120,6 +120,35 @@
 .hm-theme-fields { display: flex; flex-direction: column; gap: var(--adm-space-3); padding: var(--adm-space-4); }
 .hm-suggest { display: flex; flex-wrap: wrap; justify-content: center; gap: var(--adm-space-1); }
 
+.hm-legacy { margin-top: var(--adm-space-5); padding: var(--adm-space-4) var(--adm-space-5); border: var(--adm-border-width) dashed var(--adm-line-strong); border-radius: var(--adm-radius-md); background: var(--adm-gray-50); }
+/* ── 테마 줄 · 추천 PICK · 혜택 배너 (새 홈, 2026-11-25) ── */
+.hm-slot-grid { display: flex; flex-direction: column; gap: var(--adm-space-3); }
+.hm-pick-name { margin: 0; color: var(--adm-ink); font-size: var(--adm-fs-large); font-weight: var(--adm-fw-bold); }
+.hm-pick-where { margin: 0; color: var(--adm-text-3); font-size: var(--adm-fs-small); line-height: var(--adm-lh); }
+.hm-slot-body { display: flex; flex-wrap: wrap; gap: var(--adm-space-5); padding-top: var(--adm-space-4); border-top: var(--adm-border-width) solid var(--adm-line-subtle); }
+.hm-slot-photo { flex: 0 0 calc(var(--adm-space-8) * 5); }
+.hm-slot-img { position: relative; overflow: hidden; width: 100%; aspect-ratio: 1 / 1; border-radius: var(--adm-radius-md); background: var(--adm-gray-100); }
+.hm-tab-rows { display: flex; flex-direction: column; gap: var(--adm-space-3); padding-top: var(--adm-space-4); border-top: var(--adm-border-width) solid var(--adm-line-subtle); }
+.hm-tab-row { display: flex; flex-wrap: wrap; align-items: flex-start; gap: var(--adm-space-3); }
+.hm-tab-thumb { position: relative; display: flex; flex: none; align-items: center; justify-content: center; overflow: hidden; width: calc(var(--adm-space-8) * 2.5); height: var(--adm-h-48); margin-top: var(--adm-space-5); border-radius: var(--adm-radius-pill); background: var(--adm-gray-100); }
+.hm-tab-thumb b { position: relative; color: var(--adm-on-dark); font-size: var(--adm-fs-body); font-weight: var(--adm-fw-bold); }
+.hm-tab-thumb .hm-cover { filter: brightness(0.6); }
+.hm-tab-name { flex: 1 1 calc(var(--adm-space-8) * 5); min-width: 0; }
+.hm-tab-cat { flex: 2 1 calc(var(--adm-space-8) * 8); min-width: 0; }
+.hm-band-headtext { flex: 1; }
+.hm-band-pv { display: flex; align-items: center; justify-content: space-between; gap: var(--adm-space-3); padding: var(--adm-space-4); border-radius: var(--adm-radius-md); background: var(--adm-accent-soft); }
+.hm-band-pv-text { display: flex; flex-direction: column; gap: var(--adm-space-1); min-width: 0; }
+.hm-band-pv-title { color: var(--adm-ink); font-size: var(--adm-fs-body); font-weight: var(--adm-fw-bold); line-height: var(--adm-lh-tight); white-space: pre-line; }
+.hm-band-pv-tags { color: var(--adm-text-2); font-size: var(--adm-fs-caption); }
+.hm-band-pv-imgs { display: flex; flex: none; align-items: flex-end; }
+.hm-band-pv-big, .hm-band-pv-small { border: var(--adm-space-0-5) solid var(--adm-surface); border-radius: var(--adm-radius-pill); object-fit: cover; }
+.hm-band-pv-big { width: calc(var(--adm-space-8) * 2); height: calc(var(--adm-space-8) * 2); }
+.hm-band-pv-small { width: calc(var(--adm-space-8) * 1.25); height: calc(var(--adm-space-8) * 1.25); margin-left: calc(var(--adm-space-3) * -1); }
+.hm-band-shots { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--adm-space-3); }
+.hm-band-shot { display: flex; flex-wrap: wrap; align-items: center; gap: var(--adm-space-2); }
+.hm-band-round { position: relative; flex: none; overflow: hidden; width: calc(var(--adm-space-8) * 1.75); height: calc(var(--adm-space-8) * 1.75); border-radius: var(--adm-radius-pill); background: var(--adm-gray-100); }
+.hm-band-round.is-small { width: calc(var(--adm-space-8) * 1.25); height: calc(var(--adm-space-8) * 1.25); }
+
 @media (max-width: 760px) {
   /* 휴대폰 본문 여백에 맞춘다. 데스크톱 값을 그대로 쓰면 화면이 옆으로 넘친다. */
   .admin-app-wrapper .hm-bar { top: var(--adm-topbar-h); gap: var(--adm-space-2); margin: calc(var(--adm-space-4) * -1) calc(var(--adm-pad-page) * -1) var(--adm-space-4); padding: var(--adm-space-2) var(--adm-pad-page); }
@@ -129,4 +158,6 @@
   .hm-card { padding: var(--adm-space-4); }
   .hm-summary, .hm-pc-hint { display: none; }
   .hm-media, .hm-fields { flex-basis: 100%; }
+  .hm-slot-photo { flex-basis: calc(var(--adm-space-8) * 4); }
+  .hm-tab-thumb { display: none; }
 }

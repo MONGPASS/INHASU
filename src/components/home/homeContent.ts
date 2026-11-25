@@ -31,9 +31,10 @@ export const inTheme = (p: ThemeProductLike, theme: ThemeKey) => {
 };
 
 /** 테마 줄 2개: 왼쪽·오른쪽 큰 사진 + 상품 3개. 상품이 없으면 맞춤 견적 안내를 보여 준다. */
-export const THEME_ROWS: Array<{ theme: ThemeKey; title: string; sub: string; subShort: string; image: string; imageAlt: string; link: string }> = [
-    { theme: 'winter', title: '지금 떠나기 좋은 겨울 몽골', sub: '눈 덮인 초원과 은하수를 만나는 겨울 코스', subShort: '눈 덮인 초원과 은하수를 만나요', image: HOME_IMG.miniDesert, imageAlt: '낙타를 타고 있는 여행자들', link: '/products' },
-    { theme: 'ride', title: '#초원질주 #몽골 승마 투어', sub: '대초원을 말로 달리는 가장 몽골다운 방법', subShort: '가장 몽골다운 방법', image: HOME_IMG.steppeGallop, imageAlt: '초원에서 말을 타고 달리는 여행자들', link: '/products' },
+/** 테마 줄 2개의 기본값. 관리자가 ‘홈 화면 관리’에서 문구·사진·카테고리를 바꾼다(homeSettings.ts). */
+export const THEME_ROWS: Array<{ theme: ThemeKey; title: string; sub: string; image: string; imageAlt: string; link: string }> = [
+    { theme: 'winter', title: '지금 떠나기 좋은 겨울 몽골', sub: '눈 덮인 초원과 은하수를 만나는 겨울 코스', image: HOME_IMG.miniDesert, imageAlt: '낙타를 타고 있는 여행자들', link: '/products' },
+    { theme: 'ride', title: '#초원질주 #몽골 승마 투어', sub: '대초원을 말로 달리는 가장 몽골다운 방법', image: HOME_IMG.steppeGallop, imageAlt: '초원에서 말을 타고 달리는 여행자들', link: '/products' },
 ];
 
 /** 혜택 안내 띠(넘겨 보는 3장). titleShort는 휴대폰용 짧은 제목. */

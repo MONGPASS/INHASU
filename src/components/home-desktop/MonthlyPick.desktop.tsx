@@ -2,7 +2,9 @@ import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { isUsableImage, won } from '../desktop-primitives/mwTokens';
 import { SD, SD_CONTAINER, SIcon } from '../site-seed/seed';
-import { PICK_TABS, inTheme, type ThemeKey } from '../home/homeContent';
+import type { Category } from '../../types/category';
+import { PICK_TABS } from '../home/homeContent';
+import { PICK_FALLBACK, PICK_TAB_IMAGES, slotProducts, type HomeSettings } from '../home/homeSettings';
 import type { HomeProduct } from './homeDesktopData';
 import { packageLabel } from './TourCard.desktop';
 
@@ -34,14 +36,18 @@ function PickCard({ p }: { p: HomeProduct }) {
 }
 
 /** 이달의 추천 PICK: 왼쪽 테마 탭(사진 알약) + 오른쪽 옆으로 넘기는 상품 카드와 넘김 막대. 추천·인기 상품이 먼저 온다. */
-export function MonthlyPickDesktop({ products }: { products: HomeProduct[] }) {
-    const [tab, setTab] = useState<'all' | ThemeKey>('all');
+export function MonthlyPickDesktop({ products, categories, settings }: { products: HomeProduct[]; categories: Category[]; settings: HomeSettings }) {
+    const [tab, setTab] = useState('all');
     const [value, setValue] = useState(0);
     const viewport = useRef<HTMLDivElement>(null);
     const [room, setRoom] = useState(0);
 
     const ranked = [...products].sort((x, y) => Number(y.isFeatured) * 2 + Number(y.isPopular) - (Number(x.isFeatured) * 2 + Number(x.isPopular)));
-    const list = (tab === 'all' ? ranked : ranked.filter((p) => inTheme(p, tab))).slice(0, 8);
+    // 탭: 전체 + 관리자가 정한 탭 3개(이름 · 카테고리, 홈 화면 관리). 카테고리를 고르지 않은 탭은 낱말로 묶는다.
+    const tabs = [{ id: 'all', label: PICK_TABS[0].label, image: PICK_TABS[0].image, categoryId: '', fallback: PICK_FALLBACK[0] },
+        ...settings.pickTabs.map((t, i) => ({ id: String(i), label: t.label, image: PICK_TAB_IMAGES[i] || PICK_TABS[0].image, categoryId: t.categoryId, fallback: PICK_FALLBACK[i] }))];
+    const current = tabs.find((t) => t.id === tab) || tabs[0];
+    const list = (current.id === 'all' ? ranked : slotProducts(ranked, categories, current.categoryId, current.fallback)).slice(0, 8);
 
     // 넘길 수 있는 거리 = 카드 줄 전체 너비 − 보이는 칸 너비
     useEffect(() => {
@@ -67,8 +73,8 @@ export function MonthlyPickDesktop({ products }: { products: HomeProduct[] }) {
                         <p style={{ margin: 0, fontSize: 15, color: SD.gray700 }}>이번 시즌에 떠나기 좋은 몽골 여행</p>
                     </div>
                     <div role="tablist" aria-label="추천 테마" style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-                        {PICK_TABS.map((t) => {
-                            const on = t.id === tab;
+                        {tabs.map((t) => {
+                            const on = t.id === current.id;
                             return (
                                 <button key={t.id} type="button" role="tab" aria-selected={on} onClick={() => { setTab(t.id); setValue(0); }}
                                     style={{ position: 'relative', width: 190, height: 52, padding: 0, border: 'none', borderRadius: 9999, overflow: 'hidden', cursor: 'pointer', background: SD.gray900 }}>

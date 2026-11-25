@@ -1,7 +1,9 @@
 import type { HomeData } from '../../hooks/useHomeData';
+import { useHomeSettings } from '../../hooks/useHomeSettings';
 import { isPublished, useHomeReviews } from '../home-desktop/homeDesktopData';
 import { ConnectSection } from '../home/ConnectSection';
-import { HOME_PROMISES, THEME_ROWS, inTheme } from '../home/homeContent';
+import { HOME_PROMISES } from '../home/homeContent';
+import { ROW_FALLBACK, findCategory, slotLink, slotProducts } from '../home/homeSettings';
 import { MLoading } from '../mobile/mobileUi';
 import { SD, SIcon } from '../site-seed/seed';
 import { BenefitBandMobile } from './BenefitBand.mobile';
@@ -22,9 +24,11 @@ interface Props {
  * 휴대폰 홈 본문(Claude Design ‘홈 · 휴대폰’, 2026-11-25). 머리·검색·메뉴 줄·바닥·하단 메뉴는 MobileShell이 그린다.
  * 기획전 배너 → 여행 약속 → 추천 투어(분류 칩) → 테마 줄 2개 → 혜택 띠 → 이달의 추천 PICK → 후기 → 매거진 → 영상 → 소셜·문의·협력 업체.
  * 상품·후기·매거진·배너는 관리자에 등록한 자료이고, 고정 문구·사진은 home/homeContent.ts에 있다(PC 홈과 함께 쓴다).
+ * 테마에 보일 상품과 혜택 배너는 관리자 ‘홈 화면 관리’에서 정한다(home/homeSettings.ts).
  */
 export function HomeMobile({ data, isLoading }: Props) {
     const { reviews } = useHomeReviews();
+    const { settings, isPending: settingsPending } = useHomeSettings();
     const { categories, magazines } = data;
     const products = data.products.filter(isPublished);
 
@@ -48,21 +52,21 @@ export function HomeMobile({ data, isLoading }: Props) {
                 ))}
             </section>
 
-            {isLoading ? (
+            {isLoading || settingsPending ? (
                 <MLoading />
             ) : (
                 <>
                     <TourTabsSectionMobile products={products} categories={categories} />
 
                     <section aria-label="테마 여행" style={{ paddingTop: 44, display: 'flex', flexDirection: 'column', gap: 32 }}>
-                        {THEME_ROWS.map((row) => (
-                            <ThemeRowSectionMobile key={row.theme} title={row.title} subtitle={row.subShort} products={products.filter((p) => inTheme(p, row.theme))}
-                                image={row.image} imageAlt={row.imageAlt} link={row.link} />
+                        {settings.themeRows.map((row, i) => (
+                            <ThemeRowSectionMobile key={i} title={row.title} subtitle={row.sub} products={slotProducts(products, categories, row.categoryId, ROW_FALLBACK[i])}
+                                image={row.image} imageAlt={findCategory(categories, row.categoryId)?.name || row.title} link={slotLink(categories, row.categoryId)} />
                         ))}
                     </section>
 
-                    <BenefitBandMobile />
-                    <MonthlyPickMobile products={products} />
+                    {settings.bands.length > 0 ? <BenefitBandMobile bands={settings.bands} /> : <div aria-hidden="true" style={{ height: 44 }} />}
+                    <MonthlyPickMobile products={products} categories={categories} settings={settings} />
                 </>
             )}
 
