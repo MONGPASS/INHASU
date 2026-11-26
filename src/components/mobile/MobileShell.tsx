@@ -28,6 +28,8 @@ interface MobileShellProps {
     children: ReactNode;
     /** Home screen: search box always visible + menu row under it. */
     home?: boolean;
+    /** 홈처럼 메뉴 줄을 보이고, 바닥 위 간격을 두지 않는다(본문이 문의 구역으로 끝나는 화면 — 투어 상품 목록). 홈은 늘 켜진다. */
+    navRow?: boolean;
     /** Back bar title. Omit on screens that render their own title bar (SubPageBar). */
     title?: string;
     onBack?: () => void;
@@ -86,7 +88,7 @@ const writeRecent = (list: string[]) => {
 
 const tokens = (q: string) => q.toLowerCase().split(/\s+/).filter(Boolean);
 
-export function MobileShell({ children, home = false, title, onBack, bottomBar, headerScrolls = false, tabBar = true, footer = true }: MobileShellProps) {
+export function MobileShell({ children, home = false, navRow = home, title, onBack, bottomBar, headerScrolls = false, tabBar = true, footer = true }: MobileShellProps) {
     const navigate = useNavigate();
     const location = useLocation();
     const path = location.pathname;
@@ -217,8 +219,8 @@ export function MobileShell({ children, home = false, title, onBack, bottomBar, 
     return (
         <MobileShellContext.Provider value={shell}>
             <div data-mw-actionbar={bottomBar ? '' : undefined} style={{ position: 'relative', minHeight: '100dvh', display: 'flex', flexDirection: 'column', background: SD.white, color: SD.gray900, fontFamily: MW_FONT, WebkitFontSmoothing: 'antialiased' }}>
-                {/* 머리(디자인 ‘홈 · 휴대폰’, 2026-11-25): 이름 · 알림 · 전체 메뉴 → 검색 → 메뉴 줄(홈만). 홈이 아닌 화면은 돋보기로 검색을 연다. */}
-                <header ref={hdrRef} style={{ position: headerScrolls ? 'relative' : 'sticky', top: 0, zIndex: 20, background: SD.white, borderBottom: home ? 'none' : `1px solid ${SD.gray200}` }}>
+                {/* 머리(디자인 ‘홈 · 휴대폰’, 2026-11-25): 이름 · 알림 · 전체 메뉴 → 검색 → 메뉴 줄(홈·투어 상품 목록). 홈이 아닌 화면은 돋보기로 검색을 연다. */}
+                <header ref={hdrRef} style={{ position: headerScrolls ? 'relative' : 'sticky', top: 0, zIndex: 20, background: SD.white, borderBottom: navRow ? 'none' : `1px solid ${SD.gray200}` }}>
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, height: 56, padding: '0 8px 0 20px' }}>
                         <a
                             href="/"
@@ -348,7 +350,7 @@ export function MobileShell({ children, home = false, title, onBack, bottomBar, 
                         </div>
                     )}
 
-                    {home && (
+                    {navRow && (
                         <nav data-noscroll="" aria-label="주 메뉴" style={{ display: 'flex', gap: 22, overflowX: 'auto', scrollbarWidth: 'none', padding: '0 20px', borderBottom: `1px solid ${SD.gray200}` }}>
                             {NAV_ROW.map((n) => {
                                 const on = n.match(path);
@@ -383,7 +385,7 @@ export function MobileShell({ children, home = false, title, onBack, bottomBar, 
                 <main style={{ flex: 1, minWidth: 0 }}>{children}</main>
 
                 {/* 바닥은 PC와 같은 부품을 좁은 여백으로 쓴다(디자인 ‘사이트 하단’). 홈은 바로 위가 문의 구역이라 간격을 두지 않는다. */}
-                {footer && <div style={{ marginTop: home ? 0 : 48 }}><DesktopFooter compact /></div>}
+                {footer && <div style={{ marginTop: navRow ? 0 : 48 }}><DesktopFooter compact /></div>}
 
                 {bottomBar}
 

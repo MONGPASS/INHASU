@@ -79,7 +79,7 @@ export const TourProducts: React.FC = () => {
                 canonical="/products"
                 structuredData={[collectionLd, breadcrumbLd, itemListLd]}
             />
-            <MobileShell title="투어 상품">
+            <MobileShell navRow>
                 <TourListMobile />
             </MobileShell>
         </>
