@@ -185,8 +185,8 @@ test('견적서 만들기 메뉴는 React로 열리고, 고객 화면 안 편집
     // 이동 보호: 옛 QuoteEditorState.flushAll과 같이 저장 중이면 막고, 초안 보관 실패는 그 문구를 돌려준다
     assert.match(page, /if \(busyRef\.current\) return \{ ok: false, busy: true \};/);
     assert.match(page, /const error = flushDraft\(\);\n\s+return error \? \{ ok: false, busy: false, dirty: isDirty, error \} : \{ ok: true, busy: false, dirty: isDirty \};/);
-    assert.match(page, /navigate\(section\) \{ navStep\.current = section === 'quote-share' \? STEPS\.length - 1 : 1;/, '옛 setStep(4)·setStep(1)과 같은 단계');
-    assert.match(page, /setStep\(navStep\.current \?\? 0\)/, '불러오기 전에 고른 단계로 연다');
+    assert.match(page, /navigate\(section\) \{ navSection\.current = section === 'quote-share' \? 'qb-notes' : 'qb-days'; setJump\(j => j \+ 1\); return true; \}/, '링크 공유는 마지막 섹션, 그 밖은 일자별 일정으로 옮겨 간다');
+    assert.match(page, /if \(phase !== 'ready' \|\| !navSection\.current\) return;/, '불러오기가 끝난 뒤 고른 섹션으로 옮겨 간다');
     const desk = readFileSync('src/pages/AdminQuoteDesk.tsx', 'utf8');
     assert.doesNotMatch(desk, /견적만들기\?id=/, '고객 화면은 견적만들기 iframe을 만들지 않는다');
     assert.doesNotMatch(desk, /<iframe/, '고객 화면의 작업은 모두 React 편집기(iframe 없음)');

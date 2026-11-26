@@ -2,22 +2,21 @@ import React, { forwardRef, useCallback, useEffect, useImperativeHandle, useMemo
 import { useSearchParams } from 'react-router-dom';
 import { useUser } from '../contexts/UserContext';
 import { AdminLayout } from '../components/admin/AdminLayout';
-import {
-    AdminBadge, AdminButton, AdminCard, AdminChipGroup, AdminDialog, AdminEmpty, AdminError, AdminField, AdminIconButton, AdminLoading, AdminMessage,
-    AdminPickCard, AdminSegmented, AdminTable, AdminTabs, AdminTbody, AdminTd, AdminTextArea, AdminTextButton, AdminTextInput, AdminTh, AdminThead, AdminTr,
-    IconClose, IconCopy, IconPlus,
-} from '../components/admin/ui';
+import { AdminButton, AdminDialog, AdminEmpty, AdminError, AdminLoading, AdminMessage, AdminPickCard, AdminTextButton, AdminTextInput, IconCopy } from '../components/admin/ui';
 import { adminConfirm, adminNotify } from '../components/admin/ui/adminFeedback';
-import { QuoteDayEditor } from '../components/admin/QuoteDayEditor';
-import { QuoteSpotSelector } from '../components/admin/QuoteSpotSelector';
 import { connectQuoteDesk, findQuoteDeskTool, quoteDeskPageId } from '../components/admin/quoteDesk';
 import { loadFallbackCourses, loadFallbackSnippets, loadFallbackSpots, loadQuoteBase } from '../components/admin/quoteLibrary';
 import { readQuoteLibrary, type QuoteLibraryKey } from '../components/admin/quoteLibraryStore';
 import {
-    INTENSITY_DESC, ROOM_ECO, ROOM_FULL, applyCourse, autoQuoteNo, balEco, balFull, buildQuote, customerQuoteLink, dayCountCheck, dayDateStr, dayFromSnippet, emptyContext, emptyDay,
-    emptyQuoteState, estimateTotal, importQuoteContent, matchCourse, nightsOf, renumber, restoreFromQuote, savePayload, sortedCourses, stateFromRequest, validEmail,
+    ROOM_FULL, applyCourse, autoQuoteNo, buildQuote, customerQuoteLink, dayFromSnippet, emptyContext, emptyDay,
+    emptyQuoteState, importQuoteContent, matchCourse, nightsOf, renumber, restoreFromQuote, savePayload, sortedCourses, stateFromRequest, validEmail,
     type Json, type QuoteDay, type QuoteState, type RequestContext,
 } from '../components/admin/quoteBuilder';
+import {
+    BUILDER_SECTIONS, builderChecks, clockText, maskPhone, paxText, periodText, priceSummary, receivedText, requestItems, sectionMarks, shortDay, syncDayDates, tripLength,
+    type BuilderSectionId,
+} from '../components/admin/quoteBuilderView';
+import { BasicSection, BuilderBar, BuilderChecks, BuilderHead, BuilderStepNav, CourseSection, DaysSection, NotesSection, PriceSection, RequestCard, SpotsSection, SummaryCard } from '../components/admin/QuoteBuilderSections';
 import { draftFingerprint, readDraft, removeDraft, validQuoteDraft, writeDraft, type DraftRead, type DraftScope } from '../components/admin/quoteDraftStore';
 import { loadQuoteCustomerRequest } from '../utils/quoteCustomerWorkspace';
 import { KAKAO_CHANNEL_URL } from '../constants/company';
@@ -25,7 +24,9 @@ import './AdminQuoteBuilder.css';
 
 /**
  * 견적서 만들기(`/admin/quote-desk/builder`) — 옛 도구 public/견적만들기.html을 React로 옮겼다(iframe 대신).
- * 단계 5개(기본 정보·코스 → 일자별 일정 → 요금 → 대표 명소 → 혜택·비고) + 아래 막대(예상 총액·이전/다음·저장).
+ * 화면은 2026-11-26 Claude Design ‘견적서 만들기 개선’(고객 요청 있을 때 / 직접 만들 때): 머리 줄 → 붙는 단계 줄 → 한 화면의 섹션 6개
+ * (기본 정보·코스·일자별 일정·요금·대표 명소·혜택·비고, 부품은 components/admin/QuoteBuilderSections.tsx) + 오른쪽(고객 요청·보내기 전 확인 / 견적 요약)
+ * + 아래 막대(예상 총액·확인할 것·미리보기·저장·링크 공유). 표시 계산은 components/admin/quoteBuilderView.ts.
  * - 견적 문서는 components/admin/quoteBuilder.ts의 buildQuote(옛 도구와 같은 칸)로 만들고, 같은 `/api/requests`에 저장한다.
  *   저장하기 = 서버 저장만(silentQuote), 링크 공유하기 = 저장 + 고객 알림톡(notifyQuote) + 고객 링크.
  * - 초안은 옛 편집기(quote-editor-state.js)와 같은 자리·형식(quoteDraftStore.ts)으로 이 브라우저에 보관한다.
@@ -33,7 +34,6 @@ import './AdminQuoteBuilder.css';
  *   바깥 화면은 ref의 flushAll()로 이동 전에 초안을 보관하고 onState로 저장 중·미저장을 받는다(옛 QuoteEditorState와 같은 약속).
  */
 const tool = findQuoteDeskTool('builder');
-const STEPS = ['기본정보 · 코스', '일자별 일정', '요금', '대표 명소', '혜택 · 비고'] as const;
 const DEFAULT_SPOT_CATS = ['고비', '중앙', '북부', '서부'];
 const LEGACY_DRAFT = 'leaders_quote_draft';
 
@@ -77,7 +77,7 @@ export interface QuoteBuilderFlush { ok: boolean; busy: boolean; dirty?: boolean
 export interface QuoteBuilderHandle {
     /** 초안을 이 브라우저에 보관한다(옛 QuoteEditorState.flushAll과 같은 결과) */
     flushAll: () => QuoteBuilderFlush;
-    /** 고객 화면의 작업 이동: quote-share → 마지막 단계(링크 공유), 그 밖 → 일자별 일정(옛 setStep(4)/setStep(1)) */
+    /** 고객 화면의 작업 이동: quote-share → 혜택·비고(아래 막대의 링크 공유), 그 밖 → 일자별 일정 섹션으로 옮겨 간다 */
     navigate: (section: string) => boolean;
 }
 interface ShellParts { actions: React.ReactNode; description: string; content: React.ReactNode }
@@ -91,12 +91,8 @@ interface EditorProps {
     /** 화면 틀(독립 화면은 AdminLayout). 없으면 끼워 쓰는 틀 */
     shell?: (parts: ShellParts) => React.ReactNode;
 }
-const embeddedShell = ({ actions, description, content }: ShellParts) => (
-    <div className="qbd-embedded">
-        <div className="qbd-embedded-head"><p>{description}</p>{actions && <div className="qbd-embedded-tools">{actions}</div>}</div>
-        {content}
-    </div>
-);
+/** 끼워 쓰는 틀: 머리 줄·단계 줄은 본문(BuilderHead·BuilderStepNav)이 그린다 */
+const embeddedShell = ({ content }: ShellParts) => <div className="qbd-embedded">{content}</div>;
 
 export const QuoteBuilderEditor = forwardRef<QuoteBuilderHandle, EditorProps>(function QuoteBuilderEditor({ embedded = false, requestId, onState, onSaved, shell }, ref) {
     const { user } = useUser();
@@ -110,16 +106,16 @@ export const QuoteBuilderEditor = forwardRef<QuoteBuilderHandle, EditorProps>(fu
     const [st, setSt] = useState<QuoteState>(() => emptyQuoteState({}));
     const [ctx, setCtx] = useState<RequestContext>(emptyContext);
     const [autoNo, setAutoNo] = useState(() => autoQuoteNo());
-    const [step, setStep] = useState(0);
-    const [syncKey, setSyncKey] = useState(0);
     const [pickedCourse, setPickedCourse] = useState('');
     const [pending, setPending] = useState<DraftRead | null>(null);
     const [draftError, setDraftError] = useState('');
     const [busy, setBusy] = useState<'' | 'save' | 'share'>('');
     const [link, setLink] = useState('');
     const [clone, setClone] = useState<{ open: boolean; loading: boolean; error: string; items: Json[] }>({ open: false, loading: false, error: '', items: [] });
-    const [optionDraft, setOptionDraft] = useState({ label: '', calc: '' });
-    const [balanceDraft, setBalanceDraft] = useState({ pax: '', eco: '', full: '' });
+    const [rawOpen, setRawOpen] = useState(false);
+    /** 머리 줄의 저장 표시: 이 브라우저에 초안을 보관한 시각 · 서버에 저장한 시각 */
+    const [draftAt, setDraftAt] = useState(0);
+    const [savedAt, setSavedAt] = useState(0);
     const token = useRef('');
     const boot = useRef(0);
     const handoff = useRef<ReturnType<typeof takeHandoffs> | null>(null);
@@ -130,8 +126,8 @@ export const QuoteBuilderEditor = forwardRef<QuoteBuilderHandle, EditorProps>(fu
     const legacyOwned = useRef(false);
     const pendingRef = useRef(pending); pendingRef.current = pending;
     const busyRef = useRef(busy); busyRef.current = busy;
-    // 불러오기 전에 바깥 화면이 고른 단계(불러오기가 끝나면 그 단계로 연다)
-    const navStep = useRef<number | null>(null);
+    // 바깥 화면이 고른 섹션(불러오기가 끝나면 그 섹션으로 옮겨 간다)
+    const navSection = useRef<BuilderSectionId | null>(null);
 
     // ── 처음 열기: 연결 → 기본값·자료 → (요청이면) 원본 → 시작 내용 → 초안 확인 ──
     const start = useCallback(async () => {
@@ -179,7 +175,12 @@ export const QuoteBuilderEditor = forwardRef<QuoteBuilderHandle, EditorProps>(fu
                 const first = Object.keys(library.courses)[0];
                 if (first) { s = applyCourse(s, library.courses[first]); picked = first; message = `“${first}” 코스를 불러왔습니다`; }
             }
-            setBase(quoteBase); setLib(library); setSt(s); setCtx(c); setPickedCourse(picked); setAutoNo(autoQuoteNo()); setStep(navStep.current ?? 0); setSyncKey(k => k + 1);
+            // 고객 요청에 기간은 있는데 일정이 비었으면(맞는 코스 없음) 기간만큼 빈 일차를 만들어 둔다
+            if (c.fromReq && !restored && !s.days.length) {
+                const n = nightsOf(s);
+                if (n && n > 0 && n < 60) s = { ...s, days: syncDayDates(renumber(Array.from({ length: n + 1 }, () => emptyDay(0))), s.depart) };
+            }
+            setBase(quoteBase); setLib(library); setSt(s); setCtx(c); setPickedCourse(picked); setAutoNo(autoQuoteNo()); setDraftAt(0); setSavedAt(0);
             if (!embedded && c.reqId && paramsRef.current.get('id') !== c.reqId) { const q = new URLSearchParams(paramsRef.current); q.set('id', c.reqId); setParams(q, { replace: true }); }
             // 초안: 옛 편집기와 같은 자리(계정·종류·요청 ID). 원본과 다르면 복원/버리기를 고를 때까지 편집을 잠근다.
             scope.current = { account: accountId, kind: 'quote', requestId: c.reqId };
@@ -209,7 +210,7 @@ export const QuoteBuilderEditor = forwardRef<QuoteBuilderHandle, EditorProps>(fu
         let result: ReturnType<typeof writeDraft>;
         try { result = writeDraft(localStorage, scope.current, baseline.current, stRef.current); }
         catch { result = { ok: false, error: '브라우저 저장소를 사용할 수 없어 초안을 보관하지 못했습니다.' }; }
-        if (result.ok) { lastStored.current = current; setDraftError(''); return ''; }
+        if (result.ok) { lastStored.current = current; setDraftError(''); setDraftAt(Date.now()); return ''; }
         setDraftError(result.error); return result.error;
     }, []);
     const commitDraft = (nextRequestId: string) => {
@@ -234,7 +235,7 @@ export const QuoteBuilderEditor = forwardRef<QuoteBuilderHandle, EditorProps>(fu
 
     const restoreDraft = () => {
         if (pending?.kind !== 'draft') return;
-        setSt(old => ({ ...old, ...(pending.value as Partial<QuoteState>) })); setSyncKey(k => k + 1);
+        setSt(old => ({ ...old, ...(pending.value as Partial<QuoteState>) }));
         setPending(null); lastStored.current = '';
         adminNotify('초안을 복원했습니다. 저장해야 서버에 반영됩니다.', 'info');
     };
@@ -251,38 +252,39 @@ export const QuoteBuilderEditor = forwardRef<QuoteBuilderHandle, EditorProps>(fu
     const locked = !!busy || !!pending;
     const loadCourse = (name: string) => {
         const course = lib.courses[name]; if (!course) return;
-        setSt(old => applyCourse(old, course)); setPickedCourse(name); setSyncKey(k => k + 1);
+        setSt(old => { const next = applyCourse(old, course); return { ...next, days: syncDayDates(next.days, next.depart) }; }); setPickedCourse(name);
         adminNotify(`“${name}” 코스를 불러왔습니다`, 'info');
     };
-    const setDay = (index: number, field: string, value: any) => setSt(old => {
+    const setDay = (index: number, field: string, value: unknown) => setSt(old => {
         const days = old.days.slice(), day = { ...days[index] };
-        if (field === 'move') { day.move = value.move; day.dist = value.dist; }
-        // 숙소 이름만 바꿀 때 그 숙소의 다른 칸(사진·설명 등)은 남긴다
-        else if (field === 'stay') day.stay = { ...(day.stay || {}), ...value };
+        // 숙소 이름만 바꿀 때 그 숙소의 다른 칸(사진·태그 등)은 남긴다
+        if (field === 'stay') day.stay = { ...(day.stay || {}), ...(value as Json) };
         else (day as Json)[field] = value;
         days[index] = day; return { ...old, days };
     });
-    const setDays = (days: QuoteDay[]) => { setSt(old => ({ ...old, days })); setSyncKey(k => k + 1); };
-    const fillDates = () => {
-        if (!st.depart) { adminNotify('기본 정보에서 출발일을 먼저 입력하세요.', 'error'); return; }
-        setDays(st.days.map((day, i) => ({ ...day, date: dayDateStr(st.depart, i) })));
-        adminNotify('출발일 기준으로 여행일자를 채웠어요 — 각 칸에서 자유롭게 고칠 수 있어요.', 'info');
+    /** 일차를 더하거나 빼거나 옮긴 뒤: 번호를 다시 매기고, 시작일에서 자동으로 채운 날짜는 새 자리에 맞춘다(직접 적은 날짜는 그대로) */
+    const setDays = (days: QuoteDay[]) => setSt(old => ({ ...old, days: syncDayDates(renumber(days), old.depart) }));
+    /** 시작일·종료일: 자동 날짜를 다시 맞추고, 기간보다 일정 칸이 적으면 빈 일차를 더한다(넘치는 일차는 지우지 않는다) */
+    const setDates = (depart: string, return_: string) => setSt(old => {
+        let days = syncDayDates(old.days, depart, old.depart);
+        const n = nightsOf({ depart, return_ });
+        if (n && n > 0 && n < 60 && days.length < n + 1) {
+            days = syncDayDates(renumber([...days, ...Array.from({ length: n + 1 - days.length }, () => emptyDay(0))]), depart);
+        }
+        return { ...old, depart, return_, days };
+    });
+    const toggleSpot = (name: string) => setSt(old => ({ ...old, spots: old.spots.includes(name) ? old.spots.filter(n => n !== name) : [...old.spots, name] }));
+    const moveSpot = (from: number, to: number) => setSt(old => { const spots = old.spots.slice(); const [moved] = spots.splice(from, 1); spots.splice(to, 0, moved); return { ...old, spots }; });
+    const loadDefaults = async () => {
+        const d = emptyQuoteState(base);
+        if ((st.benefits.trim() || st.events.trim()) && !await adminConfirm({ title: '자주 쓰는 문구 불러오기', confirmLabel: '불러오기',
+            message: '지금 적힌 여행사 혜택·참여 가능 이벤트를 기본 문구로 바꿀까요?' })) return;
+        patch({ benefits: d.benefits, events: d.events });
+        adminNotify('기본 문구를 불러왔어요.', 'info');
     };
-    const addOption = () => {
-        const label = optionDraft.label.trim(), calc = optionDraft.calc.trim();
-        if (!label) { adminNotify('항목 이름을 입력하세요.', 'error'); return; }
-        patch({ options: [...st.options, { label, calc }] }); setOptionDraft({ label: '', calc: '' });
+    const copyText = (value: string, label: string) => {
+        navigator.clipboard.writeText(value).then(() => adminNotify(`${label}를 복사했어요.`, 'success')).catch(() => adminNotify('복사하지 못했어요.', 'error'));
     };
-    const addBalance = () => {
-        const pax = parseInt(balanceDraft.pax), eco = parseInt(balanceDraft.eco), full = parseInt(balanceDraft.full);
-        if (isNaN(pax) || (isNaN(eco) && isNaN(full))) { adminNotify('인원과 금액을 입력하세요.', 'error'); return; }
-        const exists = st.balances.some(b => b.pax === pax);
-        patch({ balances: exists ? st.balances.map(b => b.pax === pax ? { ...b, economy: eco || 0, full: full || 0 } : b) : [...st.balances, { pax, economy: eco || 0, full: full || 0 }] });
-        setBalanceDraft({ pax: '', eco: '', full: '' });
-    };
-    const setBalance = (pax: number, key: 'economy' | 'full', value: string) =>
-        patch({ balances: st.balances.map(b => b.pax === pax ? { ...b, [key]: parseInt(value) || 0 } : b) });
-    const sortedBalances = useMemo(() => st.balances.slice().sort((a, b) => a.pax - b.pax), [st.balances]);
 
     const quote = () => buildQuote(stRef.current, base, { quoteNo: stRef.current.quoteNo || autoNo, reqProfile: ctx.reqProfile, reqSpots: ctx.reqSpots, spotLib: lib.spots });
     const preview = (doc: '/견적서' | '/일정지도') => {
@@ -290,6 +292,34 @@ export const QuoteBuilderEditor = forwardRef<QuoteBuilderHandle, EditorProps>(fu
         catch { adminNotify('브라우저 저장소를 쓸 수 없어 미리보기를 열지 못했습니다.', 'error'); return; }
         if (!window.open(doc, '_blank')) adminNotify('팝업을 허용한 뒤 다시 열어 주세요.', 'error');
     };
+
+    // ── 섹션 이동(위 단계 줄 · 확인 목록 · 바깥 고객 화면) ──
+    const [active, setActive] = useState<BuilderSectionId>('qb-basic');
+    const [jump, setJump] = useState(0);
+    const goSection = useCallback((id: BuilderSectionId) => {
+        const el = document.getElementById(id);
+        if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        setActive(id);
+    }, []);
+    useEffect(() => {
+        if (phase !== 'ready') return;
+        const onScroll = () => {
+            const nav = document.querySelector('.qbd-steps');
+            const line = (nav?.getBoundingClientRect().bottom ?? 0) + 24;
+            let current: BuilderSectionId = BUILDER_SECTIONS[0].id;
+            for (const s of BUILDER_SECTIONS) { const el = document.getElementById(s.id); if (el && el.getBoundingClientRect().top <= line) current = s.id; }
+            setActive(a => (a === current ? a : current));
+        };
+        onScroll();
+        window.addEventListener('scroll', onScroll, true);
+        return () => window.removeEventListener('scroll', onScroll, true);
+    }, [phase]);
+    useEffect(() => {
+        if (phase !== 'ready' || !navSection.current) return;
+        const id = navSection.current;
+        const frame = window.requestAnimationFrame(() => goSection(id));
+        return () => window.cancelAnimationFrame(frame);
+    }, [phase, jump, goSection]);
 
     const openClone = async () => {
         setClone({ open: true, loading: true, error: '', items: [] });
@@ -307,16 +337,16 @@ export const QuoteBuilderEditor = forwardRef<QuoteBuilderHandle, EditorProps>(fu
             message: `현재 일정·명소·요금을 “${who}” 견적 내용으로 바꿉니다.\n고객명·날짜·인원은 그대로 둡니다. 계속할까요?` })) return;
         const next = importQuoteContent(stRef.current, item.quote);
         if (!next) return;
-        setSt(next); setSyncKey(k => k + 1); setClone(c => ({ ...c, open: false }));
+        setSt({ ...next, days: syncDayDates(next.days, next.depart) }); setClone(c => ({ ...c, open: false }));
         adminNotify(`“${who}” 견적을 복제했습니다 — 고객 정보만 확인한 뒤 발행하세요.`, 'success');
     };
 
     const reset = async () => {
         if (!await adminConfirm({ title: '초기화', confirmLabel: '모두 지우기', danger: true, message: '입력한 내용을 모두 지울까요?' })) return;
         try { localStorage.removeItem('leaders_quote'); } catch { /* 저장소를 쓸 수 없는 창 */ }
-        setSt(emptyQuoteState(base)); setPickedCourse(''); setAutoNo(autoQuoteNo()); setStep(0); setSyncKey(k => k + 1);
+        setSt(emptyQuoteState(base)); setPickedCourse(''); setAutoNo(autoQuoteNo()); goSection('qb-basic');
         if (scope.current) removeDraft(localStorage, scope.current, legacyOwned.current ? LEGACY_DRAFT : undefined);
-        lastStored.current = '';
+        lastStored.current = ''; setDraftAt(0);
         adminNotify('초기화되었습니다.', 'info');
     };
 
@@ -325,8 +355,8 @@ export const QuoteBuilderEditor = forwardRef<QuoteBuilderHandle, EditorProps>(fu
         if (busy || pending || phase !== 'ready') return;
         let s = stRef.current;
         const email = (s.email || '').trim();
-        if (!validEmail(email)) { adminNotify('예약자 이메일 주소를 확인해 주세요.', 'error'); setStep(0); return; }
-        if (!s.customer.trim() && !ctx.anonymousShare) { adminNotify('먼저 고객명을 입력하세요.', 'error'); setStep(0); return; }
+        if (!validEmail(email)) { adminNotify('예약자 이메일 주소를 확인해 주세요.', 'error'); goSection('qb-basic'); return; }
+        if (!s.customer.trim() && !ctx.anonymousShare) { adminNotify('먼저 고객명을 입력하세요.', 'error'); goSection('qb-basic'); return; }
         if (ctx.anonymousShare && !s.customer.trim()) { s = { ...s, customer: '여행 고객' }; setSt(s); stRef.current = s; }
         if (share && !await adminConfirm({ title: '고객에게 견적 보내기', confirmLabel: '보내기',
             message: '이 견적을 고객에게 보낼까요?\n고객에게 견적서 도착 알림톡이 발송되고, 보낼 링크가 만들어집니다.' })) return;
@@ -351,6 +381,7 @@ export const QuoteBuilderEditor = forwardRef<QuoteBuilderHandle, EditorProps>(fu
             setCtx(next);
             commitDraft(next.reqId);
             onSaved?.(next.reqId);
+            setSavedAt(Date.now()); setDraftAt(0);
             if (!embedded && next.reqId && paramsRef.current.get('id') !== next.reqId) { const query = new URLSearchParams(paramsRef.current); query.set('id', next.reqId); setParams(query, { replace: true }); }
             if (!share) { adminNotify('저장했어요 — 고객에게는 아직 보내지 않았어요.', 'success'); return; }
             const url = customerQuoteLink(window.location.origin, next.reqToken);
@@ -375,26 +406,56 @@ export const QuoteBuilderEditor = forwardRef<QuoteBuilderHandle, EditorProps>(fu
             const error = flushDraft();
             return error ? { ok: false, busy: false, dirty: isDirty, error } : { ok: true, busy: false, dirty: isDirty };
         },
-        navigate(section) { navStep.current = section === 'quote-share' ? STEPS.length - 1 : 1; setStep(navStep.current); return true; },
+        navigate(section) { navSection.current = section === 'quote-share' ? 'qb-notes' : 'qb-days'; setJump(j => j + 1); return true; },
     }), [flushDraft]);
 
     // ── 화면 ──
-    const total = estimateTotal(st);
-    const nights = nightsOf(st);
-    const dayCheck = dayCountCheck(st);
-    const last = step === STEPS.length - 1;
-    const headTitle = `${st.customer.trim() || '새 견적'} · ${st.destination.trim() || '여행지 미정'}`;
-    const text = (key: keyof QuoteState, label: string, extra: { placeholder?: string; type?: string; hint?: React.ReactNode; full?: boolean; maxLength?: number } = {}) => (
-        <AdminField label={label} hint={extra.hint} className={extra.full ? 'is-full' : undefined}>
-            {(id, describedBy) => <AdminTextInput id={id} aria-describedby={describedBy} type={extra.type || 'text'} placeholder={extra.placeholder} maxLength={extra.maxLength}
-                value={String(st[key] ?? '')} onChange={e => patch({ [key]: extra.type === 'number' ? (parseInt(e.target.value) || 0) : e.target.value } as Partial<QuoteState>)} />}
-        </AdminField>
-    );
+    const sorted = useMemo(() => sortedCourses(lib.courses), [lib.courses]);
+    const checks = builderChecks(st, ctx, pickedCourse);
+    const marks = sectionMarks(st, checks);
+    const todos = checks.filter(c => c.state === 'todo');
+    const price = priceSummary(st);
+    const length = tripLength(st);
+    const profile = ctx.reqProfile || {};
+    const reqItems = requestItems(st, ctx);
+    const headName = st.customer.trim() || (ctx.anonymousShare ? '공유 견적' : '새 견적');
+    const headMeta = [st.destination.trim() || '여행지 미정', `${st.pax}명`, periodText(st), `문서번호 ${st.quoteNo || autoNo}`].filter(Boolean).join(' · ');
+    const headStatus = busy ? '서버에 저장하는 중…' : pending ? '초안 확인 필요' : draftAt ? `임시 보관 · ${clockText(draftAt)}` : savedAt ? `저장됨 · ${clockText(savedAt)}` : '';
+    const course = pickedCourse ? lib.courses[pickedCourse] : null;
+    const summaryRows: Array<[string, React.ReactNode]> = [
+        ['고객', <b key="c">{st.customer.trim() || '—'} · {st.pax}명</b>],
+        ['여행', <>{st.depart ? `${shortDay(st.depart)}${st.return_ ? ` – ${shortDay(st.return_)}` : ''}` : '날짜 미정'}<br /><span className="qbd-muted">{[length, `강도 ${st.intensity}/5`].filter(Boolean).join(' · ')}</span></>],
+        ['코스', pickedCourse ? [pickedCourse, course?.destination].filter(Boolean).join(' · ') : '직접 작성'],
+        ['차량', st.vehicle || '—'],
+        ['담당', st.manager || '—'],
+    ];
+    const requestRows = ([
+        ['희망 여행', ctx.reqDestination || ''],
+        ['여행 유형', String(profile.tripType || '')],
+        ['인원 구성', paxText(ctx.reqPax0)],
+    ] as Array<[string, string]>).filter(([, v]) => v);
+    const rawRows = ([
+        ['고객명', st.customer], ['연락처', st.phone], ['이메일', st.email],
+        ['희망 여행', ctx.reqDestination || ''], ['희망 명소', (ctx.reqSpots || []).join(', ')],
+        ['여행 기간', [st.depart, st.return_].filter(Boolean).join(' ~ ')], ['인원 구성', paxText(ctx.reqPax0)],
+        ['여행 유형', String(profile.tripType || '')], ['여행 스타일', (Array.isArray(profile.travelStyles) ? profile.travelStyles : []).join(', ')],
+        ['도시 숙소', String(profile.cityStay || '')], ['게르', String(profile.gerStay || '')], ['차량', ctx.reqVehicle || ''],
+        ['접수', receivedText(ctx.reqReceivedAt || '')], ['요청 사항', String(profile.request || '')],
+    ] as Array<[string, string]>).filter(([, v]) => v);
+    const menu = [
+        { key: 'map', label: '지도 미리보기', description: '대표 명소 순서대로 지도를 열어요', disabled: !!pending, onSelect: () => preview('/일정지도') },
+        { key: 'clone', label: '다른 견적에서 복제', description: '일정·명소·요금을 가져와요', disabled: locked, onSelect: () => void openClone() },
+        { key: 'reset', label: '초기화', description: '입력한 내용을 모두 지워요', disabled: locked, onSelect: () => void reset() },
+    ];
 
     const body = phase === 'connecting' || phase === 'loading' ? <AdminLoading label="견적서 편집기를 준비하는 중…" />
         : phase === 'unset' ? <AdminError title="견적 데스크가 연결되지 않았어요" reason="서버에 견적 관리자 값(ADMIN_TOKEN)이 설정되어 있어야 견적서를 만들 수 있습니다." />
         : phase === 'error' ? <AdminError title="견적서 편집기를 열지 못했습니다" reason={loadError} onRetry={() => void start()} />
         : <>
+            {/* 고객 통합 작업 화면 안에서는 바깥 화면이 고객 이름 줄을 그린다 */}
+            {!embedded && <BuilderHead backTo={ctx.reqId ? `/admin/customer-workspace/quote/${encodeURIComponent(ctx.reqId)}` : undefined}
+                name={headName} badge={ctx.fromReq ? '고객 요청' : ctx.anonymousShare ? '공유 견적' : '직접 작성'} meta={headMeta} status={headStatus} menu={menu} />}
+            <BuilderStepNav marks={marks} active={active} onGo={goSection} />
             {pending && pending.kind !== 'empty' && <AdminMessage tone="cautionary" role="alert"
                 title={pending.kind === 'error' ? '초안을 복원하지 못했습니다' : pending.conflict ? '서버 원본과 다른 버전의 초안이 있습니다' : '작성 중이던 초안이 있습니다'}
                 actions={<>
@@ -405,143 +466,40 @@ export const QuoteBuilderEditor = forwardRef<QuoteBuilderHandle, EditorProps>(fu
                 {pending.kind === 'error' ? pending.error : <>{pending.legacy && '이전 형식 초안이므로 현재 계정과 고객의 내용인지 확인해 주세요. '}복원하거나 버린 뒤 편집을 계속하세요.{pending.savedAt && ` (보관 ${new Date(pending.savedAt).toLocaleString('ko-KR')})`}</>}
             </AdminMessage>}
             {draftError && !pending && <AdminMessage tone="cautionary" role="alert">{draftError}</AdminMessage>}
-            <AdminCard flush className="qbd-steps">
-                <AdminTabs label="작성 단계" value={String(step)} onChange={value => setStep(Number(value))}
-                    items={STEPS.map((label, i) => ({ value: String(i), label: `${i + 1}. ${label}` }))} />
-            </AdminCard>
-            <fieldset className="qbd-fieldset" disabled={locked}>
-                {step === 0 && <>
-                    <AdminCard title="기본 정보" description="고객·일정·항공 정보를 입력합니다.">
-                        <div className="adm-ui-form-grid qbd-grid-3">
-                            {text('customer', '고객명', { placeholder: '예) 강민지' })}
-                            {text('phone', '연락처', { placeholder: '01012345678', type: 'tel' })}
-                            {text('email', '예약자 이메일', { placeholder: 'name@example.com', type: 'email', maxLength: 120, hint: '이 Google 계정이면 마이페이지에 표시됩니다.' })}
-                            {text('destination', '여행지', { placeholder: '예) 고비' })}
-                            <AdminField label="문서번호">{(id) => <AdminTextInput id={id} value={st.quoteNo || autoNo} onChange={e => patch({ quoteNo: e.target.value })} />}</AdminField>
-                            {text('pax', '인원(명)', { type: 'number' })}
-                            {text('depart', '투어 시작일(선택)', { type: 'date' })}
-                            {text('return_', '투어 종료일(선택)', { type: 'date', hint: nights && nights > 0 ? `총 ${nights}박 ${nights + 1}일` : nights !== null && nights <= 0 ? '귀국일이 입국일보다 빨라요' : undefined })}
-                            {text('vehicle', '차량', { placeholder: '예) 하이에이스' })}
-                            {text('flightIn', '항공 IN', { placeholder: '예) 08/06 - 04:30' })}
-                            {text('flightOut', '항공 OUT', { placeholder: '예) 08/10 - 18:15' })}
-                            {text('manager', '담당자', { placeholder: '예) 볼라' })}
-                            {text('pickup', '픽업', { placeholder: "비우면 '항공 IN + 공항' 자동" })}
-                            {text('drop', '드랍', { placeholder: "비우면 '항공 OUT + 공항' 자동" })}
-                            {text('paxNote', '인원 표기', { placeholder: '예) 6인 (남2/여4)', hint: "비우면 'N인'" })}
-                        </div>
-                        <div className="qbd-intensity">
-                            <span className="qbd-label">여행강도(난이도) · 견적서에 점 5개로 표시</span>
-                            <AdminChipGroup label="여행강도" value={String(st.intensity)} onChange={v => patch({ intensity: Number(v) })}
-                                items={[1, 2, 3, 4, 5].map(i => ({ value: String(i), label: String(i) }))} />
-                            <span className="qbd-muted">{st.intensity}단계 · {INTENSITY_DESC[st.intensity] || ''}</span>
-                        </div>
-                    </AdminCard>
-                    <AdminCard title="코스 불러오기" description="코스를 고르면 일정·대표 명소·기본 요금이 한 번에 채워집니다. 이후 각 단계에서 자유롭게 고치세요."
-                        actions={<AdminButton variant="secondary" size="sm" leading={<IconCopy />} onClick={() => void openClone()}>다른 견적에서 복제</AdminButton>}>
-                        {Object.keys(lib.courses).length ? <div className="qbd-courses">
-                            {sortedCourses(lib.courses).map(([name, c]) => (
-                                <AdminPickCard key={name} selected={pickedCourse === name} onClick={() => loadCourse(name)}>
-                                    <b className="qbd-course-name">{name}</b><small className="qbd-muted">{[c.destination, c.nights].filter(Boolean).join(' · ')}</small>
-                                </AdminPickCard>
-                            ))}
-                        </div> : <AdminEmpty title="등록된 코스가 없습니다" description="견적 관리 → 코스 관리에서 추가하세요." />}
-                    </AdminCard>
-                </>}
-                {step === 1 && <AdminCard title="일자별 일정" description="목적지·이동·세부 일정을 고치세요. 한 줄에 하나씩, “*”로 시작하면 강조, “(”로 시작하면 회색입니다."
-                    actions={<AdminButton variant="secondary" size="sm" onClick={fillDates}>출발일 기준 여행일자 자동 입력</AdminButton>}>
-                    {dayCheck && (dayCheck.ok
-                        ? <p className="qbd-check is-ok">여행 기간({dayCheck.nights}박 {dayCheck.need}일)과 일정 칸 수가 맞습니다.</p>
-                        : <p className="qbd-check is-warn">여행 기간은 {dayCheck.nights}박 {dayCheck.need}일인데 일정 칸은 {dayCheck.have}개입니다. 아래에서 일자를 추가·삭제해 맞춰 주세요.</p>)}
-                    <QuoteDayEditor days={st.days.map((day, i) => ({ ...day, d: i + 1 })) as any} startDate={st.depart} endDate={st.return_} extras={false}
-                        snippets={lib.snippets} snippetCats={lib.snippetCats} disabled={locked} syncKey={String(syncKey)}
+            <div className="qbd-layout">
+                <fieldset className="qbd-main" disabled={locked}>
+                    <BasicSection st={st} patch={patch} setDates={setDates} autoNo={autoNo} />
+                    <CourseSection courses={lib.courses} sorted={sorted} picked={pickedCourse} length={length} help={!ctx.fromReq} onPick={loadCourse} onClone={() => void openClone()} />
+                    <DaysSection days={st.days} depart={st.depart} snippets={lib.snippets} snippetCats={lib.snippetCats} help={!ctx.fromReq}
                         onField={setDay}
-                        onSnippet={(i, name) => { const s = lib.snippets[name]; if (!s) return; setDays(st.days.map((day, j) => j === i ? dayFromSnippet(day, s) : day)); adminNotify(`“${name}” 일정을 불러왔습니다`, 'info'); }}
-                        onDelete={i => { if (st.days.length <= 1) { adminNotify('최소 1일은 필요합니다.', 'error'); return; } setDays(renumber(st.days.filter((_, j) => j !== i))); }}
-                        onReorder={(from, to) => { const days = st.days.slice(); const [moved] = days.splice(from, 1); days.splice(to, 0, moved); setDays(renumber(days)); }}
-                        onAdd={() => setDays(renumber([...st.days, emptyDay(st.days.length + 1)]))}
-                        onNotice={message => adminNotify(message, 'info')} />
-                </AdminCard>}
-                {step === 2 && <>
-                    <AdminCard title="예약금 · 총액 기준" description="예약금(1인)과 아래 막대의 예상 총액을 어느 숙소 기준으로 볼지 정합니다.">
-                        <div className="qbd-row">
-                            <AdminField label="예약금(1인)">{(id) => <AdminTextInput id={id} type="number" step={1000} trailing="원" value={String(st.deposit)} onChange={e => patch({ deposit: parseInt(e.target.value) || 0 })} />}</AdminField>
-                            <div className="qbd-seg"><span className="qbd-label">하단 총액 계산 기준 숙소</span>
-                                <AdminSegmented label="총액 기준 숙소" value={st.roomType} onChange={v => patch({ roomType: v })} items={[{ value: ROOM_ECO, label: '실속형' }, { value: ROOM_FULL, label: '풀패키지' }]} /></div>
-                        </div>
-                    </AdminCard>
-                    <AdminCard title="추가 및 할인 사항" description="견적서에 안내로 표시됩니다(자동 계산 없음).">
-                        {st.options.length ? <ul className="qbd-options">
-                            {st.options.map((o, i) => (
-                                <li key={i}><b>{o.label}</b><span className="qbd-muted">{o.calc || ''}</span>
-                                    <AdminIconButton size="sm" label={`${o.label} 빼기`} onClick={() => patch({ options: st.options.filter((_, j) => j !== i) })}><IconClose /></AdminIconButton></li>
-                            ))}
-                        </ul> : <p className="qbd-muted">등록된 추가·할인 안내가 없습니다.</p>}
-                        <div className="qbd-add">
-                            <AdminTextInput aria-label="새 항목" placeholder="항목(예: 게르 업그레이드)" value={optionDraft.label} onChange={e => setOptionDraft(d => ({ ...d, label: e.target.value }))} />
-                            <AdminTextInput aria-label="금액 안내" placeholder="금액 안내(예: 50,000원*1박)" value={optionDraft.calc} onChange={e => setOptionDraft(d => ({ ...d, calc: e.target.value }))} />
-                            <AdminButton variant="secondary" leading={<IconPlus />} onClick={addOption}>옵션 추가</AdminButton>
-                        </div>
-                    </AdminCard>
-                    <AdminCard title="인원별 잔금(1인 기준)" description="실속형 = 일반 게르, 풀패키지 = 고급 게르">
-                        {sortedBalances.length ? <AdminTable label="인원별 잔금" cardOff>
-                            <AdminThead><AdminTr><AdminTh>인원</AdminTh><AdminTh>실속형</AdminTh><AdminTh>풀패키지</AdminTh><AdminTh align="right">빼기</AdminTh></AdminTr></AdminThead>
-                            <AdminTbody>{sortedBalances.map(b => (
-                                <AdminTr key={b.pax}>
-                                    <AdminTd nowrap><b>{b.pax}인</b></AdminTd>
-                                    <AdminTd><AdminTextInput aria-label={`${b.pax}인 실속형 잔금`} type="number" step={1000} trailing="원" value={String(balEco(b))} onChange={e => setBalance(b.pax, 'economy', e.target.value)} /></AdminTd>
-                                    <AdminTd><AdminTextInput aria-label={`${b.pax}인 풀패키지 잔금`} type="number" step={1000} trailing="원" value={String(balFull(b))} onChange={e => setBalance(b.pax, 'full', e.target.value)} /></AdminTd>
-                                    <AdminTd align="right"><AdminIconButton size="sm" label={`${b.pax}인 잔금 빼기`} onClick={() => patch({ balances: st.balances.filter(x => x.pax !== b.pax) })}><IconClose /></AdminIconButton></AdminTd>
-                                </AdminTr>
-                            ))}</AdminTbody>
-                        </AdminTable> : <p className="qbd-muted">인원별 잔금을 추가하세요.</p>}
-                        <div className="qbd-add">
-                            <AdminTextInput aria-label="인원" type="number" placeholder="인원" value={balanceDraft.pax} onChange={e => setBalanceDraft(d => ({ ...d, pax: e.target.value }))} />
-                            <AdminTextInput aria-label="실속형 금액" type="number" placeholder="실속형(원)" value={balanceDraft.eco} onChange={e => setBalanceDraft(d => ({ ...d, eco: e.target.value }))} />
-                            <AdminTextInput aria-label="풀패키지 금액" type="number" placeholder="풀패키지(원)" value={balanceDraft.full} onChange={e => setBalanceDraft(d => ({ ...d, full: e.target.value }))} />
-                            <AdminButton variant="secondary" leading={<IconPlus />} onClick={addBalance}>인원 추가</AdminButton>
-                        </div>
-                    </AdminCard>
-                </>}
-                {step === 3 && <AdminCard title="대표 명소" description="고른 순서대로 지도·견적서에 표시됩니다. 설명·몽골어 지명은 여행지 관리에서 자동으로 채워집니다.">
-                    <QuoteSpotSelector spots={lib.spots} categories={lib.spotCats} selected={st.spots} disabled={locked}
-                        onToggle={name => setSt(old => ({ ...old, spots: old.spots.includes(name) ? old.spots.filter(n => n !== name) : [...old.spots, name] }))} />
-                </AdminCard>}
-                {step === 4 && <AdminCard title="혜택 · 이벤트 · 비고" description="견적서 기본 정보 표에 그대로 표시됩니다. 비우면 견적서에 빈 칸으로 나옵니다.">
-                    <div className="adm-ui-form-grid">
-                        {text('benefits', '여행사 혜택', { placeholder: '예) 판초 1인1개, 캠핑의자 세트, 낙타양말 증정', full: true })}
-                        <AdminField label="참여 가능 이벤트" hint="한 줄에 하나씩" className="is-full">
-                            {(id, describedBy) => <AdminTextArea id={id} aria-describedby={describedBy} minRows={5} value={st.events} placeholder={'❤️1번: 후기이벤트 참여시 1인 1만원할인\n❤️2번: 인스타 후기 작성시 1인 2만원할인'} onChange={e => patch({ events: e.target.value })} />}
-                        </AdminField>
-                        {text('remark', '비고', { placeholder: "특이사항(비우면 '-')", full: true })}
-                    </div>
-                </AdminCard>}
-            </fieldset>
-            <div className="adm-ui-form-bar qbd-bar" role="region" aria-label="예상 총액과 저장">
-                <div className="adm-ui-form-bar-status qbd-total">
-                    <small>{st.pax}인 · {st.roomType === ROOM_FULL ? '풀패키지' : '실속형'} 기준 예상 총액</small>
-                    {total ? <b>{total.total.toLocaleString('ko-KR')}원 <span>· 1인 {total.perPerson.toLocaleString('ko-KR')}원</span></b> : <b>— <span>· {st.pax}인 잔금 미입력</span></b>}
-                </div>
-                <div className="adm-ui-form-bar-actions">
-                    <AdminButton variant="secondary" disabled={step === 0} onClick={() => setStep(s => s - 1)}>이전</AdminButton>
-                    {!last && <AdminButton variant="primary" onClick={() => setStep(s => s + 1)}>다음 · {STEPS[step + 1]}</AdminButton>}
-                    {last && <AdminButton variant="secondary" loading={busy === 'save'} disabled={locked} onClick={() => void runSave(false)}>저장하기</AdminButton>}
-                    {last && <AdminButton variant="primary" loading={busy === 'share'} disabled={locked} onClick={() => void runSave(true)}>링크 공유하기</AdminButton>}
-                </div>
+                        onSnippet={(i, name) => { const s = lib.snippets[name]; if (!s) return; setDays(st.days.map((day, j) => j === i ? dayFromSnippet(day, s) : day)); }}
+                        onDelete={i => { if (st.days.length <= 1) { adminNotify('최소 1일은 필요합니다.', 'error'); return; } setDays(st.days.filter((_, j) => j !== i)); }}
+                        onReorder={(from, to) => { const days = st.days.slice(); const [moved] = days.splice(from, 1); days.splice(to, 0, moved); setDays(days); }}
+                        onAdd={() => setDays([...st.days, emptyDay(st.days.length + 1)])} />
+                    <PriceSection st={st} patch={patch} />
+                    <SpotsSection spots={lib.spots} spotCats={lib.spotCats} selected={st.spots} onToggle={toggleSpot} onClear={() => patch({ spots: [] })} onReorder={moveSpot} onMap={() => preview('/일정지도')} />
+                    <NotesSection st={st} patch={patch} onDefaults={() => void loadDefaults()} />
+                </fieldset>
+                <aside className="qbd-aside" aria-label={ctx.fromReq ? '고객 요청과 보내기 전 확인' : '견적 요약'}>
+                    {ctx.fromReq ? <>
+                        <RequestCard received={receivedText(ctx.reqReceivedAt || '')} rows={requestRows} items={reqItems} phone={st.phone} phoneMasked={maskPhone(st.phone)}
+                            requestNo={ctx.reqId.slice(0, 8)} onGo={goSection} onCopy={copyText} onRaw={() => setRawOpen(true)} />
+                        <div className="qbd-card"><BuilderChecks checks={checks} onGo={goSection} /></div>
+                    </> : <SummaryCard rows={summaryRows} price={price} pax={st.pax} optionCount={st.options.length}>
+                        <BuilderChecks checks={checks} onGo={goSection} />
+                    </SummaryCard>}
+                </aside>
             </div>
+            <BuilderBar pax={st.pax} full={!!price?.full || st.roomType === ROOM_FULL} total={price ? price.total : null} per={price ? price.per : null}
+                todo={todos.length ? { text: `보내기 전 확인 ${todos.length}건 · ${todos.map(t => t.note || t.label).join(', ')}`, section: todos[0].section } : null}
+                onTodo={goSection} busy={busy} locked={locked} pendingDraft={!!pending}
+                onPreview={() => preview('/견적서')} onSave={() => void runSave(false)} onShare={() => void runSave(true)} />
         </>;
 
-    const actions = phase === 'ready' ? <>
-                {ctx.reqId && !embedded && <AdminBadge tone="info">{ctx.anonymousShare ? '공유 견적' : '고객 요청'}</AdminBadge>}
-                <AdminTextButton tone="assistive" disabled={locked} onClick={() => void reset()}>초기화</AdminTextButton>
-                <AdminButton variant="secondary" disabled={!!pending} onClick={() => preview('/일정지도')}>지도 미리보기</AdminButton>
-                <AdminButton variant="secondary" disabled={!!pending} onClick={() => preview('/견적서')}>견적서 미리보기</AdminButton>
-                <AdminButton variant="secondary" loading={busy === 'save'} disabled={locked} onClick={() => void runSave(false)}>저장하기</AdminButton>
-                <AdminButton variant="primary" loading={busy === 'share'} disabled={locked} onClick={() => void runSave(true)}>링크 공유하기</AdminButton>
-    </> : undefined;
-    const description = phase === 'ready' ? `${headTitle} · 문서번호 ${st.quoteNo || autoNo}` : tool.description;
+    const description = phase === 'ready' ? headMeta : tool.description;
     return (
         <>
-            {(shell || embeddedShell)({ actions, description, content: <div className={`adm-ui-page is-form qbd-page${embedded ? ' is-embedded' : ''}`}>{body}</div> })}
+            {(shell || embeddedShell)({ actions: undefined, description, content: <div className={`adm-ui-page qbd-page${embedded ? ' is-embedded' : ''}`}>{body}</div> })}
             <AdminDialog open={clone.open} onClose={() => setClone(c => ({ ...c, open: false }))} title="다른 견적에서 복제" size="md"
                 description="일정·명소·요금·차량·혜택을 그대로 가져오고, 고객명·날짜·인원은 지금 값을 둡니다.">
                 {clone.loading ? <AdminLoading label="발행된 견적을 불러오는 중…" />
@@ -559,6 +517,10 @@ export const QuoteBuilderEditor = forwardRef<QuoteBuilderHandle, EditorProps>(fu
                         })}
                     </div> : <AdminEmpty title="복제할 수 있는 발행된 견적이 아직 없어요" />}
             </AdminDialog>
+            <AdminDialog open={rawOpen} onClose={() => setRawOpen(false)} title="고객 요청 내용" size="md"
+                description="고객이 견적 요청서에 적은 내용이에요. 고객명·연락처·이메일·기간은 지금 견적의 값이에요.">
+                <dl className="qbd-dl qbd-raw">{rawRows.map(([k, v]) => <React.Fragment key={k}><dt>{k}</dt><dd>{v}</dd></React.Fragment>)}</dl>
+            </AdminDialog>
             <AdminDialog open={!!link} onClose={() => setLink('')} title="견적서가 저장됐어요" size="sm"
                 description="아래 링크를 고객에게 보내세요. 견적을 고쳐 다시 발행하면 같은 링크에 반영됩니다.">
                 <div className="qbd-link">
@@ -574,10 +536,10 @@ export const QuoteBuilderEditor = forwardRef<QuoteBuilderHandle, EditorProps>(fu
     );
 });
 
-/** 견적서 만들기 독립 화면(`/admin/quote-desk/builder`) */
+/** 견적서 만들기 독립 화면(`/admin/quote-desk/builder`) — 머리 줄은 본문(BuilderHead)이 그린다 */
 export const AdminQuoteBuilder: React.FC = () => (
-    <QuoteBuilderEditor shell={({ actions, description, content }) => (
-        <AdminLayout activePage={quoteDeskPageId('builder')} title={tool.label} description={description} eyebrow={null} actions={actions}>{content}</AdminLayout>
+    <QuoteBuilderEditor shell={({ description, content }) => (
+        <AdminLayout activePage={quoteDeskPageId('builder')} title={tool.label} description={description} eyebrow={null} headingInBody>{content}</AdminLayout>
     )} />
 );
 
