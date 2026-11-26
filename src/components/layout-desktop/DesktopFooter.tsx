@@ -1,5 +1,5 @@
 import { useState, type ReactNode } from 'react';
-import { useLocation, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { KAKAO_CHANNEL_CHAT_URL, KAKAO_CHANNEL_URL } from '../../constants/company';
 import { SD, SD_CONTAINER, SIcon } from '../site-seed/seed';
 
@@ -174,7 +174,7 @@ function CompactFooter() {
 }
 
 /**
- * 사이트 하단(Claude Design ‘사이트 하단’, 2026-11-25): 맞춤 견적 안내 → 링크 3묶음 → 몽골 본사·한국 대리점 → 저작권·약관.
+ * 사이트 하단(Claude Design ‘사이트 하단’, 2026-11-25): 링크 3묶음 → 몽골 본사·한국 대리점 → 저작권·약관.
  * 휴대폰(MobileShell)은 `compact`로 짧은 바닥(CompactFooter)을 쓴다.
  */
 export function DesktopFooter({ compact = false }: { compact?: boolean } = {}) {
@@ -184,29 +184,11 @@ export function DesktopFooter({ compact = false }: { compact?: boolean } = {}) {
 
 function WideFooter() {
     const navigate = useNavigate();
-    const { pathname } = useLocation();
-    // 홈은 바로 위에 문의 카드가 있고, 맞춤 견적 화면은 그 자체가 목적지라 안내 띠를 뺀다.
-    const showCta = pathname !== '/' && !pathname.startsWith('/custom-estimate');
     const linkStyle = { color: SD.gray700, textDecoration: 'none', fontSize: 14 } as const;
-    const box = (primary: boolean) => ({ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', height: 40, padding: '0 16px', border: 0, borderRadius: 6, fontSize: 14, fontWeight: 700, cursor: 'pointer',
-        fontFamily: 'inherit', textDecoration: 'none', background: primary ? SD.mint400 : SD.gray100, color: primary ? SD.mint950 : SD.gray900 } as const);
 
     return (
         <footer style={{ width: '100%', boxSizing: 'border-box', background: SD.white, color: SD.gray900, borderTop: `1px solid ${SD.gray200}` }}>
             <div style={SD_CONTAINER}>
-                {showCta && (
-                    <section aria-label="맞춤 견적 안내" style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 24, padding: 32, marginTop: 48, borderRadius: 12, background: SD.gray50 }}>
-                        <div style={{ flex: '1 1 280px', display: 'flex', flexDirection: 'column', gap: 6 }}>
-                            <h2 style={{ margin: 0, fontSize: 22, fontWeight: 700, lineHeight: 1.35, color: SD.gray900 }}>원하는 일정으로 맞춤 견적을 받아 보세요</h2>
-                            <p style={{ margin: 0, fontSize: 14, lineHeight: 1.5, color: SD.gray600 }}>견적은 무료예요. 한국어 담당 직원이 24시간 안에 답변해 드려요.</p>
-                        </div>
-                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
-                            <a href={KAKAO_CHANNEL_CHAT_URL} target="_blank" rel="noopener noreferrer" style={box(false)}>카카오톡 상담</a>
-                            <button type="button" onClick={() => navigate('/custom-estimate')} style={box(true)}>맞춤 견적 요청</button>
-                        </div>
-                    </section>
-                )}
-
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: 40, padding: '56px 0 40px' }}>
                     <div style={{ flex: '2 1 280px', display: 'flex', flexDirection: 'column', gap: 12, maxWidth: 340 }}>
                         <p style={{ margin: 0, fontSize: 18, fontWeight: 700, color: SD.gray900 }}>몽골리아 은하수</p>
