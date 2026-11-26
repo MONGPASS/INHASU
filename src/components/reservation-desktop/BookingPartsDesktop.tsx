@@ -4,8 +4,7 @@ import type { TourPricingOption } from '../../types/product';
 import { copyText } from '../../utils/copyText';
 import { isUsableImage, won } from '../desktop-primitives/mwTokens';
 import { SD, SIcon } from '../site-seed/seed';
-import { BK_WEEK, addDays, bareName, optionPriceLabel, sameDay, startOfToday, type BookingProduct } from '../reservation-shared/bookingShared';
-import type { BookingOptionItem } from '../reservation-shared/BookingStepOne';
+import { BK_WEEK, addDays, bareName, optionPriceLabel, sameDay, startOfToday, type BookingOptionItem, type BookingProduct } from '../reservation-shared/bookingShared';
 
 /**
  * PC 예약 1~3단계 부품(Claude Design ‘예약하기 — 1·2·3단계 (PC)’, 2026-11-26).
