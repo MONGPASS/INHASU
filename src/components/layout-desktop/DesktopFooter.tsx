@@ -1,6 +1,7 @@
-import { useState, type ReactNode } from 'react';
+import { Fragment, useState, type ReactNode } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { KAKAO_CHANNEL_CHAT_URL, KAKAO_CHANNEL_URL } from '../../constants/company';
+import { SOCIAL_CHANNELS } from '../home/homeContent';
 import { SD, SD_CONTAINER, SIcon } from '../site-seed/seed';
 
 interface FooterLink {
@@ -27,7 +28,6 @@ const COLUMNS: { h: string; items: FooterLink[] }[] = [
             { label: '동행 찾기', path: '/travel-mates' },
             { label: '예약 안내', path: '/booking-flow' },
             { label: '예약 내역 확인', path: '/mypage/reservations' },
-            { label: '자주 묻는 질문', path: '/faq' },
         ],
     },
     {
@@ -35,7 +35,7 @@ const COLUMNS: { h: string; items: FooterLink[] }[] = [
         items: [
             { label: '회사 소개', path: '/about' },
             { label: '여행 후기', path: '/reviews' },
-            { label: '마이페이지', path: '/mypage' },
+            { label: '자주 묻는 질문', path: '/faq' },
             { label: '카카오톡 문의', href: KAKAO_CHANNEL_CHAT_URL },
         ],
     },
@@ -89,21 +89,6 @@ const KoreaFlag = ({ height = 16 }: { height?: number }) => (
         </g>
     </svg>
 );
-
-function CompanyBlock({ flag, title, rows, extra }: { flag: ReactNode; title: string; rows: Array<[string, string]>; extra?: ReactNode }) {
-    return (
-        <div style={{ flex: '1 1 280px', minWidth: 0, display: 'flex', flexDirection: 'column', gap: 12 }}>
-            <h3 style={{ margin: 0, display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, fontWeight: 700, color: SD.gray900 }}>{flag}<span>{title}</span></h3>
-            <dl style={{ margin: 0, display: 'grid', gridTemplateColumns: '104px minmax(0, 1fr)', columnGap: 12, rowGap: 6, fontSize: 13, lineHeight: 1.5 }}>
-                {rows.map(([label, value]) => [
-                    <dt key={`${label}-k`} style={{ color: SD.gray600 }}>{label}</dt>,
-                    <dd key={`${label}-v`} style={{ margin: 0, color: SD.gray700 }}>{value}</dd>,
-                ])}
-                {extra}
-            </dl>
-        </div>
-    );
-}
 
 /** 휴대폰 바닥의 링크 한 줄(디자인 ‘사이트 하단’ 2차 compact). */
 const COMPACT_LINKS: FooterLink[] = [
@@ -174,7 +159,7 @@ function CompactFooter() {
 }
 
 /**
- * 사이트 하단(Claude Design ‘사이트 하단’, 2026-11-25): 링크 3묶음 → 몽골 본사·한국 대리점 → 저작권·약관.
+ * 사이트 하단(Claude Design ‘사이트 하단’ 3차, 2026-11-26): 고객지원 운영안내 + 링크 3묶음 → 약관·소셜 채널 → 몽골 본사·한국 대리점 한 줄씩 → 저작권.
  * 휴대폰(MobileShell)은 `compact`로 짧은 바닥(CompactFooter)을 쓴다.
  */
 export function DesktopFooter({ compact = false }: { compact?: boolean } = {}) {
@@ -182,51 +167,95 @@ export function DesktopFooter({ compact = false }: { compact?: boolean } = {}) {
     return <WideFooter />;
 }
 
+/** 소셜 채널 아이콘(선 아이콘 이름). 주소는 홈과 같은 SOCIAL_CHANNELS. */
+const SOCIAL_ICON: Record<string, string> = { kakao: 'kakao', instagram: 'instagram', facebook: 'share', blog: 'pencil', youtube: 'youtube' };
+
+/** 회사 정보 한 줄: 값 사이에 옅은 | 를 둔다. */
+function InfoLine({ parts }: { parts: ReactNode[] }) {
+    return (
+        <p style={{ margin: 0 }}>
+            {parts.map((part, i) => (
+                <Fragment key={i}>
+                    {i > 0 && <span aria-hidden="true" style={{ color: SD.gray300, margin: '0 6px' }}>|</span>}
+                    {part}
+                </Fragment>
+            ))}
+        </p>
+    );
+}
+
 function WideFooter() {
     const navigate = useNavigate();
+    const go = (path: string) => (e: React.MouseEvent) => { e.preventDefault(); navigate(path); };
     const linkStyle = { color: SD.gray700, textDecoration: 'none', fontSize: 14 } as const;
+    const infoHead = { margin: 0, display: 'flex', alignItems: 'center', gap: 6, fontWeight: 700, color: SD.gray700 } as const;
+    const h = (label: string) => pick(HEAD_OFFICE, label), k = (label: string) => pick(KOREA_AGENCY, label);
 
     return (
         <footer style={{ width: '100%', boxSizing: 'border-box', background: SD.white, color: SD.gray900, borderTop: `1px solid ${SD.gray200}` }}>
             <div style={SD_CONTAINER}>
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 40, padding: '56px 0 40px' }}>
-                    <div style={{ flex: '2 1 280px', display: 'flex', flexDirection: 'column', gap: 12, maxWidth: 340 }}>
-                        <p style={{ margin: 0, fontSize: 18, fontWeight: 700, color: SD.gray900 }}>몽골리아 은하수</p>
-                        <p style={{ margin: 0, fontSize: 13, color: SD.gray600 }}>Mongolia Milky Way (SUUN ZAM)</p>
-                        <p style={{ margin: 0, fontSize: 14, lineHeight: 1.6, color: SD.gray700 }}>한국어에 능통한 현지 가이드가 함께하는 몽골 여행·투어 전문 여행사예요.</p>
-                    </div>
-                    {COLUMNS.map((col) => (
-                        <div key={col.h} style={{ flex: '1 1 140px', display: 'flex', flexDirection: 'column', gap: 16 }}>
-                            <h3 style={{ margin: 0, fontSize: 14, fontWeight: 700, color: SD.gray900 }}>{col.h}</h3>
-                            <ul style={{ margin: 0, padding: 0, listStyle: 'none', display: 'flex', flexDirection: 'column', gap: 12 }}>
-                                {col.items.map((it) => (
-                                    <li key={it.label}>
-                                        {it.path
-                                            ? <a href={it.path} onClick={(e) => { e.preventDefault(); navigate(it.path!); }} style={linkStyle}>{it.label}</a>
-                                            : <a href={it.href} target="_blank" rel="noopener noreferrer" style={linkStyle}>{it.label}</a>}
-                                    </li>
-                                ))}
-                            </ul>
+                <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', gap: 40, padding: '48px 0 36px' }}>
+                    <div style={{ flex: '1 1 300px', maxWidth: 380, display: 'flex', flexDirection: 'column', gap: 14 }}>
+                        <h2 style={{ margin: 0, fontSize: 18, fontWeight: 700, color: SD.gray900 }}>고객지원 운영안내</h2>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 4, fontSize: 15, lineHeight: 1.6, color: SD.gray900 }}>
+                            <p style={{ margin: 0 }}>
+                                카카오톡 상담{' '}
+                                <a href={KAKAO_CHANNEL_CHAT_URL} target="_blank" rel="noopener noreferrer" style={{ color: SD.gray900, fontWeight: 700, textDecoration: 'none' }}>mongoltour</a>
+                            </p>
+                            <p style={{ margin: 0 }}>빠른 상담은 카톡채널로 연락하세요</p>
+                            <p style={{ margin: 0 }}>몽골 본사 {h('전화').split(' · ')[0]}</p>
                         </div>
-                    ))}
+                        <a href="/faq" onClick={go('/faq')}
+                            style={{ alignSelf: 'flex-start', marginTop: 6, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', minWidth: 140, height: 44, padding: '0 20px', boxSizing: 'border-box',
+                                border: `1px solid ${SD.gray300}`, borderRadius: 6, color: SD.gray900, fontSize: 14, fontWeight: 700, textDecoration: 'none' }}>
+                            고객센터
+                        </a>
+                    </div>
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '32px 40px' }}>
+                        {COLUMNS.map((col) => (
+                            <div key={col.h} style={{ flex: '0 0 160px', display: 'flex', flexDirection: 'column', gap: 14 }}>
+                                <h3 style={{ margin: '0 0 4px', fontSize: 15, fontWeight: 700, color: SD.gray700 }}>{col.h}</h3>
+                                <ul style={{ margin: 0, padding: 0, listStyle: 'none', display: 'flex', flexDirection: 'column', gap: 14 }}>
+                                    {col.items.map((it) => (
+                                        <li key={it.label}>
+                                            {it.path
+                                                ? <a href={it.path} onClick={go(it.path)} style={linkStyle}>{it.label}</a>
+                                                : <a href={it.href} target="_blank" rel="noopener noreferrer" style={linkStyle}>{it.label}</a>}
+                                        </li>
+                                    ))}
+                                </ul>
+                            </div>
+                        ))}
+                    </div>
                 </div>
 
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '32px 48px', padding: '32px 0', borderTop: `1px solid ${SD.gray200}` }}>
-                    <CompanyBlock flag={<MongoliaFlag />} title="몽골 본사" rows={HEAD_OFFICE} />
-                    <CompanyBlock flag={<KoreaFlag />} title="한국 대리점" rows={KOREA_AGENCY} extra={<>
-                        <dt style={{ color: SD.gray600 }}>문의</dt>
-                        <dd style={{ margin: 0 }}>
-                            <a href={KAKAO_CHANNEL_URL} target="_blank" rel="noopener noreferrer" style={{ color: SD.gray900, fontWeight: 700, textDecoration: 'underline', textUnderlineOffset: 3 }}>카카오톡 채널</a>
-                        </dd>
-                    </>} />
-                </div>
-
-                <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: 12, padding: '20px 0 32px', borderTop: `1px solid ${SD.gray200}` }}>
-                    <p style={{ margin: 0, fontSize: 13, color: SD.gray600 }}>© 2026 Mongolia Milky Way. All rights reserved.</p>
-                    <nav aria-label="약관" style={{ display: 'flex', gap: 20, fontSize: 13 }}>
-                        <a href="/terms-of-service" onClick={(e) => { e.preventDefault(); navigate('/terms-of-service'); }} style={{ color: SD.gray700, textDecoration: 'none' }}>이용약관</a>
-                        <a href="/privacy-policy" onClick={(e) => { e.preventDefault(); navigate('/privacy-policy'); }} style={{ color: SD.gray900, fontWeight: 700, textDecoration: 'none' }}>개인정보처리방침</a>
+                <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: 16, padding: '18px 0', borderTop: `1px solid ${SD.gray200}` }}>
+                    <nav aria-label="약관" style={{ display: 'flex', flexWrap: 'wrap', gap: '8px 28px', fontSize: 14 }}>
+                        <a href="/terms-of-service" onClick={go('/terms-of-service')} style={{ color: SD.gray700, textDecoration: 'none' }}>이용약관</a>
+                        <a href="/privacy-policy" onClick={go('/privacy-policy')} style={{ color: SD.gray900, fontWeight: 700, textDecoration: 'none' }}>개인정보처리방침</a>
                     </nav>
+                    <nav aria-label="소셜 채널" style={{ display: 'flex', gap: 4 }}>
+                        {SOCIAL_CHANNELS.map((c) => (
+                            <a key={c.id} href={c.url} target="_blank" rel="noopener noreferrer" aria-label={c.label}
+                                style={{ width: 36, height: 36, display: 'flex', alignItems: 'center', justifyContent: 'center', color: SD.gray500 }}>
+                                <SIcon name={SOCIAL_ICON[c.id] || 'share'} size={20} stroke={1.7} />
+                            </a>
+                        ))}
+                    </nav>
+                </div>
+
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 14, padding: '6px 0 48px', fontSize: 12, lineHeight: 1.8, color: SD.gray600 }}>
+                    <div>
+                        <p style={infoHead}><MongoliaFlag height={9} />몽골 본사</p>
+                        <InfoLine parts={[`상호명 ${h('상호')}`, `대표 ${h('대표')}`, `사업자등록번호 ${h('사업자등록번호')}`, `관광사업등록번호 ${h('관광사업등록번호')}`]} />
+                        <InfoLine parts={[`주소 ${h('주소')}`, `전화 ${h('전화')}`]} />
+                    </div>
+                    <div>
+                        <p style={infoHead}><KoreaFlag height={9} />한국 대리점</p>
+                        <InfoLine parts={[`상호명 ${k('상호')}`, `대표 ${k('대표')}`, `사업자등록번호 ${k('사업자등록번호')}`, `통신판매업신고번호 ${k('통신판매업신고')}`]} />
+                        <InfoLine parts={[`이메일 ${k('이메일')}`, <>문의 <a href={KAKAO_CHANNEL_URL} target="_blank" rel="noopener noreferrer" style={{ color: SD.gray700, fontWeight: 700, textDecoration: 'underline', textUnderlineOffset: 3 }}>카카오톡 채널</a></>]} />
+                    </div>
+                    <p style={{ margin: 0, color: SD.gray500 }}>© 2026 Mongolia Milky Way. All rights reserved.</p>
                 </div>
             </div>
         </footer>
