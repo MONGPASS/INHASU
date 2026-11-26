@@ -510,7 +510,7 @@ export const quoteSummaryRows = (f: QuoteFormValues): Array<[string, string]> =>
 const maskPhone = (phone: string) =>
     phone.replace(/^(\d{3})(\d+)(\d{4})$/, (_, a: string, b: string, c: string) => `${a}-${'*'.repeat(Math.min(4, b.length))}-${c}`);
 
-export function buildQuoteDone(f: QuoteFormValues, token: string): QuoteDoneState {
+export function buildQuoteDone(f: QuoteFormValues, token: string, id = ''): QuoteDoneState {
     const rows = quoteSummaryRows(f);
     const memo = [
         '[몽골 맞춤 견적 요청]',
@@ -521,6 +521,7 @@ export function buildQuoteDone(f: QuoteFormValues, token: string): QuoteDoneStat
     ].join('\n');
     return {
         token,
+        ...(id ? { id } : {}),
         name: f.name.trim(),
         createdAt: new Date().toISOString(),
         brief: {

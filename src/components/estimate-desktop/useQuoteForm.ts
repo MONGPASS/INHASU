@@ -114,8 +114,8 @@ export function useQuoteForm() {
             setError(result.message);
             return;
         }
-        const done = buildQuoteDone(form, result.token);
-        saveQuoteLink({ token: done.token, name: done.name, createdAt: done.createdAt });
+        const done = buildQuoteDone(form, result.token, result.id);
+        saveQuoteLink({ token: done.token, name: done.name, createdAt: done.createdAt, ...(done.id ? { id: done.id } : {}) });
         sent.current = true;
         clearQuoteDraft();
         // 마이페이지 견적 내역·개요가 방금 접수한 견적을 바로 보여 주도록 저장해 둔 목록을 버린다.

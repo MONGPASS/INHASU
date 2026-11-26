@@ -1,5 +1,5 @@
 import { useMemo, useState, type ReactNode } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
 import { api } from '../../lib/api';
 import { clearCustomerSessionCache } from '../../lib/customerSessionCache';
@@ -11,10 +11,11 @@ import { toTourDateKey } from '../../utils/formatDate';
 import { useHomeReviews, type HomeProduct } from '../home-desktop/homeDesktopData';
 import { SD, SD_CONTAINER, SIcon } from '../site-seed/seed';
 import { BookingListPanel, MyMenuNav, MyProfileBand, OverviewPanel } from './MyPageHome.desktop';
+import { QuoteDetailPanel, QuoteListPanel } from './MyQuotes.desktop';
 import { MY_MENU_GROUPS, bookingStage, boxButton } from './myBookingView';
 import { useMe, useMyPageData, useRecentActions } from './useMyPageData';
 import {
-    EstimatesSection, MatesSection, NoticeSection, RecentSection, ReviewsSection, WishlistSection,
+    MatesSection, NoticeSection, RecentSection, ReviewsSection, WishlistSection,
     type TripCardData,
 } from './MyPageSections';
 
@@ -28,6 +29,7 @@ const LABEL: Record<string, string> = Object.fromEntries(MY_MENU_GROUPS.flatMap(
  */
 export function MyPageDesktop({ tab = 'overview' }: { tab?: MyTab }) {
     const navigate = useNavigate();
+    const [searchParams] = useSearchParams();
     const queryClient = useQueryClient();
     const { setUser } = useUser();
     const meQuery = useMe();
@@ -87,6 +89,8 @@ export function MyPageDesktop({ tab = 'overview' }: { tab?: MyTab }) {
     if (!me) return <LoginGate onLogin={() => navigate('/login')} />;
 
     const bookingsLoading = reservations.isPending;
+    const openId = searchParams.get('id');
+    const openQuote = openId ? quoteList.find((x) => x.id === openId) : undefined;
     const myStats = {
         bookings: resList.length,
         active: resList.filter((r) => bookingStage(r, today).tab !== 'done').length,
@@ -107,7 +111,10 @@ export function MyPageDesktop({ tab = 'overview' }: { tab?: MyTab }) {
                         <OverviewPanel bookings={resList} quotes={quoteList} productById={productById} today={today} loading={bookingsLoading || quotes.isPending} go={go} />
                     )}
                     {tab === 'reservations' && <BookingListPanel bookings={resList} productById={productById} today={today} loading={bookingsLoading} go={go} />}
-                    {tab === 'estimates' && old(<EstimatesSection quotes={quoteList} loading={quotes.isPending} go={go} />)}
+                    {tab === 'estimates' && (openQuote
+                        ? <QuoteDetailPanel q={openQuote} onBack={() => go('/mypage/estimates')} />
+                        : <QuoteListPanel quotes={quoteList} loading={quotes.isPending} go={go}
+                            onOpen={(q) => (q.source === 'request' ? go(`/mypage/estimates?id=${encodeURIComponent(q.id)}`) : go(q.href))} />)}
                     {tab === 'travel-mates' && old(<MatesSection me={me} posts={mates.data ?? []} loading={mates.isPending} go={go} />)}
                     {tab === 'wishlist' && old(<WishlistSection items={wishItems} stats={stats} onRemove={removeWish} onClearAll={clearWish} go={go} />)}
                     {tab === 'recently-viewed' && old(

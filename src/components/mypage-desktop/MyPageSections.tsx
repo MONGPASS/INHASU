@@ -1,4 +1,4 @@
-import { useState, type CSSProperties, type ReactNode } from 'react';
+import { useState, type CSSProperties } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { api } from '../../lib/api';
 import { useNotification, type Notification } from '../../contexts/NotificationContext';
@@ -7,40 +7,14 @@ import { formatRelativeTime } from '../../utils/formatDate';
 import type { HomeProduct, ReviewStat } from '../home-desktop/homeDesktopData';
 import { MW, MW_FONT_EN, cleanTitle, isUsableImage, won } from '../desktop-primitives/mwTokens';
 import { EmptyBox, FilterPills, Ico, Loading, PanelHead } from './myPageUi';
-import { HAIR, ICON, NOTICE_TYPES, PAPER, QUOTE_STATUS, TONE, cardBox, ghostBtn, ghostHover, hover, mintBtn, mintHover, smallPill, type BadgeTone } from './myPageTheme';
-import { parseDbTime, type MeUser, type MyMatePost, type MyQuote, type MyReservation, type MyReview, type RecentItem } from './useMyPageData';
+import { HAIR, ICON, NOTICE_TYPES, PAPER, TONE, cardBox, ghostBtn, ghostHover, hover, mintBtn, mintHover, smallPill } from './myPageTheme';
+import { parseDbTime, type MeUser, type MyMatePost, type MyReservation, type MyReview, type RecentItem } from './useMyPageData';
 
 type Go = (path: string) => void;
 
 /* ---------- shared rows ---------- */
 
 const dateRange = (start: string, end: string) => [start, end].filter(Boolean).join(' ~ ');
-
-function Badge({ label, tone, style }: { label: string; tone: BadgeTone; style?: CSSProperties }) {
-    return (
-        <span style={{ flexShrink: 0, fontSize: 12, fontWeight: 700, padding: '5px 12px', borderRadius: 999, background: tone.bg, color: tone.fg, border: `1px solid ${tone.bd}`, whiteSpace: 'nowrap', ...style }}>
-            {label}
-        </span>
-    );
-}
-
-function ListRow({ title, meta, badge, href, onClick, extra }: { title: string; meta: string; badge: ReactNode; href: string; onClick: () => void; extra?: ReactNode }) {
-    return (
-        <a
-            href={href}
-            onClick={(e) => { if (!e.metaKey && !e.ctrlKey && !e.shiftKey && !e.altKey) { e.preventDefault(); onClick(); } }}
-            style={{ display: 'flex', alignItems: 'center', gap: 16, padding: '16px 20px', borderRadius: 14, background: PAPER, color: MW.navy, textDecoration: 'none' }}
-            {...hover({ background: MW.mintBg }, { background: PAPER })}
-        >
-            <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 4 }}>
-                <span style={{ fontSize: 15, fontWeight: 700, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{title}</span>
-                {meta && <span style={{ fontSize: 13, color: MW.mute }}>{meta}</span>}
-            </div>
-            {extra}
-            {badge}
-        </a>
-    );
-}
 
 function Thumb({ src, size, radius = 12 }: { src?: string; size: number; radius?: number }) {
     return (
@@ -50,51 +24,9 @@ function Thumb({ src, size, radius = 12 }: { src?: string; size: number; radius?
     );
 }
 
-function QuoteRows({ quotes, go }: { quotes: MyQuote[]; go: Go }) {
-    return (
-        <>
-            {quotes.map((q) => {
-                const st = QUOTE_STATUS[q.status] || QUOTE_STATUS.new;
-                const requested = q.createdAt ? `요청일 ${q.createdAt.slice(0, 10)}` : '';
-                return (
-                    <ListRow
-                        key={q.id}
-                        href={q.href}
-                        title={q.destination ? `맞춤 견적 (${q.destination})` : '맞춤 견적'}
-                        meta={[q.period, q.headcount, requested].filter(Boolean).join(' · ')}
-                        badge={<Badge label={st.label} tone={st.tone} />}
-                        onClick={() => go(q.href)}
-                    />
-                );
-            })}
-        </>
-    );
-}
-
 /* ---------- 개요 ---------- */
 
 /* ---------- 예약 내역 / 견적 내역 ---------- */
-
-export function EstimatesSection({ quotes, loading, go }: { quotes: MyQuote[]; loading: boolean; go: Go }) {
-    return (
-        <div style={{ ...cardBox, gap: 12 }}>
-            <div style={{ marginBottom: 6 }}>
-                <PanelHead
-                    eyebrow="QUOTES"
-                    title="견적 내역"
-                    count={loading ? undefined : quotes.length}
-                    sub="맞춤 여행 견적 요청과 답변 현황입니다."
-                    action={<button type="button" onClick={() => go('/custom-estimate')} style={mintBtn} {...mintHover}>+ 새로 요청하기</button>}
-                />
-            </div>
-            {loading ? <Loading /> : quotes.length > 0 ? (
-                <QuoteRows quotes={quotes} go={go} />
-            ) : (
-                <EmptyBox text="아직 견적 요청이 없습니다." action={{ label: '견적 요청하기', onClick: () => go('/custom-estimate') }} />
-            )}
-        </div>
-    );
-}
 
 /* ---------- 동행 찾기 글 ---------- */
 

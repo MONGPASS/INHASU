@@ -11,6 +11,8 @@ export interface QuoteLink {
     name: string;
     /** ISO 8601 */
     createdAt: string;
+    /** 요청 ID(요청 번호 표시용). 예전에 보관한 링크에는 없다. */
+    id?: string;
 }
 
 /** 완료 화면에 넘기는 값. 요약(brief·rows·memo)은 방금 제출한 탭에만 있다. */
@@ -41,6 +43,7 @@ const asLink = (v: unknown): QuoteLink | null => {
         token: o.token,
         name: typeof o.name === 'string' ? o.name.slice(0, 40) : '',
         createdAt: typeof o.createdAt === 'string' ? o.createdAt : '',
+        ...(typeof o.id === 'string' && /^[0-9A-Za-z-]{8,64}$/.test(o.id) ? { id: o.id } : {}),
     };
 };
 

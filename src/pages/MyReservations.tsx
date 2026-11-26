@@ -4,7 +4,7 @@ import { useIsDesktop } from '../hooks/useIsDesktop';
 import { DesktopLayout } from '../components/layout-desktop/DesktopLayout';
 import { MyPageDesktop } from '../components/mypage-desktop/MyPageDesktop';
 import { MyBookingsMobile } from '../components/mypage-mobile/MyBookingsMobile';
-import { MyTripsMobile } from '../components/mypage-mobile/MyTripsMobile';
+import { MyQuotesMobile } from '../components/mypage-mobile/MyQuotesMobile';
 
 export const MyReservations: React.FC = () => {
     const isDesktop = useIsDesktop();
@@ -18,5 +18,5 @@ export const MyReservations: React.FC = () => {
             </DesktopLayout>
         );
     }
-    return quotes ? <MyTripsMobile tab="quote" /> : <MyBookingsMobile />;
+    return quotes ? <MyQuotesMobile /> : <MyBookingsMobile />;
 };

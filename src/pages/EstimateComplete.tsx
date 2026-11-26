@@ -4,10 +4,9 @@ import { SEO } from '../components/seo/SEO';
 import { useIsDesktop } from '../hooks/useIsDesktop';
 import { DesktopLayout } from '../components/layout-desktop/DesktopLayout';
 import { MobileShell } from '../components/mobile/MobileShell';
-import { MW } from '../components/desktop-primitives/mwTokens';
+import { SD, SIcon } from '../components/site-seed/seed';
 import { QuoteDoneBody } from '../components/estimate-desktop/QuoteDoneBody';
 import { resolveQuoteDone } from '../components/estimate-desktop/quoteLinks';
-import { QuoteDoneSummary } from '../components/estimate-mobile/QuoteDone';
 import { CustomerAccessGuard } from '../components/auth/CustomerAccessGuard';
 
 /**
@@ -34,15 +33,17 @@ export const EstimateComplete: React.FC = () => {
             <SEO title="견적 요청 접수 완료" description="견적 요청이 접수되었습니다. 내 견적 전용 링크에서 진행 상황과 견적서를 확인하세요." robots="noindex, nofollow" />
             {isDesktop ? (
                 <DesktopLayout>
-                    <section style={{ background: '#F7FAF9', padding: '56px 24px 96px' }}>
-                        <div style={{ maxWidth: 520, margin: '0 auto', boxSizing: 'border-box', background: '#FFFFFF', border: `1px solid ${MW.line}`, borderRadius: 24, padding: '44px 36px 24px', display: 'flex', flexDirection: 'column', gap: 28, boxShadow: '0 16px 40px rgba(10,31,46,0.06)' }}>
-                            <QuoteDoneBody done={done} go={go} />
-                        </div>
-                    </section>
+                    <QuoteDoneBody done={done} go={go} />
                 </DesktopLayout>
             ) : (
-                <MobileShell title="견적">
-                    <QuoteDoneSummary done={done} go={go} />
+                <MobileShell title="맞춤 견적" brandHeader={false} footer={false}
+                    titleAction={(
+                        <button type="button" aria-label="닫기" onClick={() => go('/')}
+                            style={{ width: 44, height: 44, border: 'none', background: 'transparent', color: SD.gray900, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', padding: 0 }}>
+                            <SIcon name="close" size={22} stroke={1.8} />
+                        </button>
+                    )}>
+                    <QuoteDoneBody done={done} go={go} compact />
                 </MobileShell>
             )}
         </CustomerAccessGuard>
