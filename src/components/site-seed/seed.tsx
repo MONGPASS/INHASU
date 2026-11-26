@@ -55,6 +55,7 @@ const ICONS: Record<string, ReactNode> = {
     flag: <><path d="M5 21V4" /><path d="M5 4h11l-2 4 2 4H5" /></>,
     homeRoof: <path d="M3 10.5L12 3l9 7.5V20a1 1 0 0 1-1 1h-5v-6h-6v6H4a1 1 0 0 1-1-1z" />,
     arrowLeft: <path d="M19 12H5M11 6l-6 6 6 6" />,
+    mapFold: <><path d="M9 4L3.5 6v14L9 18l6 2 5.5-2V4L15 6z" /><path d="M9 4v14M15 6v14" /></>,
 };
 
 export type SeedIconName = keyof typeof ICONS;
