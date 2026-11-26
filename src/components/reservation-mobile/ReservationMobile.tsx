@@ -42,7 +42,7 @@ export function ReservationMobile({
             titleAction={<CloseButton onClick={close} />}
             bottomBar={(
                 <PayBar
-                    caption={priceBreakdown.deposit > 0 ? <><strong style={{ color: SD.mint700 }}>지금 결제</strong> · 성인 {totalPeople}명 예약금</> : `합계 · 성인 ${totalPeople}명`}
+                    caption={priceBreakdown.deposit > 0 ? <><strong style={{ color: SD.gray900 }}>지금 결제</strong> · 성인 {totalPeople}명 예약금</> : `합계 · 성인 ${totalPeople}명`}
                     amount={won(priceBreakdown.deposit > 0 ? priceBreakdown.deposit : priceBreakdown.total)}
                     label={ready ? '다음' : '날짜 선택'}
                     disabled={!ready}
@@ -56,8 +56,8 @@ export function ReservationMobile({
                 <MSection no={1} title="여행 시작일" sub={nights > 0 ? '시작일을 고르면 도착일은 자동으로 정해져요' : '여행 시작일을 골라 주세요'}>
                     <TripCalendarMobile value={selectedStartDate} onChange={setSelectedStartDate} nights={nights} />
                     {selectedStartDate && endDate && (
-                        <div style={{ marginTop: 12, padding: '12px 14px', border: `1px solid ${SD.mint200}`, borderRadius: 12, display: 'flex', alignItems: 'center', gap: 10 }}>
-                            <span style={{ flex: 'none', width: 32, height: 32, borderRadius: 9, background: SD.mint50, color: SD.mint700, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                        <div style={{ marginTop: 12, padding: '12px 14px', border: `1px solid ${SD.gray200}`, borderRadius: 12, display: 'flex', alignItems: 'center', gap: 10 }}>
+                            <span style={{ flex: 'none', width: 32, height: 32, borderRadius: 9, background: SD.gray50, color: SD.gray900, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                                 <SIcon name="calendarCheck" size={16} stroke={1.8} />
                             </span>
                             <span style={{ flex: '1 1 auto', minWidth: 0, display: 'flex', alignItems: 'center', gap: 6, fontSize: 14, fontWeight: 700, color: SD.gray900, whiteSpace: 'nowrap' }}>

@@ -30,7 +30,7 @@ export function ReservationCompleteDesktop({ reservationId, productName, reserva
                 <section style={{ background: SD.white, border: `1px solid ${SD.gray200}`, borderRadius: 20, padding: '36px 40px 32px' }}>
                     <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 24 }}>
                         <div style={{ display: 'flex', gap: 18, alignItems: 'flex-start' }}>
-                            <span style={{ flex: 'none', width: 52, height: 52, borderRadius: 16, background: SD.mint50, color: SD.mint500, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                            <span style={{ flex: 'none', width: 52, height: 52, borderRadius: 16, background: SD.gray50, color: SD.mint500, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                                 <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M5 12l5 5 9-10" /></svg>
                             </span>
                             <div>
@@ -54,15 +54,15 @@ export function ReservationCompleteDesktop({ reservationId, productName, reserva
                             const now = i === 1;
                             return (
                                 <li key={p.t} aria-current={now || undefined} style={{ position: 'relative', flex: '1 1 0', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8, textAlign: 'center' }}>
-                                    {i < PROGRESS.length - 1 && <span aria-hidden="true" style={{ position: 'absolute', top: 13, left: 'calc(50% + 18px)', right: 'calc(-50% + 18px)', height: 2, background: done ? SD.mint500 : SD.gray200 }} />}
-                                    <span style={{ width: 28, height: 28, borderRadius: 9999, boxSizing: 'border-box', background: done ? SD.mint500 : SD.white, border: done ? 'none' : `2px solid ${now ? SD.mint500 : SD.gray200}`,
+                                    {i < PROGRESS.length - 1 && <span aria-hidden="true" style={{ position: 'absolute', top: 13, left: 'calc(50% + 18px)', right: 'calc(-50% + 18px)', height: 2, background: done ? SD.gray900 : SD.gray200 }} />}
+                                    <span style={{ width: 28, height: 28, borderRadius: 9999, boxSizing: 'border-box', background: done ? SD.gray900 : SD.white, border: done ? 'none' : `2px solid ${now ? SD.gray900 : SD.gray200}`,
                                         color: SD.white, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                                         {done && <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M5 12l5 5 9-10" /></svg>}
-                                        {now && <span style={{ width: 10, height: 10, borderRadius: 9999, background: SD.mint500 }} />}
+                                        {now && <span style={{ width: 10, height: 10, borderRadius: 9999, background: SD.gray900 }} />}
                                     </span>
                                     <span style={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
                                         <span style={{ fontSize: 14, fontWeight: done || now ? 700 : 500, color: done || now ? SD.gray900 : SD.gray500 }}>{p.t}</span>
-                                        <span style={{ fontSize: 11, color: now ? SD.mint700 : SD.gray500 }}>{p.s}</span>
+                                        <span style={{ fontSize: 11, color: now ? SD.gray900 : SD.gray500 }}>{p.s}</span>
                                     </span>
                                 </li>
                             );
@@ -73,7 +73,7 @@ export function ReservationCompleteDesktop({ reservationId, productName, reserva
                 <div style={{ display: 'flex', gap: 20, alignItems: 'flex-start' }}>
                     <section style={{ flex: '1 1 auto', minWidth: 0, background: SD.white, border: `1px solid ${SD.gray200}`, borderRadius: 20, overflow: 'hidden' }}>
                         <div style={{ padding: '28px 32px 0' }}>
-                            <span style={{ display: 'inline-flex', alignItems: 'center', height: 24, padding: '0 10px', borderRadius: 9999, background: SD.mint50, color: SD.mint700, fontSize: 12, fontWeight: 700 }}>지금 할 일</span>
+                            <span style={{ display: 'inline-flex', alignItems: 'center', height: 24, padding: '0 10px', borderRadius: 9999, background: SD.gray50, color: SD.gray900, fontSize: 12, fontWeight: 700 }}>지금 할 일</span>
                             <h2 style={{ margin: '12px 0 4px', fontSize: 20, fontWeight: 700, color: SD.gray900 }}>예약금을 입금해 주세요</h2>
                             <p style={{ margin: 0, fontSize: 14, color: SD.gray600 }}>입금 후 마이페이지 예약 상세에서 ‘입금 완료’를 눌러 주세요.</p>
                         </div>
@@ -85,7 +85,7 @@ export function ReservationCompleteDesktop({ reservationId, productName, reserva
                         <p style={{ margin: '14px 32px 0', fontSize: 12, lineHeight: 1.6, color: SD.gray500 }}>기한 안에 입금이 확인되지 않으면 예약이 취소될 수 있어요. 입금이 확인되면 알림톡으로 확정 소식을 보내 드려요.</p>
                         <div style={{ padding: '24px 32px 28px' }}>
                             <button type="button" onClick={() => navigate(detail)}
-                                style={{ width: '100%', height: 52, border: 'none', borderRadius: 10, background: SD.mint700, color: SD.white, fontFamily: 'inherit', fontSize: 16, fontWeight: 700, cursor: 'pointer' }}>
+                                style={{ width: '100%', height: 52, border: 'none', borderRadius: 10, background: SD.mint400, color: SD.mint950, fontFamily: 'inherit', fontSize: 16, fontWeight: 700, cursor: 'pointer' }}>
                                 예약 상세에서 입금 완료 알리기
                             </button>
                         </div>

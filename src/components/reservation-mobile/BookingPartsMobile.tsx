@@ -23,8 +23,8 @@ export function StepBars({ step, divider = true }: { step: BookingStepNo; divide
                 const done = n < step;
                 return (
                     <li key={label} aria-current={on || undefined} style={{ flex: '1 1 0', display: 'flex', flexDirection: 'column', gap: 6 }}>
-                        <span aria-hidden="true" style={{ height: 3, borderRadius: 9999, background: on || done ? SD.mint500 : SD.gray200 }} />
-                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 11, fontWeight: on ? 700 : 500, color: on ? SD.mint700 : done ? SD.gray700 : SD.gray500 }}>
+                        <span aria-hidden="true" style={{ height: 3, borderRadius: 9999, background: on || done ? SD.gray900 : SD.gray200 }} />
+                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 11, fontWeight: on ? 700 : 500, color: on ? SD.gray900 : done ? SD.gray700 : SD.gray500 }}>
                             {n}. {label}
                             {done && <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" aria-label="완료"><path d="M5 12.5l4.5 4.5L19 7.5" /></svg>}
                         </span>
@@ -100,12 +100,12 @@ export function TripCalendarMobile({ value, onChange, nights }: { value: Date | 
                     const r = (on: boolean) => (on ? '10px' : '0');
                     return (
                         <div key={dd} style={{ height: 48, padding: '3px 0', boxSizing: 'border-box' }}>
-                            <div style={{ height: 42, display: 'flex', alignItems: 'center', justifyContent: 'center', background: banded ? SD.mint50 : 'transparent', borderRadius: `${r(L)} ${r(R)} ${r(R)} ${r(L)}` }}>
+                            <div style={{ height: 42, display: 'flex', alignItems: 'center', justifyContent: 'center', background: banded ? SD.gray100 : 'transparent', borderRadius: `${r(L)} ${r(R)} ${r(R)} ${r(L)}` }}>
                                 <button type="button" onClick={() => onChange(date)} disabled={off} aria-pressed={isS} aria-label={`${m + 1}월 ${dd}일${off ? ' 예약 불가' : ''}`}
                                     style={{ width: 42, height: 42, borderRadius: 10, border: 'none', background: edge ? SD.gray900 : 'transparent', color: edge ? SD.white : off ? SD.gray400 : SD.gray900, fontFamily: 'inherit',
                                         fontSize: 14, fontWeight: edge || !off ? 700 : 400, cursor: off ? 'default' : 'pointer', padding: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
                                     {dd}
-                                    <span style={{ fontSize: 8, lineHeight: '9px', fontWeight: 700, color: edge ? SD.mint200 : 'transparent' }}>{isS ? '출발' : isE ? '도착' : ''}</span>
+                                    <span style={{ fontSize: 8, lineHeight: '9px', fontWeight: 700, color: edge ? 'rgba(255,255,255,0.7)' : 'transparent' }}>{isS ? '출발' : isE ? '도착' : ''}</span>
                                 </button>
                             </div>
                         </div>
@@ -150,7 +150,7 @@ export function TierChips({ tiers, people, onPick }: { tiers: TourPricingOption[
                             <span style={{ position: 'absolute', top: -9, left: '50%', transform: 'translateX(-50%)', height: 18, padding: '0 6px', borderRadius: 9999, background: SD.gray900, color: SD.white, fontSize: 10, fontWeight: 700, display: 'inline-flex', alignItems: 'center', whiteSpace: 'nowrap' }}>최저가</span>
                         )}
                         <span style={{ fontSize: 14, fontWeight: 700, color: SD.gray900 }}>{t.people}명</span>
-                        <span style={{ fontSize: 12, fontWeight: on ? 700 : 500, color: on ? SD.mint700 : SD.gray600, fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>{tierPrice(t.pricePerPerson, compact)}</span>
+                        <span style={{ fontSize: 12, fontWeight: on ? 700 : 500, color: on ? SD.gray900 : SD.gray600, fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>{tierPrice(t.pricePerPerson, compact)}</span>
                     </button>
                 );
             })}
@@ -165,7 +165,7 @@ export function RateTable({ tiers, people, unit }: { tiers: TourPricingOption[];
     return (
         <div style={{ marginTop: 12, borderRadius: 12, background: SD.gray50, overflow: 'hidden' }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, padding: '12px 14px' }}>
-                <span style={{ fontSize: 13, color: SD.gray700 }}>{people}명 기준 1인 <strong style={{ color: SD.mint700, fontVariantNumeric: 'tabular-nums' }}>{won(unit)}</strong></span>
+                <span style={{ fontSize: 13, color: SD.gray700 }}>{people}명 기준 1인 <strong style={{ color: SD.gray900, fontVariantNumeric: 'tabular-nums' }}>{won(unit)}</strong></span>
                 {tiers.length > 1 && (
                     <button type="button" onClick={() => setOpen(!open)} aria-expanded={open}
                         style={{ flex: 'none', height: 32, padding: '0 10px', border: `1px solid ${SD.gray200}`, borderRadius: 9999, background: SD.white, fontFamily: 'inherit', fontSize: 12, fontWeight: 700, color: SD.gray900, display: 'inline-flex', alignItems: 'center', gap: 2, cursor: 'pointer' }}>
@@ -181,8 +181,8 @@ export function RateTable({ tiers, people, unit }: { tiers: TourPricingOption[];
                         return (
                             <div key={t.people} style={{ display: 'grid', gridTemplateColumns: '30px 1fr auto', alignItems: 'center', gap: 10 }}>
                                 <span style={{ fontSize: 12, fontWeight: on ? 700 : 500, color: SD.gray900 }}>{t.people}명</span>
-                                <span aria-hidden="true" style={{ height: 6, borderRadius: 9999, background: SD.white, overflow: 'hidden' }}><span style={{ display: 'block', height: '100%', width: `${pct}%`, borderRadius: 9999, background: on ? SD.mint400 : SD.gray300 }} /></span>
-                                <span style={{ fontSize: 12, fontWeight: 700, color: on ? SD.mint700 : SD.gray900, fontVariantNumeric: 'tabular-nums' }}>{won(t.pricePerPerson)}</span>
+                                <span aria-hidden="true" style={{ height: 6, borderRadius: 9999, background: SD.white, overflow: 'hidden' }}><span style={{ display: 'block', height: '100%', width: `${pct}%`, borderRadius: 9999, background: on ? SD.gray900 : SD.gray300 }} /></span>
+                                <span style={{ fontSize: 12, fontWeight: 700, color: on ? SD.gray900 : SD.gray900, fontVariantNumeric: 'tabular-nums' }}>{won(t.pricePerPerson)}</span>
                             </div>
                         );
                     })}
@@ -209,7 +209,7 @@ export function MoneyBoxMobile({ total, deposit, balance, lineLabel }: { total: 
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}>
                         <span style={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
                             <span style={{ fontSize: 14, fontWeight: 700, color: SD.gray900 }}>총 결제금액</span>
-                            <span style={{ fontSize: 12, color: SD.gray600 }}><strong style={{ color: SD.mint700 }}>지금 결제</strong> · 예약금 · {DEPOSIT_PAYMENT_METHOD}</span>
+                            <span style={{ fontSize: 12, color: SD.gray600 }}><strong style={{ color: SD.gray900 }}>지금 결제</strong> · 예약금 · {DEPOSIT_PAYMENT_METHOD}</span>
                         </span>
                         <span style={{ fontSize: 18, fontWeight: 700, color: SD.mint600, fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>{won(deposit)}</span>
                     </div>
@@ -251,7 +251,7 @@ export function PayBar({ caption, amount, label, disabled, onAction, width = 150
                     </span>
                 )}
                 <button type="button" onClick={onAction} disabled={disabled}
-                    style={{ flex: amount !== undefined ? `0 0 ${width}px` : '1 1 auto', height: 52, border: 'none', borderRadius: 10, background: disabled ? SD.gray200 : SD.mint700, color: disabled ? SD.gray500 : SD.white,
+                    style={{ flex: amount !== undefined ? `0 0 ${width}px` : '1 1 auto', height: 52, border: 'none', borderRadius: 10, background: disabled ? SD.gray200 : SD.mint400, color: disabled ? SD.gray500 : SD.mint950,
                         fontFamily: 'inherit', fontSize: 16, fontWeight: 700, cursor: disabled ? 'default' : 'pointer', whiteSpace: 'nowrap' }}>
                     {label}
                 </button>
@@ -288,7 +288,7 @@ export function AccountCardMobile({ deposit, showNumber = true }: { deposit: num
                     <div style={{ marginTop: 8, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
                         <span style={{ fontSize: 20, fontWeight: 700, letterSpacing: '0.02em', color: SD.gray900, fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>{DEPOSIT_ACCOUNT.number}</span>
                         <button type="button" onClick={copy} aria-label="계좌번호 복사"
-                            style={{ flex: 'none', height: 32, padding: '0 12px', border: `1px solid ${copied ? SD.mint200 : SD.gray200}`, borderRadius: 9999, background: copied ? SD.mint50 : SD.white, color: copied ? SD.mint700 : SD.gray700,
+                            style={{ flex: 'none', height: 32, padding: '0 12px', border: `1px solid ${copied ? SD.gray200 : SD.gray200}`, borderRadius: 9999, background: copied ? SD.gray50 : SD.white, color: copied ? SD.gray900 : SD.gray700,
                                 fontFamily: 'inherit', fontSize: 12, fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: 4, cursor: 'pointer' }}>
                             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d={copied ? 'M5 12l5 5 9-10' : 'M9 9h11v11H9zM5 15V4h11'} /></svg>
                             <span aria-live="polite">{copied ? '복사됨' : '복사'}</span>

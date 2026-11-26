@@ -80,13 +80,13 @@ export function TripCalendar({ value, onChange, nights }: { value: Date | null; 
                     const r = (on: boolean) => (on ? '12px' : '0');
                     return (
                         <div key={dd} style={{ height: 52, padding: '4px 0', boxSizing: 'border-box' }}>
-                            <div style={{ height: 44, display: 'flex', alignItems: 'center', justifyContent: 'center', background: banded ? SD.mint50 : 'transparent', borderRadius: `${r(L)} ${r(R)} ${r(R)} ${r(L)}` }}>
+                            <div style={{ height: 44, display: 'flex', alignItems: 'center', justifyContent: 'center', background: banded ? SD.gray100 : 'transparent', borderRadius: `${r(L)} ${r(R)} ${r(R)} ${r(L)}` }}>
                                 <button type="button" onClick={() => onChange(date)} disabled={off} aria-pressed={isS} aria-label={`${m + 1}월 ${dd}일${off ? ' 예약 불가' : ''}`}
                                     style={{ width: 48, height: 44, borderRadius: 12, border: 'none', background: edge ? SD.gray900 : 'transparent', color: edge ? SD.white : off ? SD.gray400 : SD.gray900,
                                         fontFamily: 'inherit', fontSize: 15, fontWeight: edge || !off ? 700 : 400, cursor: off ? 'default' : 'pointer', padding: 0, display: 'flex', flexDirection: 'column',
                                         alignItems: 'center', justifyContent: 'center' }}>
                                     {dd}
-                                    <span style={{ fontSize: 9, lineHeight: '10px', fontWeight: 700, color: edge ? SD.mint200 : 'transparent' }}>{isS ? '출발' : isE ? '도착' : ''}</span>
+                                    <span style={{ fontSize: 9, lineHeight: '10px', fontWeight: 700, color: edge ? 'rgba(255,255,255,0.7)' : 'transparent' }}>{isS ? '출발' : isE ? '도착' : ''}</span>
                                 </button>
                             </div>
                         </div>
@@ -95,7 +95,7 @@ export function TripCalendar({ value, onChange, nights }: { value: Date | null; 
             </div>
             <div style={{ marginTop: 16, paddingTop: 16, borderTop: `1px solid ${SD.gray100}`, display: 'flex', gap: 20, fontSize: 12, color: SD.gray600 }}>
                 <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}><span style={{ width: 14, height: 14, borderRadius: 9999, background: SD.gray900 }} />출발일·도착일</span>
-                {nights > 0 && <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}><span style={{ width: 14, height: 14, borderRadius: 4, background: SD.mint50, border: `1px solid ${SD.mint200}`, boxSizing: 'border-box' }} />여행 기간</span>}
+                {nights > 0 && <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}><span style={{ width: 14, height: 14, borderRadius: 4, background: SD.gray50, border: `1px solid ${SD.gray200}`, boxSizing: 'border-box' }} />여행 기간</span>}
                 <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}><span style={{ color: SD.gray400, fontWeight: 700 }}>12</span>예약 불가</span>
             </div>
         </div>
@@ -127,17 +127,17 @@ export function TierPopover({ tiers, people, onPick, onClose, depositPer }: { ti
                     const pct = top > 0 ? Math.max(8, Math.round((t.pricePerPerson / top) * 100)) : 100;
                     return (
                         <button key={t.people} type="button" role="radio" aria-checked={on} onClick={() => onPick(t.people)}
-                            style={{ display: 'grid', gridTemplateColumns: '34px 1fr auto', alignItems: 'center', gap: 12, height: 38, padding: '0 10px', border: 'none', borderRadius: 10, background: on ? SD.mint50 : 'transparent', fontFamily: 'inherit', cursor: 'pointer', textAlign: 'left' }}>
+                            style={{ display: 'grid', gridTemplateColumns: '34px 1fr auto', alignItems: 'center', gap: 12, height: 38, padding: '0 10px', border: 'none', borderRadius: 10, background: on ? SD.gray50 : 'transparent', fontFamily: 'inherit', cursor: 'pointer', textAlign: 'left' }}>
                             <span style={{ fontSize: 13, fontWeight: on ? 700 : 500, color: SD.gray900 }}>{t.people}명</span>
-                            <span aria-hidden="true" style={{ height: 6, borderRadius: 9999, background: SD.gray100, overflow: 'hidden' }}><span style={{ display: 'block', height: '100%', width: `${pct}%`, borderRadius: 9999, background: on ? SD.mint400 : SD.gray300 }} /></span>
-                            <span style={{ fontSize: 14, fontWeight: 700, color: on ? SD.mint700 : SD.gray900, fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>{won(t.pricePerPerson)}</span>
+                            <span aria-hidden="true" style={{ height: 6, borderRadius: 9999, background: SD.gray100, overflow: 'hidden' }}><span style={{ display: 'block', height: '100%', width: `${pct}%`, borderRadius: 9999, background: on ? SD.gray900 : SD.gray300 }} /></span>
+                            <span style={{ fontSize: 14, fontWeight: 700, color: on ? SD.gray900 : SD.gray900, fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>{won(t.pricePerPerson)}</span>
                         </button>
                     );
                 })}
             </div>
             {depositPer > 0 && (
                 <div style={{ marginTop: 14, padding: '12px 14px', borderRadius: 12, background: SD.gray50, display: 'flex', flexDirection: 'column', gap: 6, fontSize: 12, lineHeight: '18px', color: SD.gray700 }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8 }}><span><strong style={{ color: SD.mint700 }}>예약금</strong> 1인 {won(depositPer)}</span><span style={{ color: SD.gray600 }}>{DEPOSIT_PAYMENT_METHOD} · 예약 후 안내</span></div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8 }}><span><strong style={{ color: SD.gray900 }}>예약금</strong> 1인 {won(depositPer)}</span><span style={{ color: SD.gray600 }}>{DEPOSIT_PAYMENT_METHOD} · 예약 후 안내</span></div>
                     <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8 }}><span><strong style={{ color: SD.gray900 }}>잔금</strong> 나머지 금액</span><span style={{ color: SD.gray600 }}>현지 현금 · 가이드에게 전달</span></div>
                 </div>
             )}
@@ -163,7 +163,7 @@ export function TierGrid({ tiers, people, onPick }: { tiers: TourPricingOption[]
                         </span>
                         <span style={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
                             <span style={{ fontSize: 11, color: SD.gray600 }}>1인 요금</span>
-                            <span style={{ fontSize: 15, fontWeight: 700, color: on ? SD.mint700 : SD.gray900, fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>{won(t.pricePerPerson)}</span>
+                            <span style={{ fontSize: 15, fontWeight: 700, color: on ? SD.gray900 : SD.gray900, fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>{won(t.pricePerPerson)}</span>
                         </span>
                     </button>
                 );
@@ -190,7 +190,7 @@ export function OptionList({ options, selectedId, onSelect }: { options: Booking
                             </span>
                             {o.description && <span style={{ fontSize: 13, lineHeight: 1.6, color: SD.gray600 }}>{o.description}</span>}
                         </span>
-                        <span style={{ flex: 'none', fontSize: 14, fontWeight: 700, color: on ? SD.mint700 : SD.gray600, whiteSpace: 'nowrap' }}>{optionPriceLabel(o.priceModifier, o.isDefault)}</span>
+                        <span style={{ flex: 'none', fontSize: 14, fontWeight: 700, color: on ? SD.gray900 : SD.gray600, whiteSpace: 'nowrap' }}>{optionPriceLabel(o.priceModifier, o.isDefault)}</span>
                     </button>
                 );
             })}
@@ -252,7 +252,7 @@ export function MoneyBox({ money, style }: { money: SummaryMoney; style?: CSSPro
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}>
                         <span style={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
                             <span style={{ fontSize: 14, fontWeight: 700, color: SD.gray900 }}>총 결제금액</span>
-                            <span style={{ fontSize: 12, color: SD.gray600 }}><strong style={{ color: SD.mint700 }}>지금 결제</strong> · 예약금 · {DEPOSIT_PAYMENT_METHOD}</span>
+                            <span style={{ fontSize: 12, color: SD.gray600 }}><strong style={{ color: SD.gray900 }}>지금 결제</strong> · 예약금 · {DEPOSIT_PAYMENT_METHOD}</span>
                         </span>
                         <span style={{ fontSize: 18, fontWeight: 700, color: SD.mint600, fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>{won(money.deposit)}</span>
                     </div>
@@ -308,7 +308,7 @@ export function BookingSummaryAside({ product, typeLabel, durationText, range, p
                 <MoneyBox money={money} style={{ margin: '16px 20px 0' }} />
                 <div style={{ padding: 20, display: 'flex', flexDirection: 'column', gap: 10 }}>
                     <button type="button" onClick={cta.onClick} disabled={cta.disabled}
-                        style={{ width: '100%', height: 52, border: 'none', borderRadius: 10, background: cta.disabled ? SD.gray200 : SD.mint700, color: cta.disabled ? SD.gray500 : SD.white, fontFamily: 'inherit', fontSize: 16, fontWeight: 700,
+                        style={{ width: '100%', height: 52, border: 'none', borderRadius: 10, background: cta.disabled ? SD.gray200 : SD.mint400, color: cta.disabled ? SD.gray500 : SD.mint950, fontFamily: 'inherit', fontSize: 16, fontWeight: 700,
                             cursor: cta.disabled ? 'default' : 'pointer' }}>
                         {cta.label}
                     </button>
@@ -349,7 +349,7 @@ export function AccountPanel({ showNumber = true, big = false }: { showNumber?: 
                 <div style={{ marginTop: 8, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
                     <span style={{ fontSize: big ? 24 : 20, fontWeight: 700, letterSpacing: '0.02em', color: SD.gray900, fontVariantNumeric: 'tabular-nums' }}>{DEPOSIT_ACCOUNT.number}</span>
                     <button type="button" onClick={copy} aria-label="계좌번호 복사"
-                        style={{ height: 36, padding: '0 14px', border: `1px solid ${copied ? SD.mint200 : SD.gray200}`, borderRadius: 9999, background: copied ? SD.mint50 : SD.white, color: copied ? SD.mint700 : SD.gray700,
+                        style={{ height: 36, padding: '0 14px', border: `1px solid ${copied ? SD.gray200 : SD.gray200}`, borderRadius: 9999, background: copied ? SD.gray50 : SD.white, color: copied ? SD.gray900 : SD.gray700,
                             fontFamily: 'inherit', fontSize: 13, fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: 5, cursor: 'pointer', whiteSpace: 'nowrap' }}>
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d={copied ? 'M5 12l5 5 9-10' : 'M9 9h11v11H9zM5 15V4h11'} /></svg>
                         <span aria-live="polite">{copied ? '복사됨' : '복사'}</span>

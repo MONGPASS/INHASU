@@ -49,8 +49,8 @@ export function ReservationDesktop({
                         sub={nights > 0 ? `${durationText} 여행이에요. 시작일을 고르면 종료일은 자동으로 정해져요.` : '여행 시작일을 골라 주세요.'}>
                         <TripCalendar value={selectedStartDate} onChange={setSelectedStartDate} nights={nights} />
                         {selectedStartDate && endDate && (
-                            <div style={{ marginTop: 16, padding: '16px 20px', border: `1px solid ${SD.mint200}`, borderRadius: 14, background: SD.white, display: 'flex', alignItems: 'center', gap: 16 }}>
-                                <span style={{ flex: 'none', width: 40, height: 40, borderRadius: 12, background: SD.mint50, color: SD.mint700, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                            <div style={{ marginTop: 16, padding: '16px 20px', border: `1px solid ${SD.gray200}`, borderRadius: 14, background: SD.white, display: 'flex', alignItems: 'center', gap: 16 }}>
+                                <span style={{ flex: 'none', width: 40, height: 40, borderRadius: 12, background: SD.gray50, color: SD.gray900, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                                     <SIcon name="calendarCheck" size={20} stroke={1.7} />
                                 </span>
                                 <div style={{ flex: '1 1 auto', display: 'flex', alignItems: 'center', gap: 14, flexWrap: 'wrap' }}>
@@ -67,7 +67,7 @@ export function ReservationDesktop({
                                             </span>
                                         </>
                                     )}
-                                    {durationText && <span style={{ height: 26, padding: '0 10px', borderRadius: 9999, background: SD.mint50, color: SD.mint700, fontSize: 12, fontWeight: 700, display: 'inline-flex', alignItems: 'center' }}>{durationText}</span>}
+                                    {durationText && <span style={{ height: 26, padding: '0 10px', borderRadius: 9999, background: SD.gray50, color: SD.gray900, fontSize: 12, fontWeight: 700, display: 'inline-flex', alignItems: 'center' }}>{durationText}</span>}
                                 </div>
                                 <button type="button" onClick={() => setSelectedStartDate(null)}
                                     style={{ flex: 'none', height: 34, padding: '0 12px', border: `1px solid ${SD.gray200}`, borderRadius: 9999, background: SD.white, fontFamily: 'inherit', fontSize: 13, color: SD.gray700, cursor: 'pointer' }}>

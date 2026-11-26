@@ -73,9 +73,9 @@ export function ReservationShell({ step, productName, productId, back, children 
                                 const done = n < step;
                                 return (
                                     <li key={label} aria-current={on || undefined} style={{ flex: '1 1 0', display: 'flex', flexDirection: 'column', gap: 10 }}>
-                                        <span aria-hidden="true" style={{ height: 4, borderRadius: 9999, background: on || done ? SD.mint500 : SD.gray200 }} />
+                                        <span aria-hidden="true" style={{ height: 4, borderRadius: 9999, background: on || done ? SD.gray900 : SD.gray200 }} />
                                         <span style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-                                            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 11, fontWeight: 700, letterSpacing: '0.04em', color: on || done ? SD.mint700 : SD.gray400 }}>
+                                            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 11, fontWeight: 700, letterSpacing: '0.04em', color: on || done ? SD.gray900 : SD.gray400 }}>
                                                 STEP {n}
                                                 {done && (
                                                     <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" aria-label="완료"><path d="M5 12l5 5 9-10" /></svg>

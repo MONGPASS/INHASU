@@ -43,7 +43,7 @@ export function PaymentMobile({
             titleAction={<CloseButton onClick={close} />}
             bottomBar={(
                 <PayBar
-                    caption={<><strong style={{ color: SD.mint700 }}>지금 결제</strong> · 예약금</>}
+                    caption={<><strong style={{ color: SD.gray900 }}>지금 결제</strong> · 예약금</>}
                     amount={won(priceBreakdown.deposit)}
                     label={label}
                     width={170}
@@ -100,7 +100,7 @@ export function PaymentMobile({
                     </div>
                     {priceBreakdown.deposit > 0 && (
                         <>
-                            <div style={{ marginTop: 14, padding: '14px 16px', borderRadius: 12, background: SD.mint50, border: `1px solid ${SD.mint200}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}>
+                            <div style={{ marginTop: 14, padding: '14px 16px', borderRadius: 12, background: SD.gray50, border: `1px solid ${SD.gray200}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}>
                                 <span style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
                                     <span style={{ fontSize: 14, fontWeight: 700, color: SD.gray900 }}>지금 입금할 예약금</span>
                                     <span style={{ fontSize: 11, color: SD.gray600 }}>{DEPOSIT_PAYMENT_METHOD}{depositPer > 0 ? ` · 1인 ${won(depositPer)} × ${totalPeople}명` : ''}</span>
@@ -133,7 +133,7 @@ export function PaymentMobile({
                         {BK_PAY_NOTES.map((t) => <li key={t}>{t}</li>)}
                     </ul>
                     <a href={KAKAO_CHANNEL_CHAT_URL} target="_blank" rel="noopener noreferrer"
-                        style={{ marginTop: 14, height: 44, borderRadius: 12, background: '#FEE500', color: '#191919', fontSize: 13, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, textDecoration: 'none' }}>
+                        style={{ marginTop: 14, height: 44, borderRadius: 12, background: SD.white, border: `1px solid ${SD.gray200}`, boxSizing: 'border-box', color: SD.gray900, fontSize: 13, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, textDecoration: 'none' }}>
                         <SIcon name="kakao" size={16} stroke={1.8} />결제 문의는 카카오톡으로
                     </a>
                 </MSection>
@@ -148,10 +148,10 @@ export function PaymentMobile({
                     </ul>
                     <style>{'.bkm-agree:focus-within{outline:2px solid #12B28C;outline-offset:2px}'}</style>
                     <label className="bkm-agree"
-                        style={{ position: 'relative', marginTop: 18, padding: 14, border: `1px solid ${agreeToTerms ? SD.mint500 : fieldError?.field === 'terms' ? SD.red : SD.gray200}`, borderRadius: 12, display: 'flex', alignItems: 'flex-start', gap: 12, cursor: 'pointer' }}>
+                        style={{ position: 'relative', marginTop: 18, padding: 14, border: `1px solid ${agreeToTerms ? SD.gray900 : fieldError?.field === 'terms' ? SD.red : SD.gray200}`, borderRadius: 12, display: 'flex', alignItems: 'flex-start', gap: 12, cursor: 'pointer' }}>
                         <input type="checkbox" checked={agreeToTerms} onChange={() => { setAgreeToTerms(!agreeToTerms); onFieldEdit('terms'); }}
                             style={{ position: 'absolute', width: 1, height: 1, margin: 0, opacity: 0, pointerEvents: 'none' }} />
-                        <span aria-hidden="true" style={{ flex: 'none', width: 22, height: 22, borderRadius: 7, boxSizing: 'border-box', border: agreeToTerms ? 'none' : `1.5px solid ${SD.gray300}`, background: agreeToTerms ? SD.mint500 : SD.white,
+                        <span aria-hidden="true" style={{ flex: 'none', width: 22, height: 22, borderRadius: 7, boxSizing: 'border-box', border: agreeToTerms ? 'none' : `1.5px solid ${SD.gray300}`, background: agreeToTerms ? SD.gray900 : SD.white,
                             color: SD.white, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                             {agreeToTerms && <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12l5 5 9-10" /></svg>}
                         </span>
@@ -180,7 +180,7 @@ function InfoRow({ icon, label, children, divider = false }: { icon: ReactNode; 
 function Field({ name, label, required, error, note, children }: { name: string; label: string; required?: boolean; error?: string; note?: string; children: ReactNode }) {
     return (
         <label data-payment-field={name} style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-            <span style={{ fontSize: 13, fontWeight: 700, color: SD.gray900 }}>{label} {required && <span style={{ color: SD.mint500 }}>*</span>}</span>
+            <span style={{ fontSize: 13, fontWeight: 700, color: SD.gray900 }}>{label} {required && <span style={{ color: SD.gray900 }}>*</span>}</span>
             {children}
             {error && <span role="alert" style={{ fontSize: 12, fontWeight: 700, color: SD.red }}>{error}</span>}
             {note && <span style={{ fontSize: 12, color: SD.gray600 }}>{note}</span>}

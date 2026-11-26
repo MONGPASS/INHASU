@@ -90,7 +90,7 @@ export function PaymentDesktop({
                             <MoneyLine label="총 여행 금액" sub={per !== undefined ? `${won(per)} × ${totalPeople}명` : undefined} amount={won(priceBreakdown.total)} divider />
                             {priceBreakdown.deposit > 0 && (
                                 <MoneyLine
-                                    label={<>지금 입금할 예약금<span style={{ marginLeft: 6, height: 20, padding: '0 7px', borderRadius: 6, background: SD.mint50, color: SD.mint700, fontSize: 11, fontWeight: 700, display: 'inline-flex', alignItems: 'center', verticalAlign: 'middle' }}>{DEPOSIT_PAYMENT_METHOD}</span></>}
+                                    label={<>지금 입금할 예약금<span style={{ marginLeft: 6, height: 20, padding: '0 7px', borderRadius: 6, background: SD.gray50, color: SD.gray900, fontSize: 11, fontWeight: 700, display: 'inline-flex', alignItems: 'center', verticalAlign: 'middle' }}>{DEPOSIT_PAYMENT_METHOD}</span></>}
                                     sub={depositPer > 0 ? `1인 ${won(depositPer)} × ${totalPeople}명` : undefined} amount={won(priceBreakdown.deposit)} strong />
                             )}
                             {priceBreakdown.deposit > 0 && <MoneyLine label="현지에서 낼 잔금" sub="여행 중 담당 가이드에게 현금으로 전달" amount={won(balance)} />}
@@ -99,7 +99,7 @@ export function PaymentDesktop({
 
                     <StepSection no={4} title="예약금 입금 안내">
                         <div style={{ display: 'flex', gap: 14, alignItems: 'flex-start', marginBottom: 16 }}>
-                            <span style={{ flex: 'none', width: 44, height: 44, borderRadius: 12, background: SD.mint50, color: SD.mint700, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                            <span style={{ flex: 'none', width: 44, height: 44, borderRadius: 12, background: SD.gray50, color: SD.gray900, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                                 <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M3 10l9-6 9 6M5 10v8M9 10v8M15 10v8M19 10v8M3 20h18" /></svg>
                             </span>
                             <span style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
@@ -133,7 +133,7 @@ export function PaymentDesktop({
                             <div style={{ marginTop: 14, paddingTop: 14, borderTop: `1px solid ${SD.gray100}`, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
                                 <span style={{ fontSize: 13, color: SD.gray700 }}>결제에 관한 질문은 카카오톡으로 편하게 물어보세요.</span>
                                 <a href={KAKAO_CHANNEL_CHAT_URL} target="_blank" rel="noopener noreferrer"
-                                    style={{ flex: 'none', display: 'inline-flex', alignItems: 'center', gap: 6, height: 36, padding: '0 14px', borderRadius: 9999, background: '#FEE500', color: '#191600', fontSize: 13, fontWeight: 700, textDecoration: 'none' }}>
+                                    style={{ flex: 'none', display: 'inline-flex', alignItems: 'center', gap: 6, height: 36, padding: '0 14px', borderRadius: 9999, background: SD.white, border: `1px solid ${SD.gray200}`, boxSizing: 'border-box', color: SD.gray900, fontSize: 13, fontWeight: 700, textDecoration: 'none' }}>
                                     <SIcon name="kakao" size={16} stroke={1.8} />카카오톡 문의
                                 </a>
                             </div>
@@ -150,12 +150,12 @@ export function PaymentDesktop({
                         </ul>
                     </StepSection>
 
-                    <section data-payment-field="terms" style={{ background: SD.white, border: `1px solid ${agreeToTerms ? SD.mint500 : fieldError?.field === 'terms' ? SD.red : SD.gray200}`, borderRadius: 16, padding: '22px 32px' }}>
+                    <section data-payment-field="terms" style={{ background: SD.white, border: `1px solid ${agreeToTerms ? SD.gray900 : fieldError?.field === 'terms' ? SD.red : SD.gray200}`, borderRadius: 16, padding: '22px 32px' }}>
                         <style>{'.bk2-agree:focus-within{outline:2px solid #12B28C;outline-offset:4px;border-radius:8px}'}</style>
                         <label className="bk2-agree" style={{ position: 'relative', display: 'flex', alignItems: 'center', gap: 14, cursor: 'pointer' }}>
                             <input type="checkbox" checked={agreeToTerms} onChange={() => { setAgreeToTerms(!agreeToTerms); onFieldEdit('terms'); }}
                                 style={{ position: 'absolute', width: 1, height: 1, margin: 0, opacity: 0, pointerEvents: 'none' }} />
-                            <span aria-hidden="true" style={{ flex: 'none', width: 24, height: 24, borderRadius: 6, boxSizing: 'border-box', border: agreeToTerms ? 'none' : `1.5px solid ${SD.gray300}`, background: agreeToTerms ? SD.mint500 : SD.white,
+                            <span aria-hidden="true" style={{ flex: 'none', width: 24, height: 24, borderRadius: 6, boxSizing: 'border-box', border: agreeToTerms ? 'none' : `1.5px solid ${SD.gray300}`, background: agreeToTerms ? SD.gray900 : SD.white,
                                 color: SD.white, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                                 {agreeToTerms && <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12l5 5 9-10" /></svg>}
                             </span>
