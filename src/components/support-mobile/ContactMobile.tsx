@@ -7,7 +7,7 @@ import { useMe } from '../mypage-desktop/useMyPageData';
 import { MobileShell } from '../mobile/MobileShell';
 import { KAKAO_BUBBLE, KAKAO_INK, KAKAO_YELLOW, M_GRADIENT } from '../mobile/mobileTheme';
 import { Ico, SubPageBar } from '../mobile/mobileUi';
-import { ScreenBody } from '../mylists-mobile/myListsUi';
+import { ScreenBody } from './ScreenBody';
 import {
     INQUIRY_EMAIL, INQUIRY_MAX, INQUIRY_NAME_MAX, INQUIRY_NO_MAX, INQUIRY_TYPES, inquiryMailto, isInquiryEmail, type Inquiry, type InquiryType,
 } from './contactMail';

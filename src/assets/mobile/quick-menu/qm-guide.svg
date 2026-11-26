@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg id="_레이어_1" data-name="레이어 1" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256">
+  <defs>
+    <style>
+      .cls-1 {
+        fill: #b8c7e9;
+      }
+
+      .cls-2 {
+        fill: #06c4a0;
+      }
+
+      .cls-3 {
+        fill: none;
+        stroke: #698db8;
+        stroke-linecap: round;
+        stroke-linejoin: round;
+        stroke-width: 8px;
+      }
+
+      .cls-4 {
+        fill: #dce3fa;
+      }
+
+      .cls-5 {
+        fill: #f3f5fa;
+      }
+
+      .cls-6 {
+        fill: #009f91;
+      }
+    </style>
+  </defs>
+  <path class="cls-4" d="M22,79l63-28,71,28,64-28v152l-64,28-71-28-63,28V79Z"/>
+  <path class="cls-1" d="M85,51l71,28v152l-71-28V51Z"/>
+  <path class="cls-3" d="M46,176c5.33-24,17-32,35-24s33.67-2.67,47-32"/>
+  <path class="cls-2" d="M126,24c17.67,0,32,14.33,32,32,0,14.67-10.67,34-32,58-21.33-24-32-43.33-32-58,0-17.67,14.33-32,32-32Z"/>
+  <circle class="cls-5" cx="126" cy="56" r="12"/>
+  <circle class="cls-6" cx="188" cy="186" r="46"/>
+  <circle class="cls-5" cx="188" cy="186" r="36"/>
+  <path class="cls-1" d="M212,162l-15,33-33,15,15-33,33-15Z"/>
+  <path class="cls-2" d="M212,162l-15,33-18-18,33-15Z"/>
+</svg>

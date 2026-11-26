@@ -2,7 +2,7 @@ import React from 'react';
 import { useIsDesktop } from '../hooks/useIsDesktop';
 import { DesktopLayout } from '../components/layout-desktop/DesktopLayout';
 import { MyPageDesktop } from '../components/mypage-desktop/MyPageDesktop';
-import { MyReviewsMobile } from '../components/mylists-mobile/MyReviewsMobile';
+import { MyReviewsMobile } from '../components/mypage-mobile/MyListsMobile';
 
 export const MyReviews: React.FC = () => {
     const isDesktop = useIsDesktop();

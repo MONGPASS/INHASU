@@ -90,6 +90,11 @@ export interface DesignTemplateDef {
      * 상세페이지가 itinerarySlot을 넘겨줄 때만 적용된다.
      */
     itineraryAfter?: string;
+    /**
+     * 상품 상세 화면에서 섹션을 어느 칸에 보여 줄지(섹션 def id → 칸). 적지 않은 섹션은 ‘투어 소개’.
+     * included = 포함 사항, notice = 유의 사항, faq = FAQ, hidden = 상세에 보이지 않음(예약 상자와 겹치는 가격 등).
+     */
+    pageParts?: Record<string, 'included' | 'notice' | 'faq' | 'hidden'>;
     /** 관리자에서 복제·삭제할 수 있는 섹션 목록 (표시 순서) */
     sectionDefs: DesignSectionDef[];
     Component: React.ComponentType<DesignTemplateProps>;

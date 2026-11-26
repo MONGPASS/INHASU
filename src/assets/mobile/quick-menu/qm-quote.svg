@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg id="_레이어_1" data-name="레이어 1" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256">
+  <defs>
+    <style>
+      .cls-1 {
+        fill: #61cdbe;
+      }
+
+      .cls-2 {
+        fill: #06c4a0;
+      }
+
+      .cls-3 {
+        fill: #bdece5;
+      }
+
+      .cls-4 {
+        fill: #91d9d0;
+      }
+
+      .cls-5 {
+        fill: #f3f5fa;
+      }
+
+      .cls-6 {
+        fill: #009f91;
+      }
+
+      .cls-7 {
+        fill: none;
+        stroke: #06c4a0;
+        stroke-linecap: round;
+        stroke-linejoin: round;
+        stroke-width: 8px;
+      }
+
+      .cls-8 {
+        fill: #e0f6f2;
+      }
+    </style>
+  </defs>
+  <rect class="cls-3" x="29" y="24.5" width="151" height="198" rx="17" ry="17"/>
+  <rect class="cls-8" x="39" y="34.5" width="131" height="178" rx="12" ry="12"/>
+  <path class="cls-7" d="M51,69.5l10,10,17-20"/>
+  <path class="cls-1" d="M96,61.5h51c2.21,0,4,1.79,4,4h0c0,2.21-1.79,4-4,4h-51c-2.21,0-4-1.79-4-4h0c0-2.21,1.79-4,4-4Z"/>
+  <path class="cls-4" d="M96,78.5h30c2.21,0,4,1.57,4,3.5h0c0,1.93-1.79,3.5-4,3.5h-30c-2.21,0-4-1.57-4-3.5h0c0-1.93,1.79-3.5,4-3.5Z"/>
+  <path class="cls-7" d="M51,117.5l10,10,17-20"/>
+  <path class="cls-1" d="M96,109.5h51c2.21,0,4,1.79,4,4h0c0,2.21-1.79,4-4,4h-51c-2.21,0-4-1.79-4-4h0c0-2.21,1.79-4,4-4Z"/>
+  <path class="cls-4" d="M96,126.5h30c2.21,0,4,1.57,4,3.5h0c0,1.93-1.79,3.5-4,3.5h-30c-2.21,0-4-1.57-4-3.5h0c0-1.93,1.79-3.5,4-3.5Z"/>
+  <path class="cls-7" d="M51,165.5l10,10,17-20"/>
+  <path class="cls-1" d="M96,157.5h51c2.21,0,4,1.79,4,4h0c0,2.21-1.79,4-4,4h-51c-2.21,0-4-1.79-4-4h0c0-2.21,1.79-4,4-4Z"/>
+  <path class="cls-4" d="M96,174.5h30c2.21,0,4,1.57,4,3.5h0c0,1.93-1.79,3.5-4,3.5h-30c-2.21,0-4-1.57-4-3.5h0c0-1.93,1.79-3.5,4-3.5Z"/>
+  <rect class="cls-6" x="129" y="115.5" width="98" height="116" rx="14" ry="14"/>
+  <rect class="cls-2" x="137" y="123.5" width="82" height="100" rx="10" ry="10"/>
+  <rect class="cls-3" x="145" y="135.5" width="66" height="26" rx="5" ry="5"/>
+  <rect class="cls-5" x="145" y="173.5" width="17" height="15" rx="4" ry="4"/>
+  <rect class="cls-5" x="170" y="173.5" width="17" height="15" rx="4" ry="4"/>
+  <rect class="cls-5" x="194" y="173.5" width="17" height="15" rx="4" ry="4"/>
+  <rect class="cls-5" x="145" y="196.5" width="17" height="15" rx="4" ry="4"/>
+  <rect class="cls-5" x="170" y="196.5" width="17" height="15" rx="4" ry="4"/>
+  <rect class="cls-5" x="194" y="196.5" width="17" height="15" rx="4" ry="4"/>
+</svg>

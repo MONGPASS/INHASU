@@ -94,12 +94,36 @@ export function designShowsItinerary(content: DesignBlockContent | undefined): b
     return visibleInstances(def, content?.sections).some((s) => s.def === def.itineraryAfter);
 }
 
+/**
+ * 디자인 틀 섹션을 상품 상세의 어느 칸에 보여 줄지. 템플릿의 pageParts에 적힌 섹션만 아래 칸으로 가고
+ * 나머지는 ‘투어 소개’(접힌 상세 정보). 상세 화면은 칸마다 DetailBlocks의 part로 그 섹션만 그린다.
+ */
+export type DesignPart = 'intro' | 'included' | 'notice' | 'faq';
+
+export function designPartOf(templateId: string | undefined, sectionDefId: string): DesignPart | 'hidden' {
+    return getDesignTemplate(templateId ?? '')?.pageParts?.[sectionDefId] ?? 'intro';
+}
+
+/** 디자인 블록 하나에 그 칸에 보일 섹션이 있는지. */
+export function designBlockHasPart(content: DesignBlockContent | undefined, part: DesignPart): boolean {
+    const def = getDesignTemplate(content?.templateId ?? '');
+    return !!def && visibleInstances(def, content?.sections).some((i) => designPartOf(content?.templateId, i.def) === part);
+}
+
+/** 디자인 틀(들)에 그 칸에 보일 섹션이 있는지. */
+export const designHasPart = (product: TourProduct, part: DesignPart) =>
+    (product.detailBlocks ?? []).some((b) => b.type === 'design' && designBlockHasPart(b.content as DesignBlockContent, part));
+
 export interface DetailFlags {
     hasDetail: boolean;
     hasItinerary: boolean;
     /** A design-template block draws the itinerary inside itself, so the separate 일정 section is skipped. */
     itineraryInDesign: boolean;
     hasIncluded: boolean;
+    /** 디자인 틀이 포함/불포함·예약 전 확인사항·FAQ 섹션을 갖고 있으면 그 칸에서 틀의 섹션을 보여 준다. */
+    designIncluded: boolean;
+    designNotice: boolean;
+    designFaq: boolean;
 }
 
 export function detailFlags(product: TourProduct): DetailFlags {
@@ -108,7 +132,10 @@ export function detailFlags(product: TourProduct): DetailFlags {
         hasDetail: blocks.length > 0 || (product.detailSlides?.length ?? 0) > 0 || (product.detailImages?.length ?? 0) > 0,
         hasItinerary: ((product.itineraryBlocks ?? []) as ItineraryBlock[]).some(isMeaningfulItineraryBlock) || (product.itineraryImages?.length ?? 0) > 0,
         itineraryInDesign: blocks.some((b) => b.type === 'design' && designShowsItinerary(b.content as DesignBlockContent)),
-        hasIncluded: (product.included?.length ?? 0) > 0 || (product.excluded?.length ?? 0) > 0,
+        hasIncluded: (product.included?.length ?? 0) > 0 || (product.excluded?.length ?? 0) > 0 || designHasPart(product, 'included'),
+        designIncluded: designHasPart(product, 'included'),
+        designNotice: designHasPart(product, 'notice'),
+        designFaq: designHasPart(product, 'faq'),
     };
 }
 

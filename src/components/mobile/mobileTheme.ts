@@ -1,10 +1,10 @@
-// 투어 상품: 오너가 준 비행기 선 아이콘(2026-11-25)
-import qmTours from '../../assets/mobile/quick-menu/tours-plane.svg';
-import qmQuote from '../../assets/mobile/quick-menu/quote.svg';
-import qmMates from '../../assets/mobile/quick-menu/mates.svg';
-import qmMagazine from '../../assets/mobile/quick-menu/magazine.svg';
-import qmReviews from '../../assets/mobile/quick-menu/reviews.svg';
-import qmEvent from '../../assets/mobile/quick-menu/event.svg';
+// 바로가기 아이콘: 오너가 준 SVG 6종(2026-11-26)
+import qmTours from '../../assets/mobile/quick-menu/qm-tours.svg';
+import qmQuote from '../../assets/mobile/quick-menu/qm-quote.svg';
+import qmMates from '../../assets/mobile/quick-menu/qm-mates.svg';
+import qmMagazine from '../../assets/mobile/quick-menu/qm-guide.svg';
+import qmReviews from '../../assets/mobile/quick-menu/qm-reviews.svg';
+import qmEvent from '../../assets/mobile/quick-menu/qm-event.svg';
 
 /**
  * Constants for the mobile redesign (Claude Design: "Milkyway Japan Mobile").

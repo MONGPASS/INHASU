@@ -2,7 +2,7 @@ import React from 'react';
 import { useIsDesktop } from '../hooks/useIsDesktop';
 import { DesktopLayout } from '../components/layout-desktop/DesktopLayout';
 import { MyPageDesktop } from '../components/mypage-desktop/MyPageDesktop';
-import { NotificationsMobile } from '../components/mypage-mobile/NotificationsMobile';
+import { NotificationsMobile } from '../components/mypage-mobile/MyListsMobile';
 
 export const MyNotifications: React.FC = () => {
     const isDesktop = useIsDesktop();

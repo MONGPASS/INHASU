@@ -3,7 +3,7 @@ import { DEPOSIT_ACCOUNT } from '../../constants/company';
 import { isUsableImage, won } from '../desktop-primitives/mwTokens';
 import type { HomeProduct } from '../home-desktop/homeDesktopData';
 import { SD, SD_CONTAINER, SIcon } from '../site-seed/seed';
-import { QUOTE_STATUS } from './myPageTheme';
+import { quoteStage } from './myQuoteView';
 import { DDAY_COLOR, MY_MENU_GROUPS, bookingStage, boxButton, chipStyle, dateRangeText, ddayText, nightsDaysText, pickNextTrip, productImageOf, type BookingTab } from './myBookingView';
 import type { MeUser, MyQuote, MyReservation } from './useMyPageData';
 
@@ -259,7 +259,7 @@ function NextTrip({ r, productById, today, go }: { r: MyReservation; productById
 }
 
 function QuoteLine({ q, first, go }: { q: MyQuote; first: boolean; go: Go }) {
-    const st = QUOTE_STATUS[q.status] || QUOTE_STATUS.new;
+    const st = quoteStage(q);
     return (
         <a {...onLink(go, q.href)} style={{ ...linkReset, display: 'flex', alignItems: 'center', gap: 14, padding: '14px 0', borderTop: first ? 'none' : `1px solid ${SD.gray100}` }}>
             <span style={{ flex: 'none', width: 40, height: 40, borderRadius: 12, background: SD.gray50, color: SD.gray700, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -269,7 +269,7 @@ function QuoteLine({ q, first, go }: { q: MyQuote; first: boolean; go: Go }) {
                 <span style={{ fontSize: 15, fontWeight: 700, color: SD.gray900, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{q.destination ? `맞춤 견적 (${q.destination})` : '맞춤 견적'}</span>
                 <span style={{ fontSize: 12, color: SD.gray600 }}>{[q.period, q.headcount, q.createdAt ? `요청일 ${q.createdAt.slice(0, 10)}` : ''].filter(Boolean).join(' · ')}</span>
             </span>
-            <span style={chipStyle(q.status === 'converted' ? 'solid' : q.status === 'cancelled' || q.status === 'completed' ? 'muted' : 'line')}>{st.label}</span>
+            <span style={chipStyle(st.chip)}>{st.label}</span>
             <span style={{ color: SD.gray400, display: 'flex' }}><SIcon name="chevronRight" size={16} stroke={2} /></span>
         </a>
     );

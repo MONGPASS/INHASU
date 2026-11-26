@@ -4,7 +4,7 @@ import { MW, MW_FONT_EN } from '../desktop-primitives/mwTokens';
 import { MobileShell } from '../mobile/MobileShell';
 import { M_HAIR, M_PAPER } from '../mobile/mobileTheme';
 import { Ico, MEmpty, MLoading, MPills, SubPageBar } from '../mobile/mobileUi';
-import { ScreenBody } from '../mylists-mobile/myListsUi';
+import { ScreenBody } from './ScreenBody';
 
 export interface FaqCategory {
     id: string;
