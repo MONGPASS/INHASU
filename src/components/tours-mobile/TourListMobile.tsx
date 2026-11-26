@@ -4,7 +4,7 @@ import { useHomeData } from '../../hooks/useHomeData';
 import { useHomeSettings } from '../../hooks/useHomeSettings';
 import { isUsableImage, won } from '../desktop-primitives/mwTokens';
 import { HeartButton } from '../home-desktop/TourCard.desktop';
-import { categoryImage, discountPct, inCategory, isPublished, useHomeReviews, type HomeProduct } from '../home-desktop/homeDesktopData';
+import { categoryCircleImage, discountPct, inCategory, isPublished, useHomeReviews, type HomeProduct } from '../home-desktop/homeDesktopData';
 import { ConnectSection } from '../home/ConnectSection';
 import { BenefitBandMobile } from '../home-mobile/BenefitBand.mobile';
 import { MagazineCardsMobile } from '../home-mobile/MagazineCards.mobile';
@@ -66,7 +66,7 @@ export function TourListMobile() {
         ...categories.map((c) => ({
             id: c.id,
             label: c.name,
-            img: categoryImage(c) || products.find((p) => inCategory(p, c) && isUsableImage(p.mainImages[0]))?.mainImages[0] || '',
+            img: categoryCircleImage(c) || products.find((p) => inCategory(p, c) && isUsableImage(p.mainImages[0]))?.mainImages[0] || '',
         })),
     ];
     const regionId = currentCat ? cat : 'all';

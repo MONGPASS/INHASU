@@ -73,3 +73,15 @@ export const isPublished = (p: HomeProduct) => !p.status || p.status === 'active
 export const inCategory = (p: HomeProduct, c: Pick<Category, 'id' | 'name'>) => p.category === c.name || p.category === c.id;
 
 export const categoryImage = (c?: Category) => c?.landing_hero_images?.[1] || c?.landing_hero_images?.[0] || c?.landing_hero_image || '';
+
+/** 관리자 ‘상품 카테고리’의 아이콘 이미지(사진 주소일 때만 — 예전 값은 Material 아이콘 이름일 수 있다). */
+export const categoryIconImage = (c?: Pick<Category, 'icon'>) => {
+    const icon = (c?.icon || '').trim();
+    return icon.startsWith('http') || icon.startsWith('/') || icon.startsWith('data:image/') ? icon : '';
+};
+
+/**
+ * 투어 목록의 지역 동그라미 사진: 관리자가 올린 아이콘 이미지(‘사용자 화면에선 원형으로 보여요’) → 랜딩 배너 사진 순서.
+ * 둘 다 없으면 쓰는 쪽이 그 지역 상품 사진을 쓴다.
+ */
+export const categoryCircleImage = (c?: Category) => categoryIconImage(c) || categoryImage(c);
