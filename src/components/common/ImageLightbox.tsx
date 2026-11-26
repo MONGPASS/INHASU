@@ -1,10 +1,14 @@
 import { useEffect, useState } from 'react';
+import { createPortal } from 'react-dom';
+import { lockBodyScroll } from '../../utils/bodyScrollLock';
 
 // ─── Fullscreen image lightbox ────────────────────────────────────────
 // Tap/click any gallery image → opens here. Supports prev/next buttons,
 // ArrowLeft/ArrowRight/Escape keys, body scroll lock, thumbnail strip.
 // Shared by mobile + desktop (originally MobileItineraryTimeline's private
 // MobileLightbox, promoted so review pages can reuse it).
+// document.body에 그린다: 상품 디자인 틀은 휴대폰 폭에 맞추려고 transform(scale)으로 줄이는데,
+// 그 안에 그리면 position: fixed가 화면이 아니라 그 틀 기준이 돼 검은 막만 덮이고 사진이 화면 밖으로 밀린다.
 export function ImageLightbox({
     images,
     startIndex,
@@ -16,6 +20,9 @@ export function ImageLightbox({
 }) {
     const [i, setI] = useState(startIndex);
 
+    // 스크롤 잠금은 열려 있는 동안 한 번만(창이 겹쳐도 세어서 푼다 — utils/bodyScrollLock)
+    useEffect(() => lockBodyScroll(), []);
+
     useEffect(() => {
         const onKey = (e: KeyboardEvent) => {
             if (e.key === 'Escape') onClose();
@@ -23,16 +30,11 @@ export function ImageLightbox({
             if (e.key === 'ArrowLeft') setI((x) => (x - 1 + images.length) % images.length);
         };
         window.addEventListener('keydown', onKey);
-        const prev = document.body.style.overflow;
-        document.body.style.overflow = 'hidden';
-        return () => {
-            window.removeEventListener('keydown', onKey);
-            document.body.style.overflow = prev;
-        };
+        return () => window.removeEventListener('keydown', onKey);
     }, [images.length, onClose]);
 
-    return (
-        <div className="fixed inset-0 z-[300] bg-black/95 flex flex-col" onClick={onClose}>
+    return createPortal(
+        <div role="dialog" aria-modal="true" aria-label="사진 크게 보기" data-mw-overlay="" className="fixed inset-0 z-[300] bg-black/95 flex flex-col" onClick={onClose}>
             <div
                 className="flex items-center justify-between p-4 text-white text-sm font-semibold"
                 onClick={(e) => e.stopPropagation()}
@@ -93,6 +95,7 @@ export function ImageLightbox({
                     />
                 ))}
             </div>
-        </div>
+        </div>,
+        document.body,
     );
 }
