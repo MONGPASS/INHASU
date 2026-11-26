@@ -129,7 +129,7 @@ function TourDetailBody({ product, reviews, pricing }: TourDetailViewProps & { p
                     <div style={{ marginTop: 20 }}>
                         <CollapsibleDetail compact open={detailOpen} onToggle={() => setDetailOpen(!detailOpen)}>
                             {/* 상세 그림은 화면 끝까지(DetailBlocks compact가 좌우 -16px로 넓히므로 그만큼 되돌린다) */}
-                            <div style={{ padding: '0 16px' }}><DetailBlocks product={product} compact withItinerary={false} /></div>
+                            <div style={{ padding: '0 16px' }}><DetailBlocks product={product} compact withItinerary={false} part="intro" /></div>
                         </CollapsibleDetail>
                     </div>
                 )}
@@ -145,7 +145,9 @@ function TourDetailBody({ product, reviews, pricing }: TourDetailViewProps & { p
             {flags.hasIncluded && (
                 <section style={{ padding: '32px 20px 0' }}>
                     <SectionTitle id="td-incl" compact marginBottom={0}>포함 사항</SectionTitle>
-                    <IncludedFolds product={product} compact />
+                    {flags.designIncluded
+                        ? <div style={{ margin: '16px -20px 0', padding: '0 16px' }}><DetailBlocks product={product} compact withItinerary={false} part="included" /></div>
+                        : <IncludedFolds product={product} compact />}
                 </section>
             )}
 
@@ -159,7 +161,11 @@ function TourDetailBody({ product, reviews, pricing }: TourDetailViewProps & { p
 
             <section style={{ padding: '36px 20px 0' }}>
                 <SectionTitle id="td-faq" compact marginBottom={4}>유의 사항·FAQ</SectionTitle>
-                <FaqFolds items={faq} compact />
+                {/* 디자인 틀의 예약 전 확인사항·FAQ가 있으면 그것을, FAQ가 없으면 상품 FAQ 목록을 보여 준다 */}
+                {flags.designNotice && <div style={{ margin: '16px -20px 0', padding: '0 16px' }}><DetailBlocks product={product} compact withItinerary={false} part="notice" /></div>}
+                {flags.designFaq
+                    ? <div style={{ margin: '16px -20px 0', padding: '0 16px' }}><DetailBlocks product={product} compact withItinerary={false} part="faq" /></div>
+                    : <FaqFolds items={faq} compact />}
             </section>
 
             {popular.length > 0 && <div style={{ paddingTop: 40 }}><RelatedRow title="다른 여행자가 함께 본 상품" tours={popular} compact /></div>}

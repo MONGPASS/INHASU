@@ -16,6 +16,8 @@ export const designTemplates: DesignTemplateDef[] = [
         sectionDefs: horseTrekSectionDefs,
         // 이 섹션까지 렌더한 뒤 상품 일정탭의 일정표를 끼워 넣고, 나머지 섹션으로 이어간다
         itineraryAfter: '12 공항 도착',
+        // 상품 상세의 위 메뉴(투어 소개·일정·포함 사항·후기·유의 사항·FAQ)에 맞춰 아래쪽 섹션을 나눠 보여 준다(2026-11-26 오너 결정).
+        pageParts: { '17 포함/불포함': 'included', '18 투어 가격': 'hidden', '19 예약 전 확인사항': 'notice', '20 FAQ': 'faq' },
         Component: HorseTrekTemplate,
         mobile: {
             canvasWidth: 430,

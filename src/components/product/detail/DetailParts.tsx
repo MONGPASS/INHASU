@@ -7,7 +7,7 @@ import { durationLabel } from '../../tours-mobile/tourListFilters';
 import DesignBlockView from '../designTemplates/DesignBlockView';
 import { DesignItinerary } from '../designTemplates/DesignItinerary';
 import { priceRowsFromOptions } from '../designTemplates/pricing';
-import { designShowsItinerary, detailFlags, tourImageAlt } from './productDetailData';
+import { designBlockHasPart, designPartOf, designShowsItinerary, detailFlags, tourImageAlt, type DesignPart } from './productDetailData';
 
 /**
  * 투어 상세(PC·휴대폰)가 함께 쓰는 관리자 작성 내용 부품: 투어 소개 글 · 상세 정보 블록(긴 그림, 사진 묶음, 디자인 틀) · 전체 사진 창.
@@ -75,9 +75,12 @@ export function SlideGroup({ slide, productName, compact, bleed = false }: { sli
  * 상세 정보: the admin-authored detail content (long images, slides, dividers, design templates).
  * A design template draws the day-by-day itinerary inside itself; that slot is the 일정 tab target.
  */
-/** withItinerary=false: 디자인 틀이 끼워 넣던 일정표를 빼고 그린다(상세 화면은 일정을 따로 ‘일정’ 구역에 둔다). */
-export function DetailBlocks({ product, compact = false, withItinerary = true }: { product: TourProduct; compact?: boolean; withItinerary?: boolean }) {
-    const blocks: DetailContentBlock[] = product.detailBlocks ?? [];
+/**
+ * withItinerary=false: 디자인 틀이 끼워 넣던 일정표를 빼고 그린다(상세 화면은 일정을 따로 ‘일정’ 구역에 둔다).
+ * part: 상품 상세의 칸별로 나눠 그릴 때. 'intro' = 사진·슬라이드 + 틀의 소개 섹션, 그 밖 = 틀의 그 칸 섹션만. 없으면 전부(관리자 미리보기).
+ */
+export function DetailBlocks({ product, compact = false, withItinerary = true, part }: { product: TourProduct; compact?: boolean; withItinerary?: boolean; part?: DesignPart }) {
+    const blocks: DetailContentBlock[] = (product.detailBlocks ?? []).filter((b) => !part || part === 'intro' || b.type === 'design');
     const hasItinerary = withItinerary && detailFlags(product).hasItinerary;
     const variant = compact ? 'mobile' : 'desktop';
     const imageStyle: CSSProperties = { width: '100%', height: 'auto', display: 'block', borderRadius: compact ? 0 : 16 };
@@ -86,6 +89,8 @@ export function DetailBlocks({ product, compact = false, withItinerary = true }:
     const priceRows = priceRowsFromOptions(product.pricingOptions);
     // The first template that draws the itinerary carries the 일정 tab's anchor.
     const planAnchor = blocks.findIndex((b) => b.type === 'design' && designShowsItinerary(b.content as DesignBlockContent));
+
+    if (part && part !== 'intro' && blocks.length === 0) return null;
 
     if (blocks.length > 0) {
         return (
@@ -103,6 +108,7 @@ export function DetailBlocks({ product, compact = false, withItinerary = true }:
                         return <div key={key} style={{ height: divider.height, margin: compact ? '0 16px' : 0, borderBottom: divider.style === 'line' ? `1px solid ${MW.line}` : 'none' }} />;
                     }
                     if (b.type === 'design') {
+                        if (part && !designBlockHasPart(b.content as DesignBlockContent, part)) return null;
                         return (
                             <div key={key} style={{ borderRadius: compact ? 0 : 20, overflow: 'hidden' }}>
                                 <DesignBlockView
@@ -114,6 +120,7 @@ export function DetailBlocks({ product, compact = false, withItinerary = true }:
                                         </div>
                                     ) : undefined}
                                     valueOverrides={priceRows ? { price_rows: priceRows } : undefined}
+                                    sectionFilter={part ? (id) => designPartOf((b.content as DesignBlockContent)?.templateId, id) === part : undefined}
                                 />
                             </div>
                         );

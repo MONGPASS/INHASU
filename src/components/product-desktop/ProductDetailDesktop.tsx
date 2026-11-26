@@ -156,7 +156,7 @@ export function ProductDetailDesktop({ product, reviews, onBook, onShare, previe
                         {flags.hasDetail && (
                             <div style={{ marginTop: 28 }}>
                                 <CollapsibleDetail open={detailOpen} onToggle={() => setDetailOpen(!detailOpen)}>
-                                    <DetailBlocks product={product} withItinerary={false} />
+                                    <DetailBlocks product={product} withItinerary={false} part="intro" />
                                 </CollapsibleDetail>
                             </div>
                         )}
@@ -172,7 +172,9 @@ export function ProductDetailDesktop({ product, reviews, onBook, onShare, previe
                     {flags.hasIncluded && (
                         <section>
                             <SectionTitle id="td-incl" marginBottom={0}>포함 사항</SectionTitle>
-                            <IncludedFolds product={product} />
+                            {flags.designIncluded
+                                ? <div style={{ marginTop: 16 }}><DetailBlocks product={product} withItinerary={false} part="included" /></div>
+                                : <IncludedFolds product={product} />}
                         </section>
                     )}
 
@@ -186,7 +188,11 @@ export function ProductDetailDesktop({ product, reviews, onBook, onShare, previe
 
                     <section>
                         <SectionTitle id="td-faq" marginBottom={8}>유의 사항·FAQ</SectionTitle>
-                        <FaqFolds items={faq} />
+                        {/* 디자인 틀의 예약 전 확인사항·FAQ가 있으면 그것을, FAQ가 없으면 상품 FAQ 목록을 보여 준다 */}
+                        {flags.designNotice && <div style={{ marginTop: 16 }}><DetailBlocks product={product} withItinerary={false} part="notice" /></div>}
+                        {flags.designFaq
+                            ? <div style={{ marginTop: 16 }}><DetailBlocks product={product} withItinerary={false} part="faq" /></div>
+                            : <FaqFolds items={faq} />}
                     </section>
                 </div>
 

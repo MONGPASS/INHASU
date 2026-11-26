@@ -65,7 +65,7 @@ function useDesignFonts() {
  * variant='mobile'이면 템플릿의 모바일 전용 디자인(있을 때)을 렌더링한다.
  * editing=true면 빈 이미지 슬롯에 업로드 안내 placeholder를 표시한다.
  */
-export default function DesignBlockView({ content, editing, variant = 'desktop', onFieldClick, selectedField, highlightSection, itinerarySlot, valueOverrides }: {
+export default function DesignBlockView({ content, editing, variant = 'desktop', onFieldClick, selectedField, highlightSection, itinerarySlot, valueOverrides, sectionFilter }: {
     content: DesignBlockContent;
     editing?: boolean;
     variant?: 'desktop' | 'mobile';
@@ -80,6 +80,8 @@ export default function DesignBlockView({ content, editing, variant = 'desktop',
      * 나머지 섹션(여행의 순간들부터)으로 이어간다.
      */
     itinerarySlot?: React.ReactNode;
+    /** 이 섹션(def id)들만 그린다(상품 상세가 위 메뉴 칸별로 나눠 그릴 때). 없으면 모두. */
+    sectionFilter?: (sectionDefId: string) => boolean;
     /**
      * 상품 데이터에서 자동으로 채우는 값 (예: 가격/옵션 탭의 인원별 가격 → price_rows).
      * 템플릿에 직접 입력한 값보다 우선한다 — 상품 정보 탭이 원본이기 때문.
@@ -173,7 +175,8 @@ export default function DesignBlockView({ content, editing, variant = 'desktop',
                 `}</style>
             )}
             {(() => {
-                const instances = visibleInstances(def, content?.sections);
+                const instances = visibleInstances(def, content?.sections).filter((i) => !sectionFilter || sectionFilter(i.def));
+                if (instances.length === 0) return null;
                 // 일정표 삽입: itineraryAfter 섹션까지 렌더 → 일정표 → 나머지 섹션
                 const splitAt = itinerarySlot && def.itineraryAfter
                     ? instances.findIndex(i => i.def === def.itineraryAfter)
