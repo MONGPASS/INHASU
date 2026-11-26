@@ -37,6 +37,8 @@ export interface BookingProduct {
     name: string;
     duration?: string;
     category?: string;
+    /** 상품 구분(풀패키지·실속형) — PC 예약 요약의 꼬리표. */
+    packageType?: 'full' | 'value' | null;
     mainImages?: string[];
     pricingOptions?: TourPricingOption[];
     accommodationOptions?: AccommodationOption[];
@@ -48,7 +50,8 @@ export interface ReservationStepProps {
     product: BookingProduct;
     parsedDuration: ParsedDuration;
     selectedStartDate: Date | null;
-    setSelectedStartDate: (d: Date) => void;
+    /** null = 고른 날을 지운다(PC ‘다시 선택’). */
+    setSelectedStartDate: (d: Date | null) => void;
     totalPeople: number;
     setTotalPeople: (n: number) => void;
     selectedAccomId: string;
@@ -97,6 +100,11 @@ export interface CompleteStepProps {
     total: number;
     deposit: number;
     local: number;
+    /** PC 완료 화면의 신청 내용(사진 · 여행 기간 · 인원). 없으면 그 줄을 뺀다. */
+    image?: string;
+    startDate?: Date | null;
+    endDate?: Date | null;
+    people?: number;
 }
 
 export const BK_PAGE_BG = '#F4F6F5';

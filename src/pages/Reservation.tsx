@@ -91,6 +91,7 @@ export const Reservation: React.FC = () => {
                         originalPrice: data.originalPrice ?? data.original_price,
                         duration: data.duration,
                         category: data.category,
+                        packageType: (data.packageType ?? data.package_type) === 'full' ? 'full' : (data.packageType ?? data.package_type) === 'value' ? 'value' : null,
                         mainImages: pickArr(data.mainImages, data.main_images),
                         isPopular: data.isPopular ?? data.is_popular,
                         tags: pickArr(data.tags, data.tags),
