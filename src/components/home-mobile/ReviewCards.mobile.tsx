@@ -1,16 +1,13 @@
-import { isUsableImage } from '../desktop-primitives/mwTokens';
-import type { HomeProduct, HomeReview } from '../home-desktop/homeDesktopData';
-import { HOME_IMG } from '../home/homeContent';
+import { homeReviewPhoto, orderHomeReviews, type HomeProduct, type HomeReview } from '../home-desktop/homeDesktopData';
+import { linkTo, useGo } from './homeMobileData';
 import { MPhoto } from '../mobile/mobileUi';
-import { SD, SStar } from '../site-seed/seed';
+import { SD, SIcon, SStar } from '../site-seed/seed';
 import { HSCROLL, SectionHeadMobile } from './SectionHead.mobile';
 
-/** 후기에 연결된 상품 사진이 없을 때 돌려 쓰는 사진. */
-const FALLBACK = [HOME_IMG.winterGer, HOME_IMG.steppeGallop, HOME_IMG.winterLake, HOME_IMG.miniDesert, HOME_IMG.winterForest];
-
-/** 믿고 보는 여행 리뷰(휴대폰): 4:3 사진 + 별점 + 세 줄 후기 + 상품·작성자 카드(240px)를 옆으로 넘긴다. 제목 옆 동그란 화살표가 후기 전체로. 후기가 없으면 구역을 뺀다. */
+/** 믿고 보는 여행 리뷰(휴대폰, 여행 후기의 실제 후기 — 사진 있는 후기 먼저, 누르면 후기 상세): 4:3 후기 사진 + 별점 + 세 줄 후기 + 상품·작성자 카드(240px)를 옆으로 넘긴다. 제목 옆 동그란 화살표가 후기 전체로. 후기가 없으면 구역을 뺀다. */
 export function ReviewCardsMobile({ reviews, products }: { reviews: HomeReview[]; products: HomeProduct[] }) {
-    const items = reviews.slice(0, 10);
+    const go = useGo();
+    const items = orderHomeReviews(reviews).slice(0, 10);
     if (items.length === 0) return null;
 
     return (
@@ -19,11 +16,13 @@ export function ReviewCardsMobile({ reviews, products }: { reviews: HomeReview[]
             <div data-noscroll="" style={{ ...HSCROLL, gap: 12 }}>
                 {items.map((review, i) => {
                     const product = products.find((p) => p.id === review.productId);
-                    const photo = product?.mainImages.find(isUsableImage) || FALLBACK[i % FALLBACK.length];
+                    const photo = homeReviewPhoto(review, product);
                     return (
-                        <article key={review.id || i} style={{ flex: '0 0 240px', display: 'flex', flexDirection: 'column', border: `1px solid ${SD.gray200}`, borderRadius: 12, overflow: 'hidden', background: SD.white }}>
+                        <a key={review.id || i} {...linkTo(go, review.id ? `/reviews/${review.id}` : '/reviews')} style={{ textDecoration: 'none', color: SD.gray900, flex: '0 0 240px', display: 'flex', flexDirection: 'column', border: `1px solid ${SD.gray200}`, borderRadius: 12, overflow: 'hidden', background: SD.white }}>
                             <div style={{ position: 'relative', aspectRatio: '4 / 3', background: SD.gray100 }}>
-                                <MPhoto src={photo} alt={`${review.productName} 여행 사진`} sizes="240px" />
+                                {photo
+                                    ? <MPhoto src={photo} alt={`${review.productName} 후기 사진`} sizes="240px" />
+                                    : <span aria-hidden="true" style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', color: SD.gray400 }}><SIcon name="reviewStar" size={36} stroke={1.4} /></span>}
                             </div>
                             <div style={{ flex: '1 1 auto', display: 'flex', flexDirection: 'column', gap: 8, padding: 12 }}>
                                 <span role="img" aria-label={`별점 5점 만점에 ${review.rating}점`} style={{ display: 'flex', gap: 1 }}>
@@ -37,7 +36,7 @@ export function ReviewCardsMobile({ reviews, products }: { reviews: HomeReview[]
                                     {review.author && <span style={{ fontSize: 11, color: SD.gray600 }}>{review.author} 님</span>}
                                 </div>
                             </div>
-                        </article>
+                        </a>
                     );
                 })}
             </div>
