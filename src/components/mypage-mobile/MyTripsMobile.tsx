@@ -1,14 +1,12 @@
-import { useMemo, useState, type ReactNode } from 'react';
+import { type ReactNode } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { toTourDateKey } from '../../utils/formatDate';
-import { reservationStatusLabel } from '../../utils/reservationDetail';
-import { MW, MW_FONT_EN, won } from '../desktop-primitives/mwTokens';
+import { MW, MW_FONT_EN } from '../desktop-primitives/mwTokens';
 import { QUOTE_STATUS } from '../mypage-desktop/myPageTheme';
-import { useMe, useMyPageData, type MyQuote, type MyReservation } from '../mypage-desktop/useMyPageData';
+import { useMe, useMyPageData, type MyQuote } from '../mypage-desktop/useMyPageData';
 import { MobileShell } from '../mobile/MobileShell';
-import { D, M_HAIR, M_PAPER } from '../mobile/mobileTheme';
+import { D, M_PAPER } from '../mobile/mobileTheme';
 import { Ico, MEmpty, MLoading, SubPageBar } from '../mobile/mobileUi';
-import { QUOTE_NOTE, ddayLabel, softTone, tripPeriod, tripPhase } from './tripFormat';
+import { QUOTE_NOTE } from './tripFormat';
 
 type TripsTab = 'bookings' | 'quote';
 
@@ -18,24 +16,16 @@ const TABS: Array<{ key: TripsTab; label: string; path: string }> = [
 ];
 
 /**
- * 내 여행 (Claude Design: "M My Trips"): reservations and quote requests as two tabs, each
- * on its own route so deep links and the my page shortcuts keep working.
+ * 내 여행 (Claude Design: "M My Trips")의 견적 요청 탭. 예약 내역 탭은 새 디자인 화면(MyBookingsMobile, /mypage/reservations)으로 간다.
  */
 export function MyTripsMobile({ tab }: { tab: TripsTab }) {
     const navigate = useNavigate();
     const { data: me } = useMe();
     const { reservations, quotes } = useMyPageData(me);
-    // Captured once so render stays pure.
-    const [today] = useState(() => toTourDateKey(new Date()));
 
-    // Upcoming and ongoing trips first (nearest departure on top), finished ones after (latest first).
-    const bookings = useMemo(() => {
-        const list = (reservations.data ?? []).map((r) => ({ r, past: tripPhase(r, today) === 'past' }));
-        return list.sort((a, b) => Number(a.past) - Number(b.past) || (a.past ? b.r.start.localeCompare(a.r.start) : a.r.start.localeCompare(b.r.start)));
-    }, [reservations.data, today]);
     const quoteList = quotes.data ?? [];
     const counts: Record<TripsTab, number | undefined> = { bookings: reservations.data?.length, quote: quotes.data?.length };
-    const loading = !me || (tab === 'bookings' ? reservations.isPending : quotes.isPending);
+    const loading = !me || quotes.isPending;
 
     const go = (path: string) => {
         if (/\.html(?:[?#]|$)/i.test(path)) { window.location.assign(path); return; }
@@ -74,12 +64,6 @@ export function MyTripsMobile({ tab }: { tab: TripsTab }) {
             <section style={{ background: M_PAPER, minHeight: '60vh', padding: '16px 16px 36px', display: 'flex', flexDirection: 'column', gap: 12 }}>
                 {loading ? (
                     <MLoading />
-                ) : tab === 'bookings' ? (
-                    bookings.length > 0 ? (
-                        bookings.map(({ r, past }) => <BookingCard key={r.id} r={r} past={past} today={today} onOpen={() => go(r.href)} />)
-                    ) : (
-                        <MEmpty text="아직 예약이 없습니다." action={{ label: '투어 찾기', onClick: () => go('/products') }} />
-                    )
                 ) : quoteList.length > 0 ? (
                     <>
                         {quoteList.map((q) => (
@@ -120,38 +104,6 @@ function MetaLine({ period, people }: { period: string; people: string }) {
             {period && people && <span style={{ width: 3, height: 3, borderRadius: '50%', background: '#B8C4C1', flexShrink: 0 }} />}
             {people && part(D.people, people)}
         </div>
-    );
-}
-
-function BookingCard({ r, past, today, onOpen }: { r: MyReservation; past: boolean; today: string; onOpen: () => void }) {
-    const tone = softTone(r.status);
-    const dday = ddayLabel(r, today);
-    return (
-        <a href={r.href} onClick={(e) => { e.preventDefault(); onOpen(); }} style={{ ...cardStyle, opacity: past ? 0.75 : 1 }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}>
-                <span style={{ fontSize: 11, fontWeight: 700, color: tone.fg, background: tone.bg, boxShadow: `inset 0 0 0 1px ${tone.bd}`, padding: '4px 10px', borderRadius: 999, whiteSpace: 'nowrap' }}>
-                    {reservationStatusLabel(r.status, r.depositReported, r.status || '준비 중')}
-                </span>
-                {dday && <span style={{ fontFamily: MW_FONT_EN, fontSize: 12, fontWeight: 600, color: MW.mintDeep }}>{dday}</span>}
-            </div>
-            <span style={titleStyle}>{r.productName}</span>
-            <MetaLine period={tripPeriod(r.start, r.end)} people={r.travelers > 0 ? `${r.travelers}명` : ''} />
-            {r.payTotal > 0 && (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 8, paddingTop: 12, borderTop: `1px solid ${M_HAIR}` }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', fontSize: 12, color: MW.mute }}>
-                        <span>결제 {r.payPercent}%</span>
-                        <span style={{ fontFamily: MW_FONT_EN, fontSize: 12, fontWeight: 600, color: MW.navy }}>{won(r.payTotal)}</span>
-                    </div>
-                    <span style={{ height: 6, borderRadius: 999, background: M_HAIR, overflow: 'hidden' }}>
-                        <span style={{ display: 'block', height: '100%', width: `${Math.min(100, r.payPercent)}%`, background: 'linear-gradient(90deg,#27AB8F,#3FC2A4)', borderRadius: 999 }} />
-                    </span>
-                </div>
-            )}
-            <span style={{ alignSelf: 'flex-start', display: 'flex', alignItems: 'center', gap: 4, height: 32, fontSize: 13, fontWeight: 700, color: MW.mintDeep }}>
-                자세히 보기
-                <Ico d={D.chevron} size={14} color={MW.mintDeep} width={2.2} />
-            </span>
-        </a>
     );
 }
 

@@ -163,7 +163,7 @@ export function IncludedFolds({ product, compact = false }: { product: TourProdu
     const excluded = (product.excluded ?? []).filter(Boolean);
     return (
         <div>
-            {included.length > 0 && <IncludeFold title="포함사항" sub="아래 항목들이 상품 가격에 포함돼요" items={included} defaultOpen compact={compact} />}
+            {included.length > 0 && <IncludeFold title="포함사항" sub="아래 항목들이 상품 가격에 포함돼요" items={included} defaultOpen={false} compact={compact} />}
             {excluded.length > 0 && (
                 <IncludeFold title="불포함사항" sub="아래 항목들이 상품 가격에 불포함돼요" items={excluded} defaultOpen={false} compact={compact}
                     note="국제선 항공권 준비도 도와드려요. 비자 필요 여부는 출발 시점의 규정에 따라 달라질 수 있어 예약 시 안내해 드려요." />
@@ -182,6 +182,9 @@ function Stars({ rating, size }: { rating: number; size: number }) {
     );
 }
 
+const TOUR_CHIP: CSSProperties = { alignSelf: 'flex-start', maxWidth: '100%', display: 'inline-flex', alignItems: 'center', height: 24, padding: '0 8px', borderRadius: 6, background: SD.gray100, color: SD.gray700,
+    fontSize: 12, fontWeight: 700, textDecoration: 'none', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', boxSizing: 'border-box' };
+
 function ReviewItem({ r, last, helpfulOn, count, onHelpful, compact, otherTour }: { r: DesktopReview; last: boolean; helpfulOn: boolean; count: number; onHelpful: () => void; compact: boolean; otherTour: boolean }) {
     const navigate = useNavigate();
     const textRef = useRef<HTMLParagraphElement>(null);
@@ -199,13 +202,11 @@ function ReviewItem({ r, last, helpfulOn, count, onHelpful, compact, otherTour }
                 <Stars rating={r.rating} size={compact ? 14 : 16} />
                 <span style={{ fontSize: compact ? 12 : 13, color: SD.gray500 }}>{[r.author, r.date].filter(Boolean).join(' · ')}</span>
             </div>
-            {otherTour && r.productName && (
-                <a href={`/products/${r.productId}`} onClick={(e) => { e.preventDefault(); navigate(`/products/${r.productId}`); }}
-                    style={{ alignSelf: 'flex-start', maxWidth: '100%', display: 'inline-flex', alignItems: 'center', height: 24, padding: '0 8px', borderRadius: 6, background: SD.gray100, color: SD.gray700,
-                        fontSize: 12, fontWeight: 700, textDecoration: 'none', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', boxSizing: 'border-box' }}>
+            {otherTour && r.productName && (r.productId ? (
+                <a href={`/products/${r.productId}`} onClick={(e) => { e.preventDefault(); navigate(`/products/${r.productId}`); }} style={TOUR_CHIP}>
                     {r.productName}
                 </a>
-            )}
+            ) : <span style={TOUR_CHIP}>{r.productName}</span>)}
             {r.title && <p style={{ margin: 0, fontSize: compact ? 15 : 16, fontWeight: 700, color: SD.gray900 }}>{r.title}</p>}
             <p ref={textRef} style={{ margin: 0, fontSize: compact ? 14 : 15, lineHeight: 1.7, color: SD.gray900, whiteSpace: 'pre-wrap', overflowWrap: 'anywhere',
                 ...(open ? null : { display: '-webkit-box', WebkitLineClamp: 3, WebkitBoxOrient: 'vertical', overflow: 'hidden' }) }}>{r.content}</p>
@@ -295,9 +296,9 @@ export function ReviewList({ reviews, productId, compact = false }: { reviews: D
 
 // ───────────────────────── FAQ ─────────────────────────
 
-/** 유의 사항·FAQ: 첫 질문이 펼쳐져 있고 한 번에 하나만 펼친다. */
+/** 유의 사항·FAQ: 처음에는 모두 닫혀 있고(2026-11-26 오너 요청), 한 번에 하나만 펼친다. */
 export function FaqFolds({ items, compact = false }: { items: ProductFAQ[]; compact?: boolean }) {
-    const [openIndex, setOpenIndex] = useState(0);
+    const [openIndex, setOpenIndex] = useState(-1);
     return (
         <div>
             {items.map((f, i) => {

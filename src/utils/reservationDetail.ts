@@ -48,6 +48,7 @@ export interface ReservationDetail {
     id: string;
     reservationNumber?: string | null;
     productName: string;
+    productId?: string;
     customerName?: string | null;
     status: string;
     startDate?: string;

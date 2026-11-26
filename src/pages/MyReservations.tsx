@@ -3,6 +3,7 @@ import { useSearchParams } from 'react-router-dom';
 import { useIsDesktop } from '../hooks/useIsDesktop';
 import { DesktopLayout } from '../components/layout-desktop/DesktopLayout';
 import { MyPageDesktop } from '../components/mypage-desktop/MyPageDesktop';
+import { MyBookingsMobile } from '../components/mypage-mobile/MyBookingsMobile';
 import { MyTripsMobile } from '../components/mypage-mobile/MyTripsMobile';
 
 export const MyReservations: React.FC = () => {
@@ -17,5 +18,5 @@ export const MyReservations: React.FC = () => {
             </DesktopLayout>
         );
     }
-    return <MyTripsMobile tab={quotes ? 'quote' : 'bookings'} />;
+    return quotes ? <MyTripsMobile tab="quote" /> : <MyBookingsMobile />;
 };

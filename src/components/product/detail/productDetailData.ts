@@ -113,12 +113,11 @@ export function detailFlags(product: TourProduct): DetailFlags {
 }
 
 
-/** Tabs of the sticky row — only sections this tour really has. */
+/** Tabs of the sticky row — 투어 소개 · 일정 · 포함 사항 · 후기 · 유의 사항·FAQ (디자인 순서). 상세 정보는 투어 소개 안에 접혀 있어 따로 칸이 없다. */
 export function detailTabs(product: TourProduct): DetailTab[] {
     const f = detailFlags(product);
     const tabs: (DetailTab | false)[] = [
         { id: 'td-about', label: '투어 소개' },
-        f.hasDetail && { id: 'td-detail', label: '상세 정보' },
         f.hasItinerary && { id: 'td-plan', label: '일정' },
         f.hasIncluded && { id: 'td-incl', label: '포함 사항' },
         { id: 'td-rev', label: '후기' },
@@ -420,14 +419,35 @@ export function useRelatedTours(productId: string, category: string, limit: numb
  * 상세 화면 후기: 이 투어의 후기 먼저, 그 뒤에 ‘여행 후기’에 올라온 같은 지역(분류) 다른 투어의 후기(최신순).
  * 분류는 상품 목록에서 후기의 상품 id로 찾는다.
  */
+/**
+ * 지역 이름 표기 차이를 맞춘다. 옛 사이트에서 옮겨 온 후기는 상품 연결 없이 ‘중앙몽골 투어’·‘남고비 투어’·‘훕스골 투어’처럼
+ * 지역 이름만 갖고 있고, 상품 분류는 ‘중앙몽골’·‘고비사막’·‘홉스굴’이다. 지역이 없는 ‘몽골 투어’는 어느 지역에도 넣지 않는다.
+ */
+const REGION_WORDS: Record<string, string[]> = {
+    고비사막: ['고비'],
+    홉스굴: ['홉스굴', '홉스골', '훕스골', '훕스굴', '흡스굴', '흡스골'],
+};
+const squash = (s: string) => s.normalize('NFKC').replace(/\s+/g, '');
+export const tourNameInRegion = (tourName: string, category: string) => {
+    const name = squash(tourName);
+    const cat = squash(category);
+    if (!name || !cat) return false;
+    return [cat, ...(REGION_WORDS[cat] ?? [])].some((w) => name.includes(w));
+};
+
 export function useTourReviews(product: TourProduct, own: DesktopReview[]): DesktopReview[] {
     const { reviews: all } = useDesktopReviews();
     const catalog = useTourCatalog();
     return useMemo(() => {
         const categoryOf = new Map(catalog.map((x) => [x.product.id, x.product.category]));
         const seen = new Set(own.map((r) => r.id));
+        // 상품에 연결된 후기는 그 상품의 분류로, 연결이 없거나 없어진 상품의 후기는 적힌 투어 이름의 지역으로 묶는다.
+        const inRegion = (r: DesktopReview) => {
+            const cat = r.productId ? categoryOf.get(r.productId) : undefined;
+            return cat !== undefined ? cat === product.category : tourNameInRegion(r.productName, product.category);
+        };
         const sameRegion = product.category
-            ? all.filter((r) => !seen.has(r.id) && r.productId && r.productId !== product.id && categoryOf.get(r.productId) === product.category)
+            ? all.filter((r) => !seen.has(r.id) && r.productId !== product.id && inRegion(r))
             : [];
         return [...own, ...sameRegion];
     }, [all, catalog, own, product.id, product.category]);

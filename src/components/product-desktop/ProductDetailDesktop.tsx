@@ -7,7 +7,7 @@ import { OverviewBody, DetailBlocks, PhotoOverlay } from '../product/detail/Deta
 import { DesignItinerary } from '../product/designTemplates/DesignItinerary';
 import {
     detailFlags, detailTabs, summariseReviews, useTourReviews, tourFacts, tourGallery, usePopularTours, useRelatedTours, useSectionTabs, useTourFaqItems, useTourPricing,
-    type DetailSectionId, type ShareResult, type TourDetailViewProps,
+    type ShareResult, type TourDetailViewProps,
 } from '../product/detail/productDetailData';
 import { SD, SD_CONTAINER, SIcon } from '../site-seed/seed';
 import { durationLabel } from '../tours-mobile/tourListFilters';
@@ -72,15 +72,6 @@ export function ProductDetailDesktop({ product, reviews, onBook, onShare, previe
         };
     }, []);
 
-    // 일정이 상세 정보(디자인 틀) 안에 있으면 접힌 상세 정보를 먼저 편다.
-    const goSection = (id: DetailSectionId) => {
-        if (id === 'td-plan' && flags.itineraryInDesign && !detailOpen) {
-            setDetailOpen(true);
-            window.setTimeout(() => pick(id), 60);
-            return;
-        }
-        pick(id);
-    };
 
     const share = async () => {
         const result = await onShare();
@@ -146,7 +137,7 @@ export function ProductDetailDesktop({ product, reviews, onBook, onShare, previe
                     {tabs.map((t) => {
                         const on = t.id === active;
                         return (
-                            <a key={t.id} href={`#${t.id}`} aria-current={on ? 'location' : undefined} onClick={(e) => { e.preventDefault(); goSection(t.id); }}
+                            <a key={t.id} href={`#${t.id}`} aria-current={on ? 'location' : undefined} onClick={(e) => { e.preventDefault(); pick(t.id); }}
                                 style={{ flex: 'none', display: 'inline-flex', alignItems: 'center', height: TAB_ROW_H, borderBottom: `2px solid ${on ? SD.mint500 : 'transparent'}`, color: on ? SD.gray900 : SD.gray600,
                                     fontSize: 15, fontWeight: 700, textDecoration: 'none', boxSizing: 'border-box', whiteSpace: 'nowrap' }}>
                                 {t.label}
@@ -162,18 +153,16 @@ export function ProductDetailDesktop({ product, reviews, onBook, onShare, previe
                     <section>
                         <SectionTitle id="td-about">투어 소개</SectionTitle>
                         <OverviewBody product={product} />
+                        {flags.hasDetail && (
+                            <div style={{ marginTop: 28 }}>
+                                <CollapsibleDetail open={detailOpen} onToggle={() => setDetailOpen(!detailOpen)}>
+                                    <DetailBlocks product={product} withItinerary={false} />
+                                </CollapsibleDetail>
+                            </div>
+                        )}
                     </section>
 
-                    {flags.hasDetail && (
-                        <section>
-                            <SectionTitle id="td-detail">상세 정보</SectionTitle>
-                            <CollapsibleDetail open={detailOpen} onToggle={() => setDetailOpen(!detailOpen)}>
-                                <DetailBlocks product={product} />
-                            </CollapsibleDetail>
-                        </section>
-                    )}
-
-                    {flags.hasItinerary && !flags.itineraryInDesign && (
+                    {flags.hasItinerary && (
                         <section>
                             <SectionTitle id="td-plan">일정</SectionTitle>
                             <div data-itinerary-design style={{ borderRadius: 16, overflow: 'hidden' }}><DesignItinerary product={product} collapsible /></div>
