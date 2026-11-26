@@ -33,6 +33,8 @@ interface MobileShellProps {
     /** Back bar title. Omit on screens that render their own title bar (SubPageBar). */
     title?: string;
     onBack?: () => void;
+    /** 뒤로 가기 줄 오른쪽 단추(예: 상품 상세의 공유). */
+    titleAction?: ReactNode;
     /** Replaces the tab bar (quote form, mate detail). */
     bottomBar?: ReactNode;
     /** 로고 머리를 고정하지 않고 본문과 함께 올려 보낸다(뒤로 가기 줄만 위에 남는다). 긴 상세 화면용. */
@@ -88,7 +90,7 @@ const writeRecent = (list: string[]) => {
 
 const tokens = (q: string) => q.toLowerCase().split(/\s+/).filter(Boolean);
 
-export function MobileShell({ children, home = false, navRow = home, title, onBack, bottomBar, headerScrolls = false, tabBar = true, footer = true }: MobileShellProps) {
+export function MobileShell({ children, home = false, navRow = home, title, onBack, titleAction, bottomBar, headerScrolls = false, tabBar = true, footer = true }: MobileShellProps) {
     const navigate = useNavigate();
     const location = useLocation();
     const path = location.pathname;
@@ -378,7 +380,7 @@ export function MobileShell({ children, home = false, navRow = home, title, onBa
                             <Ico d={D.back} size={22} width={2} />
                         </button>
                         <span style={{ textAlign: 'center', fontSize: 16, fontWeight: 700, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{title}</span>
-                        <span />
+                        {titleAction ?? <span />}
                     </div>
                 )}
 

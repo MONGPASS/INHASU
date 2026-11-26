@@ -3,9 +3,8 @@ import { useQuery } from '@tanstack/react-query';
 import { api } from '../../../lib/api';
 import type { DayInfoContent, DesignBlockContent, ProductFAQ, TimelineContent, TourPricingOption, TourProduct } from '../../../types/product';
 import { isPublished, type HomeProduct } from '../../home-desktop/homeDesktopData';
-import { KAKAO_CHANNEL_CHAT_URL } from '../../../constants/company';
 import { durationLabel } from '../../tours-mobile/tourListFilters';
-import { mapReview, parseJsonArray, type DesktopReview, type RawReview } from '../../reviews-desktop/reviewsData';
+import { mapReview, parseJsonArray, useDesktopReviews, type DesktopReview, type RawReview } from '../../reviews-desktop/reviewsData';
 import { getDesignTemplate } from '../designTemplates/registry';
 import { visibleInstances } from '../designTemplates/sections';
 
@@ -293,10 +292,6 @@ export function useTourPricing(product: TourProduct): TourPricing {
 }
 
 /** Tier button price: 1,890,000원 → 189만원, 1,895,000원 → 189.5만원 (exact when it is not a round thousand). */
-export function shortWon(n: number): string {
-    if (n >= 10000 && n % 1000 === 0) return `${n / 10000}만원`;
-    return `${Math.round(n).toLocaleString('ko-KR')}원`;
-}
 
 // ───────────────────────── reviews ─────────────────────────
 
@@ -355,7 +350,7 @@ export function useTourFaqItems(product: TourProduct): ProductFAQ[] {
     return common.length > 0 ? common : DEFAULT_PRODUCT_FAQS;
 }
 
-// ───────────────────────── related / recently viewed ─────────────────────────
+// ───────────────────────── related ─────────────────────────
 
 interface RawProduct {
     id: string;
@@ -421,6 +416,23 @@ export function useRelatedTours(productId: string, category: string, limit: numb
     );
 }
 
+/**
+ * 상세 화면 후기: 이 투어의 후기 먼저, 그 뒤에 ‘여행 후기’에 올라온 같은 지역(분류) 다른 투어의 후기(최신순).
+ * 분류는 상품 목록에서 후기의 상품 id로 찾는다.
+ */
+export function useTourReviews(product: TourProduct, own: DesktopReview[]): DesktopReview[] {
+    const { reviews: all } = useDesktopReviews();
+    const catalog = useTourCatalog();
+    return useMemo(() => {
+        const categoryOf = new Map(catalog.map((x) => [x.product.id, x.product.category]));
+        const seen = new Set(own.map((r) => r.id));
+        const sameRegion = product.category
+            ? all.filter((r) => !seen.has(r.id) && r.productId && r.productId !== product.id && categoryOf.get(r.productId) === product.category)
+            : [];
+        return [...own, ...sameRegion];
+    }, [all, catalog, own, product.id, product.category]);
+}
+
 /** 다른 여행자가 많이 예약한 판매 중 투어(분류 무관, 예약 수 → 인기 표시 순). 지금 보는 투어는 뺀다. */
 export function usePopularTours(productId: string, limit: number): HomeProduct[] {
     const data = useTourCatalog();
@@ -435,38 +447,3 @@ export function usePopularTours(productId: string, limit: number): HomeProduct[]
     );
 }
 
-export interface RecentlyViewedTour {
-    product_id: string;
-    title?: string;
-    image?: string;
-    price?: number | string;
-    type?: string;
-}
-
-/** The signed-in visitor's recently viewed tours, without the current one. */
-export function useRecentlyViewedTours(excludeId: string): RecentlyViewedTour[] {
-    const { data = [] } = useQuery({
-        queryKey: ['tourDetail', 'recentlyViewed', excludeId],
-        retry: false,
-        queryFn: async () => {
-            try {
-                const me = await api.auth.me();
-                if (!me) return [];
-                const rows = await api.recentlyViewed.list();
-                return (Array.isArray(rows) ? (rows as RecentlyViewedTour[]) : [])
-                    .filter((v) => v.product_id !== excludeId && v.type !== 'magazine' && (v.title || v.image))
-                    .slice(0, 8);
-            } catch {
-                return [];
-            }
-        },
-    });
-    return data;
-}
-
-// ───────────────────────── consultation ─────────────────────────
-
-/** 무료 상담: the registered 카카오톡 채널 chat. */
-export function openConsult() {
-    window.open(KAKAO_CHANNEL_CHAT_URL, '_blank', 'noopener,noreferrer');
-}

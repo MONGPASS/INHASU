@@ -6,13 +6,13 @@ import { ConnectSection } from '../home/ConnectSection';
 import { OverviewBody, DetailBlocks, PhotoOverlay } from '../product/detail/DetailParts';
 import { DesignItinerary } from '../product/designTemplates/DesignItinerary';
 import {
-    detailFlags, detailTabs, summariseReviews, tourFacts, tourGallery, usePopularTours, useRelatedTours, useSectionTabs, useTourFaqItems, useTourPricing,
+    detailFlags, detailTabs, summariseReviews, useTourReviews, tourFacts, tourGallery, usePopularTours, useRelatedTours, useSectionTabs, useTourFaqItems, useTourPricing,
     type DetailSectionId, type ShareResult, type TourDetailViewProps,
 } from '../product/detail/productDetailData';
 import { SD, SD_CONTAINER, SIcon } from '../site-seed/seed';
 import { durationLabel } from '../tours-mobile/tourListFilters';
 import { BookingCardDesktop } from './BookingCardDesktop';
-import { CollapsibleDetail, FaqFolds, GalleryStrip, IncludedFolds, RelatedRow, ReviewList, SectionTitle } from './DetailSectionsDesktop';
+import { CollapsibleDetail, FaqFolds, GalleryStrip, IncludedFolds, RelatedRow, ReviewList, SectionTitle } from '../product/detail/TourDetailSections';
 
 const TAB_ROW_H = 52;
 /** 목차를 눌렀을 때 구역 제목이 멈추는 자리(붙는 메뉴 줄 + 목차 줄 아래). */
@@ -34,6 +34,8 @@ export function ProductDetailDesktop({ product, reviews, onBook, onShare, previe
     const tabs = useMemo(() => detailTabs(product), [product]);
     const { active, pick } = useSectionTabs(tabs, SECTION_OFFSET);
     const summary = useMemo(() => summariseReviews(reviews), [reviews]);
+    // 이 투어 후기 + 같은 지역 다른 투어의 후기(여행 후기)
+    const shownReviews = useTourReviews(product, summary.list);
     const gallery = useMemo(() => tourGallery(product), [product]);
     const faq = useTourFaqItems(product);
     const flags = detailFlags(product);
@@ -188,9 +190,9 @@ export function ProductDetailDesktop({ product, reviews, onBook, onShare, previe
                     <section>
                         <SectionTitle id="td-rev" marginBottom={4}
                             right={<a href="/reviews" onClick={go('/reviews')} style={{ fontSize: 14, color: SD.gray700, textDecoration: 'none', whiteSpace: 'nowrap' }}>전체 보기 ›</a>}>
-                            후기 {summary.count > 0 && <span style={{ fontSize: 18, color: SD.gray500 }}>{summary.count}</span>}
+                            후기 {shownReviews.length > 0 && <span style={{ fontSize: 18, color: SD.gray500 }}>{shownReviews.length}</span>}
                         </SectionTitle>
-                        <ReviewList reviews={summary.list} />
+                        <ReviewList reviews={shownReviews} productId={product.id} />
                     </section>
 
                     <section>
