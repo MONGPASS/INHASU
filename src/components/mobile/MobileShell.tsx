@@ -33,10 +33,14 @@ interface MobileShellProps {
     /** Back bar title. Omit on screens that render their own title bar (SubPageBar). */
     title?: string;
     onBack?: () => void;
+    /** 뒤로 가기 줄 오른쪽 단추(예: 상품 상세의 공유). */
+    titleAction?: ReactNode;
     /** Replaces the tab bar (quote form, mate detail). */
     bottomBar?: ReactNode;
     /** 로고 머리를 고정하지 않고 본문과 함께 올려 보낸다(뒤로 가기 줄만 위에 남는다). 긴 상세 화면용. */
     headerScrolls?: boolean;
+    /** false면 로고 머리(이름·검색·알림·메뉴)를 빼고 뒤로 가기 줄만 맨 위에 둔다(예약 단계 화면). */
+    brandHeader?: boolean;
     tabBar?: boolean;
     footer?: boolean;
 }
@@ -88,7 +92,7 @@ const writeRecent = (list: string[]) => {
 
 const tokens = (q: string) => q.toLowerCase().split(/\s+/).filter(Boolean);
 
-export function MobileShell({ children, home = false, navRow = home, title, onBack, bottomBar, headerScrolls = false, tabBar = true, footer = true }: MobileShellProps) {
+export function MobileShell({ children, home = false, navRow = home, title, onBack, titleAction, bottomBar, headerScrolls = false, brandHeader = true, tabBar = true, footer = true }: MobileShellProps) {
     const navigate = useNavigate();
     const location = useLocation();
     const path = location.pathname;
@@ -211,7 +215,7 @@ export function MobileShell({ children, home = false, navRow = home, title, onBa
     };
 
     const noticeOn = path === '/mypage/notifications';
-    const backBarTop = headerScrolls ? 0 : hdrH - 1;
+    const backBarTop = headerScrolls || !brandHeader ? 0 : hdrH - 1;
     const stickyTop = backBarTop + (title !== undefined ? BACK_BAR_H : 0);
     const shell = useMemo(() => ({ stickyTop }), [stickyTop]);
     const avatar = me?.avatarUrl || me?.image;
@@ -220,7 +224,7 @@ export function MobileShell({ children, home = false, navRow = home, title, onBa
         <MobileShellContext.Provider value={shell}>
             <div data-mw-actionbar={bottomBar ? '' : undefined} style={{ position: 'relative', minHeight: '100dvh', display: 'flex', flexDirection: 'column', background: SD.white, color: SD.gray900, fontFamily: MW_FONT, WebkitFontSmoothing: 'antialiased' }}>
                 {/* 머리(디자인 ‘홈 · 휴대폰’, 2026-11-25): 이름 · 알림 · 전체 메뉴 → 검색 → 메뉴 줄(홈·투어 상품 목록). 홈이 아닌 화면은 돋보기로 검색을 연다. */}
-                <header ref={hdrRef} style={{ position: headerScrolls ? 'relative' : 'sticky', top: 0, zIndex: 20, background: SD.white, borderBottom: navRow ? 'none' : `1px solid ${SD.gray200}` }}>
+                {brandHeader && (<header ref={hdrRef} style={{ position: headerScrolls ? 'relative' : 'sticky', top: 0, zIndex: 20, background: SD.white, borderBottom: navRow ? 'none' : `1px solid ${SD.gray200}` }}>
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, height: 56, padding: '0 8px 0 20px' }}>
                         <a
                             href="/"
@@ -370,7 +374,7 @@ export function MobileShell({ children, home = false, navRow = home, title, onBa
                             })}
                         </nav>
                     )}
-                </header>
+                </header>)}
 
                 {title !== undefined && (
                     <div style={{ position: 'sticky', top: backBarTop, zIndex: 10, background: SD.white, borderBottom: `1px solid ${SD.gray200}`, display: 'grid', gridTemplateColumns: '44px minmax(0,1fr) 44px', alignItems: 'center', padding: '2px 6px' }}>
@@ -378,7 +382,7 @@ export function MobileShell({ children, home = false, navRow = home, title, onBa
                             <Ico d={D.back} size={22} width={2} />
                         </button>
                         <span style={{ textAlign: 'center', fontSize: 16, fontWeight: 700, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{title}</span>
-                        <span />
+                        {titleAction ?? <span />}
                     </div>
                 )}
 

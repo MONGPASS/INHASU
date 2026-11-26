@@ -12,6 +12,8 @@ export interface HomeReview {
     content: string;
     productName: string;
     productId: string;
+    /** 고객이 후기에 올린 사진(여행 후기 화면과 같은 값). */
+    images: string[];
 }
 
 export interface ReviewStat {
@@ -26,7 +28,17 @@ interface RawReview {
     content?: string;
     product_id?: string;
     product_name?: string;
+    images?: string | string[];
 }
+
+/** 후기 사진 칸: JSON 문자열이나 배열 → 쓸 수 있는 사진 주소만. */
+const reviewImages = (v: unknown): string[] => {
+    let list: unknown = v;
+    if (typeof v === 'string') {
+        try { list = JSON.parse(v); } catch { list = []; }
+    }
+    return Array.isArray(list) ? list.filter((x): x is string => typeof x === 'string' && (x.startsWith('http') || x.startsWith('/'))) : [];
+};
 
 /** Approved reviews + per-product rating aggregates, shared by the home sections. */
 export function useHomeReviews() {
@@ -42,6 +54,7 @@ export function useHomeReviews() {
                 content: (r.content || '').replace(/\s+/g, ' ').trim(),
                 productName: (r.product_name || '몽골 투어').trim(),
                 productId: r.product_id || '',
+                images: reviewImages(r.images),
             }));
             const stats: Record<string, ReviewStat> = {};
             for (const r of list) {
@@ -73,3 +86,23 @@ export const isPublished = (p: HomeProduct) => !p.status || p.status === 'active
 export const inCategory = (p: HomeProduct, c: Pick<Category, 'id' | 'name'>) => p.category === c.name || p.category === c.id;
 
 export const categoryImage = (c?: Category) => c?.landing_hero_images?.[1] || c?.landing_hero_images?.[0] || c?.landing_hero_image || '';
+
+/** 관리자 ‘상품 카테고리’의 아이콘 이미지(사진 주소일 때만 — 예전 값은 Material 아이콘 이름일 수 있다). */
+export const categoryIconImage = (c?: Pick<Category, 'icon'>) => {
+    const icon = (c?.icon || '').trim();
+    return icon.startsWith('http') || icon.startsWith('/') || icon.startsWith('data:image/') ? icon : '';
+};
+
+/**
+ * 투어 목록의 지역 동그라미 사진: 관리자가 올린 아이콘 이미지(‘사용자 화면에선 원형으로 보여요’) → 랜딩 배너 사진 순서.
+ * 둘 다 없으면 쓰는 쪽이 그 지역 상품 사진을 쓴다.
+ */
+export const categoryCircleImage = (c?: Category) => categoryIconImage(c) || categoryImage(c);
+
+/**
+ * 홈 후기 카드 순서: 여행 후기와 같은 최신순이되, 고객이 사진을 올린 후기를 앞에 둔다.
+ * 사진은 후기 사진 → 그 상품 대표 사진. 둘 다 없으면 빈 칸(예시 사진은 쓰지 않는다 — 2026-11-26 오너 요청).
+ */
+export const orderHomeReviews = (reviews: HomeReview[]) => [...reviews.filter((r) => r.images.length > 0), ...reviews.filter((r) => r.images.length === 0)];
+export const homeReviewPhoto = (review: HomeReview, product?: HomeProduct) =>
+    review.images[0] || product?.mainImages.find((x) => !!x && x !== '/og-image.jpg' && (x.startsWith('http') || x.startsWith('/'))) || '';

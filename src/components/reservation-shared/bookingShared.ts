@@ -37,6 +37,8 @@ export interface BookingProduct {
     name: string;
     duration?: string;
     category?: string;
+    /** 상품 구분(풀패키지·실속형) — PC 예약 요약의 꼬리표. */
+    packageType?: 'full' | 'value' | null;
     mainImages?: string[];
     pricingOptions?: TourPricingOption[];
     accommodationOptions?: AccommodationOption[];
@@ -48,7 +50,8 @@ export interface ReservationStepProps {
     product: BookingProduct;
     parsedDuration: ParsedDuration;
     selectedStartDate: Date | null;
-    setSelectedStartDate: (d: Date) => void;
+    /** null = 고른 날을 지운다(PC ‘다시 선택’). */
+    setSelectedStartDate: (d: Date | null) => void;
     totalPeople: number;
     setTotalPeople: (n: number) => void;
     selectedAccomId: string;
@@ -97,27 +100,14 @@ export interface CompleteStepProps {
     total: number;
     deposit: number;
     local: number;
+    /** PC 완료 화면의 신청 내용(사진 · 여행 기간 · 인원). 없으면 그 줄을 뺀다. */
+    image?: string;
+    startDate?: Date | null;
+    endDate?: Date | null;
+    people?: number;
 }
 
 export const BK_PAGE_BG = '#F4F6F5';
-export const BK_SOFT = '#F7FAF9';
-export const BK_HAIR = '#EEF1EF';
-export const BK_OFF = '#C3CCCA';
-export const BK_SAT = '#2B63C6';
-export const BK_ERR_BG = '#FDECEA';
-export const BK_DARK_GRADIENT = 'linear-gradient(160deg,#0F2A3B 0%,#1C8571 100%)';
-
-export const BK_STEPS: { label: string; short: string }[] = [
-    { label: '예약일·옵션', short: '일정·옵션' },
-    { label: '예약자 정보·결제', short: '정보·결제' },
-    { label: '신청 완료', short: '완료' },
-];
-
-export const BK_HEAD: Record<BookingStepNo, { title: string; sub: string }> = {
-    1: { title: '예약일 및 옵션 선택', sub: '여행 시작일과 인원, 옵션을 선택해 주세요' },
-    2: { title: '예약 정보 및 결제 확인', sub: '예약자 정보와 결제 방법을 확인해 주세요' },
-    3: { title: '신청 완료', sub: '예약금 입금이 확인되면 예약이 확정됩니다' },
-};
 
 /** Shown under the deposit rule on STEP 2; the rule itself is DEPOSIT_POLICY in constants/company.ts. */
 export const BK_CANCEL_NOTES = [
@@ -125,32 +115,11 @@ export const BK_CANCEL_NOTES = [
     '자세한 계약 조건은 예약 후 보내 드리는 해외여행 계약서를 확인해 주세요.',
 ];
 
-/** 예약금 = 계좌이체 + 입금 신고, 잔금 = 현지 현금 (오너 방침). */
-export const BK_PAY_TITLE = '계좌이체';
-export const BK_PAY_GUIDE = "예약 신청 후 안내해 드리는 계좌로 예약금을 입금하고, 마이페이지에서 '입금 완료'를 알려 주세요. 담당자가 확인한 뒤 예약이 확정됩니다.";
-
-/** STEP 2의 계좌이체 카드에 미리 보여 주는, 신청 뒤의 세 단계. */
-export const BK_PAY_STEPS = [
-    '예약 신청 후 예약금 입금',
-    "마이페이지에서 '입금 완료' 신고",
-    '담당자 확인 후 예약 확정',
-];
-
 export const BK_PAY_NOTES = [
     '예약금은 안내해 드리는 기한 내에 입금해 주세요.',
     '기한 내에 입금이 확인되지 않으면 예약이 취소될 수 있습니다.',
     '잔금은 현지에서 현금으로 결제합니다. 여행 당일 가이드에게 직접 전달해 주세요.',
 ];
-
-export const BK_NEXT_STEPS: { t: string; d: string }[] = [
-    { t: '예약금을 계좌이체로 입금', d: '위 입금 계좌로 예약금을 입금해 주세요.' },
-    { t: "마이페이지에서 '입금 완료' 알리기", d: '입금하신 뒤 마이페이지의 예약 상세 화면에서 입금 완료를 알려 주세요.' },
-    { t: '담당자 확인 후 예약 확정', d: '기한 내에 입금이 확인되지 않으면 예약이 취소될 수 있습니다.' },
-];
-
-export const BK_HINT_DEPOSIT = '예약금은 취소 시에도 환불되지 않습니다';
-export const BK_HINT_PICK_DATE = '달력에서 출발일을 선택해 주세요';
-export const BK_HINT_INVOICE = '신청 후 예약금 입금 계좌를 안내해 드립니다';
 
 /** Stroke icon paths (24px grid) copied from the design file. */
 export const BK_D = {
@@ -234,20 +203,22 @@ export const clearBookingDraft = (productId: string): void => {
 /** "9/12(금)" */
 export const fmtShort = (d: Date): string => `${d.getMonth() + 1}/${d.getDate()}(${WEEK[d.getDay()]})`;
 
-/** "2026년 9월 12일(금)" */
-export const fmtLong = (d: Date): string => `${d.getFullYear()}년 ${d.getMonth() + 1}월 ${d.getDate()}일(${WEEK[d.getDay()]})`;
-
-export const periodShort = (start: Date, end: Date): string => `${fmtShort(start)} ~ ${fmtShort(end)}`;
-
-export const periodLong = (start: Date, end: Date): string =>
-    `${fmtLong(start)} ~ ${end.getMonth() + 1}월 ${end.getDate()}일(${WEEK[end.getDay()]})`;
-
 /** "4박 5일" when the tour has nights, otherwise the product's own duration text. */
 export const durationLabel = (nights: number, days: number, fallback?: string): string =>
     nights > 0 ? `${nights}박 ${days}일` : fallback || '';
 
 /** Admin titles sometimes start with a "[카테고리]" tag; the booking screens show the bare name. */
 export const bareName = (name: string): string => name.replace(/^\[[^\]]+\]\s*/, '');
+
+/** 숙박·차량 옵션(관리자 등록) 한 줄. */
+export interface BookingOptionItem {
+    id: string;
+    name: string;
+    description?: string;
+    priceModifier: number;
+    isDefault?: boolean;
+    imageUrl?: string;
+}
 
 export const signedWon = (n: number): string => (n < 0 ? `−${won(Math.abs(n))}` : `+${won(n)}`);
 
@@ -282,5 +253,3 @@ export function priceLines(
 export const reservationNoOf = (r: { id?: string; reservationNumber?: string | null; reservation_number?: string | null }): string =>
     String(r.reservationNumber || r.reservation_number || (r.id ? r.id.slice(0, 8).toUpperCase() : ''));
 
-/** Sticky offset of the PC summary card. The PC booking pages render without the site header. */
-export const BK_STICKY_TOP_PC = 24;

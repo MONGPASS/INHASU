@@ -7,6 +7,12 @@ import { ReservationCompleteMobile } from '../components/reservation-mobile/Rese
 import { BookingFallback } from '../components/reservation-shared/BookingFallback';
 import { reservationNoOf, type CompleteStepProps } from '../components/reservation-shared/bookingShared';
 
+/** ‘2026-11-27’ → 그날 0시(현지 날짜 그대로). 못 읽으면 null. */
+const toDate = (v: unknown): Date | null => {
+    const m = typeof v === 'string' ? v.match(/^(\d{4})-(\d{2})-(\d{2})/) : null;
+    return m ? new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3])) : null;
+};
+
 export const ReservationComplete: React.FC = () => {
     const navigate = useNavigate();
     const location = useLocation();
@@ -66,6 +72,10 @@ export const ReservationComplete: React.FC = () => {
         total,
         deposit,
         local: isDesktop ? Math.max(0, total - deposit) : priceBreakdown.local || 0,
+        image: typeof location.state?.image === 'string' ? location.state.image : undefined,
+        startDate: toDate(reservation.startDate || reservation.start_date || reservation.date),
+        endDate: toDate(reservation.endDate || reservation.end_date),
+        people: Number(reservation.totalPeople || reservation.travelers) || undefined,
     };
 
     return isDesktop ? <ReservationCompleteDesktop {...stepProps} /> : <ReservationCompleteMobile {...stepProps} />;

@@ -1,10 +1,10 @@
-import { useMemo, useState, type CSSProperties } from 'react';
+import { useEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useHomeData } from '../../hooks/useHomeData';
 import { useHomeSettings } from '../../hooks/useHomeSettings';
 import { isUsableImage, won } from '../desktop-primitives/mwTokens';
 import { HeartButton } from '../home-desktop/TourCard.desktop';
-import { categoryImage, discountPct, inCategory, isPublished, useHomeReviews, type HomeProduct } from '../home-desktop/homeDesktopData';
+import { categoryCircleImage, discountPct, inCategory, isPublished, useHomeReviews, type HomeProduct } from '../home-desktop/homeDesktopData';
 import { ConnectSection } from '../home/ConnectSection';
 import { BenefitBandMobile } from '../home-mobile/BenefitBand.mobile';
 import { MagazineCardsMobile } from '../home-mobile/MagazineCards.mobile';
@@ -66,7 +66,7 @@ export function TourListMobile() {
         ...categories.map((c) => ({
             id: c.id,
             label: c.name,
-            img: categoryImage(c) || products.find((p) => inCategory(p, c) && isUsableImage(p.mainImages[0]))?.mainImages[0] || '',
+            img: categoryCircleImage(c) || products.find((p) => inCategory(p, c) && isUsableImage(p.mainImages[0]))?.mainImages[0] || '',
         })),
     ];
     const regionId = currentCat ? cat : 'all';
@@ -79,6 +79,20 @@ export function TourListMobile() {
     const quotePath = tourQuotePath(type);
 
     const loaded = !isLoading;
+    const pickRegion = (id: string) => setParam('category', id === 'all' ? '' : id);
+
+    // 지역 칩이 위에 붙는 줄 뒤로 지나가면, 그 줄 위쪽에 지역 글자 탭을 보인다(PC의 붙는 지역 줄과 같은 역할).
+    const chipsRef = useRef<HTMLDivElement>(null);
+    const [stuck, setStuck] = useState(false);
+    useEffect(() => {
+        const onScroll = () => {
+            const el = chipsRef.current;
+            if (el) setStuck(el.getBoundingClientRect().bottom < stickyTop);
+        };
+        onScroll();
+        window.addEventListener('scroll', onScroll, { passive: true });
+        return () => window.removeEventListener('scroll', onScroll);
+    }, [stickyTop]);
 
     return (
         <div style={{ background: SD.white, color: SD.gray900 }}>
@@ -91,12 +105,12 @@ export function TourListMobile() {
                 <h1 style={{ margin: 0, fontSize: 24, fontWeight: 700, color: SD.gray900 }}>몽골 투어 상품</h1>
             </div>
 
-            <div style={{ padding: '8px 0 4px' }}>
+            <div ref={chipsRef} style={{ padding: '8px 0 4px' }}>
                 <div role="radiogroup" aria-label="여행 지역" data-noscroll="" style={{ display: 'flex', gap: 8, overflowX: 'auto', scrollbarWidth: 'none', padding: '4px 20px' }}>
                     {regions.map((r) => {
                         const on = r.id === regionId;
                         return (
-                            <button key={r.id} type="button" role="radio" aria-checked={on} onClick={() => setParam('category', r.id === 'all' ? '' : r.id)}
+                            <button key={r.id} type="button" role="radio" aria-checked={on} onClick={() => pickRegion(r.id)}
                                 style={{ flex: 'none', display: 'inline-flex', alignItems: 'center', gap: 10, height: 48, padding: '0 18px 0 4px', borderRadius: 9999, border: on ? `1.5px solid ${SD.gray900}` : `1px solid ${SD.gray200}`,
                                     background: SD.white, fontFamily: 'inherit', fontSize: 14, fontWeight: on ? 700 : 400, color: SD.gray900, whiteSpace: 'nowrap', cursor: 'pointer', boxSizing: 'border-box' }}>
                                 <span style={{ position: 'relative', width: 40, height: 40, borderRadius: 9999, overflow: 'hidden', flex: 'none', background: SD.gray100 }}>
@@ -109,7 +123,21 @@ export function TourListMobile() {
                 </div>
             </div>
 
-            <div style={{ position: 'sticky', top: stickyTop, zIndex: 8, background: SD.white, borderBottom: `1px solid ${SD.gray200}`, padding: '10px 0 12px' }}>
+            <div style={{ position: 'sticky', top: stickyTop, zIndex: 8, background: SD.white, borderBottom: `1px solid ${SD.gray200}`, padding: stuck ? '0 0 12px' : '10px 0 12px' }}>
+                {stuck && (
+                    <nav aria-label="여행 지역 바로가기" data-noscroll="" style={{ display: 'flex', gap: 22, overflowX: 'auto', scrollbarWidth: 'none', padding: '0 20px', marginBottom: 10, borderBottom: `1px solid ${SD.gray100}` }}>
+                        {regions.map((r) => {
+                            const on = r.id === regionId;
+                            return (
+                                <button key={r.id} type="button" aria-pressed={on} onClick={() => pickRegion(r.id)}
+                                    style={{ flex: 'none', height: 44, padding: '2px 2px 0', border: 'none', borderBottom: `2px solid ${on ? SD.mint500 : 'transparent'}`, background: 'transparent', fontFamily: 'inherit',
+                                        fontSize: 15, fontWeight: on ? 700 : 400, color: on ? SD.gray900 : SD.gray600, whiteSpace: 'nowrap', cursor: 'pointer', boxSizing: 'border-box' }}>
+                                    {r.label}
+                                </button>
+                            );
+                        })}
+                    </nav>
+                )}
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, padding: '0 20px' }}>
                     <div role="radiogroup" aria-label="상품 구분" style={{ display: 'flex', gap: 6 }}>
                         {TYPE_OPTIONS.map((o) => {

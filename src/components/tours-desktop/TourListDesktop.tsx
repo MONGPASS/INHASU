@@ -7,7 +7,7 @@ import { isUsableImage, won } from '../desktop-primitives/mwTokens';
 import { BenefitBandDesktop } from '../home-desktop/BenefitBand.desktop';
 import { MagazineCardsDesktop } from '../home-desktop/MagazineCards.desktop';
 import { HeartButton } from '../home-desktop/TourCard.desktop';
-import { categoryImage, discountPct, inCategory, isPublished, useHomeReviews, type HomeProduct } from '../home-desktop/homeDesktopData';
+import { categoryCircleImage, discountPct, inCategory, isPublished, useHomeReviews, type HomeProduct } from '../home-desktop/homeDesktopData';
 import { SD, SD_CONTAINER, SIcon } from '../site-seed/seed';
 import { durationLabel } from '../tours-mobile/tourListFilters';
 import { TourTypeBadge } from './TourTypeBadge';
@@ -105,7 +105,7 @@ export function TourListDesktop() {
         ...categories.map((c) => ({
             id: c.id,
             label: c.name,
-            img: categoryImage(c) || products.find((p) => inCategory(p, c) && isUsableImage(p.mainImages[0]))?.mainImages[0] || '',
+            img: categoryCircleImage(c) || products.find((p) => inCategory(p, c) && isUsableImage(p.mainImages[0]))?.mainImages[0] || '',
         })),
     ];
     const regionId = currentCat ? cat : 'all';

@@ -244,7 +244,7 @@ export const Payment: React.FC = () => {
 
             // Proceed to reservation complete
             if (product?.id) clearBookingDraft(String(product.id));
-            navigate('/reservation-complete', { state: { reservationId }, replace: true });
+            navigate('/reservation-complete', { state: { reservationId, image: product?.mainImages?.[0] }, replace: true });
         } catch (e) {
             console.error('Failed to save reservation', e);
             setIsProcessing(false);
