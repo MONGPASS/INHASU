@@ -8,20 +8,18 @@ import { BenefitBandDesktop } from '../home-desktop/BenefitBand.desktop';
 import { MagazineCardsDesktop } from '../home-desktop/MagazineCards.desktop';
 import { HeartButton } from '../home-desktop/TourCard.desktop';
 import { categoryImage, discountPct, inCategory, isPublished, useHomeReviews, type HomeProduct } from '../home-desktop/homeDesktopData';
-import { SD, SD_CONTAINER, SIcon, SStar } from '../site-seed/seed';
+import { SD, SD_CONTAINER, SIcon } from '../site-seed/seed';
 import { durationLabel } from '../tours-mobile/tourListFilters';
+import { TourTypeBadge } from './TourTypeBadge';
+import { TOUR_STAY, tourQuotePath } from './tourTypes';
 
 type Sort = 'rec' | 'low' | 'high' | 'rating' | 'reviews';
 type TripKey = '' | 'value' | 'full';
 
-/**
- * 상품 구분(관리자에서 정한 여행 타입 packageType).
- * `stays`는 견적 폼(estimate-desktop/quoteForm.ts의 ACCOMMODATIONS) 값과 일치해야 선택된다.
- * 견적 폼이 일본어 값·한국어 값 어느 쪽이어도 맞도록 두 표기를 함께 보낸다(모르는 값은 견적 폼이 버린다).
- */
+/** 상품 구분(관리자에서 정한 여행 타입 packageType). */
 const TRIP_TYPES = [
-    { key: 'value', label: '실속형', stay: '3성급 호텔 + 스탠다드 게르 숙박', stays: ['3성급 호텔', '스탠다드 게르', '3つ星ホテル', 'スタンダードゲル'] },
-    { key: 'full', label: '풀패키지', stay: '4성급 호텔 + 디럭스 게르 숙박', stays: ['4성급 호텔', '디럭스 게르', '4つ星ホテル', 'デラックスゲル'] },
+    { key: 'value', label: '실속형' },
+    { key: 'full', label: '풀패키지' },
 ] as const;
 const TYPE_OPTIONS: { key: TripKey; label: string }[] = [{ key: '', label: '전체' }, ...TRIP_TYPES];
 
@@ -119,7 +117,7 @@ export function TourListDesktop() {
     const emptyTitle = query
         ? `‘${query}’에 맞는 투어를 찾지 못했어요`
         : `${[regionName, selectedType?.label].filter(Boolean).join(' ') || '이 조건의'} 투어를 준비하고 있어요`;
-    const quotePath = selectedType ? `/custom-estimate?stay=${encodeURIComponent(selectedType.stays.join(','))}` : '/custom-estimate';
+    const quotePath = tourQuotePath(type);
 
     const showAll = () => {
         setType('');
@@ -376,19 +374,6 @@ function SortSelect({ sort, onSort, small = false }: { sort: Sort; onSort: (s: S
     );
 }
 
-/** 사진 위 상품 구분 꼬리표: 풀패키지는 민트 바탕 + 별, 실속형은 흰 바탕. */
-function TypeBadge({ type, style }: { type: HomeProduct['packageType']; style: CSSProperties }) {
-    if (!type) return null;
-    const full = type === 'full';
-    return (
-        <span style={{ position: 'absolute', height: 30, padding: '0 12px', display: 'inline-flex', alignItems: 'center', gap: 4, borderRadius: 8, background: full ? SD.mint600 : SD.white,
-            color: full ? SD.white : SD.gray900, fontSize: 14, fontWeight: 700, boxShadow: '0 1px 3px rgba(0,0,0,0.12)', pointerEvents: 'none', ...style }}>
-            {full && <SStar size={12} />}
-            {full ? '풀패키지' : '실속형'}
-        </span>
-    );
-}
-
 function Price({ p, size }: { p: HomeProduct; size: number }) {
     const off = discountPct(p);
     return (
@@ -423,7 +408,7 @@ function BestCard({ p, rankNo }: { p: HomeProduct; rankNo: number }) {
                     display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                     {rankNo}<span style={HIDDEN}>위</span>
                 </span>
-                <TypeBadge type={p.packageType} style={{ left: 10, bottom: 10 }} />
+                <TourTypeBadge type={p.packageType} style={{ left: 10, bottom: 10 }} />
             </span>
             <span style={{ flex: '1 1 auto', minWidth: 0, display: 'flex', flexDirection: 'column', gap: 10, paddingTop: 4 }}>
                 <span style={{ ...CLAMP2, fontSize: 16, fontWeight: 700, lineHeight: 1.45 }}>{p.name}</span>
@@ -438,7 +423,7 @@ function BestCard({ p, rankNo }: { p: HomeProduct; rankNo: number }) {
 function TourGridCard({ p }: { p: HomeProduct }) {
     const open = useOpen(p);
     const img = p.mainImages[0];
-    const stay = TRIP_TYPES.find((t) => t.key === p.packageType)?.stay;
+    const stay = p.packageType ? `${TOUR_STAY[p.packageType]} 숙박` : '';
     return (
         <a {...open} style={{ display: 'flex', flexDirection: 'column', gap: 10, minWidth: 0, color: SD.gray900, textDecoration: 'none' }}>
             <div style={{ position: 'relative', aspectRatio: '4 / 3', borderRadius: 12, overflow: 'hidden', background: SD.gray100 }}>
@@ -446,7 +431,7 @@ function TourGridCard({ p }: { p: HomeProduct }) {
                     <ResponsiveProductImage src={img} sizes="(max-width: 700px) 50vw, 260px" alt={`${p.name} | ${p.category}`} loading="lazy" decoding="async"
                         style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
                 )}
-                <TypeBadge type={p.packageType} style={{ left: 12, top: 12 }} />
+                <TourTypeBadge type={p.packageType} style={{ left: 12, top: 12 }} />
                 <HeartButton product={p} inset={12} />
             </div>
             <p style={{ margin: '4px 0 0', fontSize: 13, color: SD.gray600 }}>{[p.category, durationLabel(p.duration)].filter(Boolean).join(' · ')}</p>

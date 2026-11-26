@@ -1,36 +1,46 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useState, type CSSProperties } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useHomeData } from '../../hooks/useHomeData';
-import { useWishlist } from '../../hooks/useWishlist';
-import { MW, MW_FONT_EN, isUsableImage } from '../desktop-primitives/mwTokens';
-import { categoryImage, inCategory, isPublished, useHomeReviews } from '../home-desktop/homeDesktopData';
+import { useHomeSettings } from '../../hooks/useHomeSettings';
+import { isUsableImage, won } from '../desktop-primitives/mwTokens';
+import { HeartButton } from '../home-desktop/TourCard.desktop';
+import { categoryImage, discountPct, inCategory, isPublished, useHomeReviews, type HomeProduct } from '../home-desktop/homeDesktopData';
+import { ConnectSection } from '../home/ConnectSection';
+import { BenefitBandMobile } from '../home-mobile/BenefitBand.mobile';
+import { MagazineCardsMobile } from '../home-mobile/MagazineCards.mobile';
+import { linkTo, useGo } from '../home-mobile/homeMobileData';
 import { useMobileShell } from '../mobile/mobileShellContext';
-import { D, M_HAIR } from '../mobile/mobileTheme';
-import { Ico, MLoading, MPhoto } from '../mobile/mobileUi';
-import { TourCardMobile } from './TourCardMobile';
-import { TourFilterSheet } from './TourFilterSheet';
-import { EMPTY_FILTERS, PERKS, SORT_OPTIONS, TRIP_TYPES, activeCount, durationOptions, matchFilters, matchQuery, sortTours, type Sort, type TourFilters } from './tourListFilters';
+import { MLoading, MPhoto } from '../mobile/mobileUi';
+import { SD, SIcon } from '../site-seed/seed';
+import { TourTypeBadge } from '../tours-desktop/TourTypeBadge';
+import { TOUR_STAY, tourQuotePath } from '../tours-desktop/tourTypes';
+import { SORT_OPTIONS, durationLabel, matchQuery, sortTours, type Sort } from './tourListFilters';
+
+type TripKey = '' | 'value' | 'full';
+const TYPE_OPTIONS: { key: TripKey; label: string }[] = [{ key: '', label: '전체' }, { key: 'value', label: '실속형' }, { key: 'full', label: '풀패키지' }];
+
+const rank = (p: HomeProduct) => Number(p.isPopular) * 2 + Number(p.isFeatured);
 
 /**
- * Mobile tour list (Claude Design: "Milkyway Japan Mobile" — M Tours).
- * 여행지 (?category=), 여행 타입 (?type=) and the header search word (?q=) live in the URL;
- * the 필터 sheet's 일정 / 요금 / 혜택 and the sort order are page state.
+ * 휴대폰 투어 상품 목록(Claude Design ‘투어 상품 — 모바일’, 2026-11-26). 머리·메뉴 줄·바닥·하단 메뉴는 MobileShell이 그린다.
+ * 제목 → 지역 칩(관리자 분류, 사진 동그라미) → 위에 붙는 상품 구분·정렬 줄 → 판매 BEST 3개 → 2열 목록 → 혜택 띠 · 매거진 · 문의(홈과 같은 부품).
+ * 지역은 주소의 ?category=, 상품 구분은 ?type=(full·value), 검색어는 ?q=(머리 검색창)로 받는다.
  */
 export function TourListMobile() {
     const [params, setParams] = useSearchParams();
+    const go = useGo();
     const { stickyTop } = useMobileShell();
     const { data, isLoading } = useHomeData();
+    const { settings, isPending: settingsPending } = useHomeSettings();
     const { stats } = useHomeReviews();
-    const wishlist = useWishlist();
-    const { categories } = data;
+    const { categories, magazines } = data;
     const products = useMemo(() => data.products.filter(isPublished), [data.products]);
 
     const query = (params.get('q') || '').trim();
     const cat = params.get('category') || 'all';
-    const type = TRIP_TYPES.find((t) => t.key === params.get('type'))?.key ?? '';
+    const rawType = params.get('type');
+    const type: TripKey = rawType === 'full' || rawType === 'value' ? rawType : '';
     const [sort, setSort] = useState<Sort>('rec');
-    const [filters, setFilters] = useState<TourFilters>(EMPTY_FILTERS);
-    const [sheet, setSheet] = useState(false);
 
     const setParam = (key: string, value: string) => {
         const next = new URLSearchParams(params);
@@ -40,159 +50,205 @@ export function TourListMobile() {
     };
 
     const currentCat = categories.find((c) => c.id === cat);
-
-    // Tours matching the page-level conditions; the sheet counts its options against these.
-    const base = useMemo(
-        () => products.filter((p) => (!currentCat || inCategory(p, currentCat)) && (!type || p.packageType === type) && matchQuery(p, query)),
-        [products, currentCat, type, query],
+    const scoped = useMemo(
+        () => products.filter((p) => (!currentCat || inCategory(p, currentCat)) && (!type || p.packageType === type)),
+        [products, currentCat, type],
     );
-    const items = useMemo(() => sortTours(base.filter((p) => matchFilters(p, filters)), sort, stats), [base, filters, sort, stats]);
+    const items = useMemo(() => sortTours(scoped.filter((p) => matchQuery(p, query)), sort, stats), [scoped, query, sort, stats]);
+    // 판매 BEST: 인기·추천 표시 → 후기 수 순으로 3개. 검색 중에는 숨긴다.
+    const best = useMemo(
+        () => [...scoped].sort((a, b) => rank(b) - rank(a) || (stats[b.id]?.count ?? 0) - (stats[a.id]?.count ?? 0)).slice(0, 3),
+        [scoped, stats],
+    );
 
-    const dayOptions = useMemo(() => durationOptions(products), [products]);
-    const perks = useMemo(() => PERKS.filter((k) => products.some(k.test)), [products]);
-
-    const dests = [
-        { id: 'all', label: '전체', img: products.find((p) => p.mainImages[0])?.mainImages[0] || '' },
+    const regions = [
+        { id: 'all', label: '전체', img: products.find((p) => isUsableImage(p.mainImages[0]))?.mainImages[0] || '' },
         ...categories.map((c) => ({
             id: c.id,
             label: c.name,
-            img: categoryImage(c) || products.find((p) => inCategory(p, c) && p.mainImages[0])?.mainImages[0] || '',
+            img: categoryImage(c) || products.find((p) => inCategory(p, c) && isUsableImage(p.mainImages[0]))?.mainImages[0] || '',
         })),
     ];
+    const regionId = currentCat ? cat : 'all';
 
-    const active = activeCount(filters);
-    const selectedType = TRIP_TYPES.find((t) => t.key === type);
+    const regionName = currentCat?.name || '';
+    const typeName = TYPE_OPTIONS.find((o) => o.key === type && o.key)?.label || '';
+    const bestTitle = regionName ? `${regionName} 판매 BEST` : '몽골 여행 판매 BEST';
+    const listTitle = query ? `‘${query}’ 검색 결과` : regionName || '몽골 전체 여행';
+    const emptyTitle = query ? `‘${query}’에 맞는 투어를 찾지 못했어요` : `${[regionName, typeName].filter(Boolean).join(' ') || '이 조건의'} 투어를 준비하고 있어요`;
+    const quotePath = tourQuotePath(type);
 
-    const reset = () => {
-        setFilters(EMPTY_FILTERS);
-        setParams({}, { replace: true });
-    };
+    const loaded = !isLoading;
 
     return (
-        <section style={{ padding: '16px 0 0' }}>
-            <div style={{ padding: '0 16px', display: 'flex', flexDirection: 'column', gap: 8 }}>
-                <span style={{ fontFamily: MW_FONT_EN, fontSize: 11, fontWeight: 600, letterSpacing: '0.06em', color: MW.mintDeep, marginTop: 10 }}>TOURS</span>
-                <h1 style={{ margin: 0, fontSize: 28, fontWeight: 900, lineHeight: 1.3 }}>몽골 투어 상품</h1>
-                {/* Intro copy kept from the previous mobile page for search engines. */}
-                <p style={{ margin: 0, fontSize: 13, lineHeight: 1.7, color: MW.mute }}>
-                    몽골 승마 여행, 고비사막 투어, 테를지 국립공원, 홉스굴 호수 등 지역·테마별로 몽골 투어를 찾아보세요.
-                </p>
-                {query && (
-                    <button type="button" onClick={() => setParam('q', '')} aria-label={`검색어 '${query}' 지우기`} style={{ alignSelf: 'flex-start', display: 'flex', alignItems: 'center', gap: 8, maxWidth: '100%', height: 34, marginTop: 6, padding: '0 12px', border: 0, borderRadius: 999, background: MW.navy, fontFamily: 'inherit', fontSize: 13, fontWeight: 700, color: '#FFFFFF', cursor: 'pointer' }}>
-                        <span style={{ minWidth: 0, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>검색: {query}</span>
-                        <span style={{ color: MW.mintLight }}>×</span>
-                    </button>
-                )}
+        <div style={{ background: SD.white, color: SD.gray900 }}>
+            <div style={{ padding: '16px 20px 12px', display: 'flex', flexDirection: 'column', gap: 6 }}>
+                <nav aria-label="현재 위치" style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 12, color: SD.gray600 }}>
+                    <a {...linkTo(go, '/')} style={{ color: SD.gray600, textDecoration: 'none' }}>홈</a>
+                    <span aria-hidden="true">/</span>
+                    <span style={{ color: SD.gray900 }}>투어 상품</span>
+                </nav>
+                <h1 style={{ margin: 0, fontSize: 24, fontWeight: 700, color: SD.gray900 }}>몽골 투어 상품</h1>
             </div>
 
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2,minmax(0,1fr))', gap: 10, padding: '20px 16px 0' }}>
-                {TRIP_TYPES.map((t) => {
-                    const on = type === t.key;
-                    const full = t.key === 'full';
-                    return (
-                        <button
-                            key={t.key}
-                            type="button"
-                            onClick={() => setParam('type', on ? '' : t.key)}
-                            aria-pressed={on}
-                            style={{
-                                position: 'relative', display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: 8, padding: '16px 10px', minWidth: 0, overflow: 'hidden', borderRadius: 18,
-                                border: `1.5px solid ${on ? MW.navy : full ? MW.mintDeep : MW.mintTint}`,
-                                background: full ? 'linear-gradient(160deg,#1C8571 0%,#27AB8F 50%,#3FC2A4 100%)' : 'linear-gradient(160deg,#F1FCF8 0%,#FFFFFF 100%)',
-                                boxShadow: on ? '0 8px 20px rgba(10,31,46,0.14)' : 'none',
-                                fontFamily: 'inherit', textAlign: 'left', cursor: 'pointer', color: full ? '#FFFFFF' : MW.navy,
-                            }}
-                        >
-                            <span style={{ fontFamily: MW_FONT_EN, fontSize: 15, fontWeight: 700, letterSpacing: '-0.01em' }}>
-                                몽골리아<span style={{ color: full ? '#FFFFFF' : MW.mint }}> 은하수</span>
-                            </span>
-                            <span style={{ fontFamily: MW_FONT_EN, fontSize: 10, fontWeight: 700, letterSpacing: '-0.01em', padding: '3px 8px', borderRadius: 999, background: full ? 'rgba(255,255,255,0.22)' : MW.mintTint, color: full ? '#FFFFFF' : MW.mintDeep }}>{t.en}</span>
-                            <span style={{ fontSize: 14, fontWeight: 900, marginTop: 4 }}>{t.label}</span>
-                            <span style={{ fontSize: 'clamp(8px,2.4vw,9.5px)', lineHeight: 1.5, fontWeight: 700, letterSpacing: '-0.04em', whiteSpace: 'nowrap', color: full ? MW.mintTint : MW.ink3 }}>{t.desc}</span>
-                            {on && (
-                                <span style={{ position: 'absolute', right: 10, top: 10, width: 20, height: 20, borderRadius: '50%', background: MW.navy, color: '#FFFFFF', fontSize: 11, fontWeight: 900, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>✓</span>
-                            )}
-                        </button>
-                    );
-                })}
+            <div style={{ padding: '8px 0 4px' }}>
+                <div role="radiogroup" aria-label="여행 지역" data-noscroll="" style={{ display: 'flex', gap: 8, overflowX: 'auto', scrollbarWidth: 'none', padding: '4px 20px' }}>
+                    {regions.map((r) => {
+                        const on = r.id === regionId;
+                        return (
+                            <button key={r.id} type="button" role="radio" aria-checked={on} onClick={() => setParam('category', r.id === 'all' ? '' : r.id)}
+                                style={{ flex: 'none', display: 'inline-flex', alignItems: 'center', gap: 10, height: 48, padding: '0 18px 0 4px', borderRadius: 9999, border: on ? `1.5px solid ${SD.gray900}` : `1px solid ${SD.gray200}`,
+                                    background: SD.white, fontFamily: 'inherit', fontSize: 14, fontWeight: on ? 700 : 400, color: SD.gray900, whiteSpace: 'nowrap', cursor: 'pointer', boxSizing: 'border-box' }}>
+                                <span style={{ position: 'relative', width: 40, height: 40, borderRadius: 9999, overflow: 'hidden', flex: 'none', background: SD.gray100 }}>
+                                    {isUsableImage(r.img) && <MPhoto src={r.img} sizes="48px" />}
+                                </span>
+                                <span>{r.label}</span>
+                            </button>
+                        );
+                    })}
+                </div>
             </div>
 
-            <div role="tablist" aria-label="여행지" data-noscroll="" style={{ display: 'flex', gap: 8, overflowX: 'auto', scrollbarWidth: 'none', padding: '16px 16px 2px' }}>
-                {dests.map((d) => {
-                    const on = d.id === (currentCat ? cat : 'all');
-                    return (
-                        <button
-                            key={d.id}
-                            type="button"
-                            role="tab"
-                            aria-selected={on}
-                            onClick={() => setParam('category', d.id === 'all' ? '' : d.id)}
-                            style={{ flexShrink: 0, display: 'flex', alignItems: 'center', gap: 8, height: 44, padding: '0 14px 0 4px', borderRadius: 999, border: `1px solid ${on ? MW.navy : MW.line}`, background: on ? MW.navy : '#FFFFFF', fontFamily: 'inherit', fontSize: 13, fontWeight: 700, color: on ? '#FFFFFF' : MW.navy, cursor: 'pointer', whiteSpace: 'nowrap' }}
-                        >
-                            <span style={{ position: 'relative', width: 36, height: 36, borderRadius: '50%', overflow: 'hidden', flexShrink: 0, background: MW.mintTint, pointerEvents: 'none' }}>
-                                {isUsableImage(d.img) && <MPhoto src={d.img} sizes="48px" />}
-                                {on && (
-                                    <span style={{ position: 'absolute', inset: 0, background: 'rgba(10,31,46,0.45)', color: '#fff', fontSize: 14, fontWeight: 900, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>✓</span>
-                                )}
-                            </span>
-                            {d.label}
-                        </button>
-                    );
-                })}
-            </div>
-
-            <div style={{ position: 'sticky', top: stickyTop, zIndex: 10, background: '#FFFFFF', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10, marginTop: 14, padding: '10px 16px', borderTop: `1px solid ${M_HAIR}`, borderBottom: `1px solid ${M_HAIR}` }}>
-                <span style={{ fontSize: 13, color: MW.mute, whiteSpace: 'nowrap' }}>
-                    <strong style={{ fontFamily: MW_FONT_EN, fontSize: 15, fontWeight: 600, color: MW.navy }}>{items.length}</strong>건의 투어
-                </span>
-                <div style={{ display: 'flex', gap: 8, minWidth: 0 }}>
-                    <button type="button" onClick={() => setSheet(true)} aria-haspopup="dialog" style={{ flexShrink: 0, display: 'flex', alignItems: 'center', gap: 6, height: 38, padding: '0 14px', borderRadius: 999, border: `1px solid ${active ? MW.mint : MW.line}`, background: active ? MW.mintBg : '#FFFFFF', fontFamily: 'inherit', fontSize: 13, fontWeight: 700, color: MW.navy, cursor: 'pointer', whiteSpace: 'nowrap' }}>
-                        <Ico d={D.filter} size={15} width={2} />
-                        필터
-                        {active > 0 && (
-                            <span style={{ minWidth: 18, height: 18, borderRadius: 999, background: MW.mint, fontSize: 10, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{active}</span>
-                        )}
-                    </button>
-                    <select value={sort} onChange={(e) => setSort(e.target.value as Sort)} aria-label="정렬" style={{ height: 38, minWidth: 0, padding: '0 10px', border: `1px solid ${MW.line}`, borderRadius: 999, background: '#fff', fontFamily: 'inherit', fontSize: 13, fontWeight: 700, color: MW.navy }}>
-                        {SORT_OPTIONS.map(([k, label]) => (
-                            <option key={k} value={k}>{label}</option>
-                        ))}
+            <div style={{ position: 'sticky', top: stickyTop, zIndex: 8, background: SD.white, borderBottom: `1px solid ${SD.gray200}`, padding: '10px 0 12px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, padding: '0 20px' }}>
+                    <div role="radiogroup" aria-label="상품 구분" style={{ display: 'flex', gap: 6 }}>
+                        {TYPE_OPTIONS.map((o) => {
+                            const on = o.key === type;
+                            return (
+                                <button key={o.key || 'all'} type="button" role="radio" aria-checked={on} onClick={() => setParam('type', o.key)}
+                                    style={{ height: 34, padding: '0 12px', borderRadius: 9999, border: `1px solid ${on ? SD.gray900 : SD.gray200}`, background: on ? SD.gray900 : SD.white, fontFamily: 'inherit',
+                                        fontSize: 13, fontWeight: on ? 700 : 400, color: on ? SD.white : SD.gray700, whiteSpace: 'nowrap', cursor: 'pointer' }}>
+                                    {o.label}
+                                </button>
+                            );
+                        })}
+                    </div>
+                    <select aria-label="정렬" value={sort} onChange={(e) => setSort(e.target.value as Sort)}
+                        style={{ height: 34, minWidth: 0, padding: '0 26px 0 10px', border: `1px solid ${SD.gray200}`, borderRadius: 9999, backgroundColor: SD.white, fontFamily: 'inherit', fontSize: 13, color: SD.gray900,
+                            appearance: 'none', backgroundImage: `linear-gradient(45deg,transparent 50%,${SD.gray700} 50%),linear-gradient(135deg,${SD.gray700} 50%,transparent 50%)`,
+                            backgroundPosition: 'calc(100% - 15px) 15px,calc(100% - 10px) 15px', backgroundSize: '5px 5px', backgroundRepeat: 'no-repeat' }}>
+                        {SORT_OPTIONS.map(([k, label]) => <option key={k} value={k}>{label}</option>)}
                     </select>
                 </div>
             </div>
 
             {isLoading && <MLoading />}
 
-            {!isLoading && items.length > 0 && (
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2,minmax(0,1fr))', gap: '24px 12px', padding: '18px 16px 0' }}>
-                    {items.map((p, i) => (
-                        <TourCardMobile key={p.id} p={p} eager={i < 4} fav={wishlist.has(p.id)} onFav={() => wishlist.toggle(p)} />
-                    ))}
-                </div>
+            {loaded && !query && best.length > 0 && (
+                <section aria-label="판매 BEST" style={{ paddingTop: 24, display: 'flex', flexDirection: 'column', gap: 14 }}>
+                    <h2 style={{ margin: 0, padding: '0 20px', fontSize: 18, fontWeight: 700, color: SD.gray900 }}>{bestTitle}</h2>
+                    <ol style={{ margin: 0, padding: '0 20px', listStyle: 'none', display: 'flex', flexDirection: 'column' }}>
+                        {best.map((p, i) => (
+                            <li key={p.id} style={{ borderBottom: `1px solid ${SD.gray100}` }}><BestRow p={p} rankNo={i + 1} /></li>
+                        ))}
+                    </ol>
+                </section>
             )}
 
-            {!isLoading && items.length === 0 && (
-                <div style={{ margin: '18px 16px 0', padding: '44px 20px', border: `1px dashed ${MW.line2}`, borderRadius: 20, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12, textAlign: 'center' }}>
-                    <span style={{ fontSize: 14, fontWeight: 700 }}>
-                        {selectedType && products.every((p) => p.packageType !== type)
-                            ? `'${selectedType.label}' 투어는 준비 중입니다`
-                            : '조건에 맞는 투어를 찾지 못했습니다'}
-                    </span>
-                    <button type="button" onClick={reset} style={{ height: 44, padding: '0 20px', border: `1px solid ${MW.line}`, borderRadius: 999, background: '#fff', fontFamily: 'inherit', fontSize: 14, fontWeight: 700, color: MW.navy, cursor: 'pointer' }}>조건 초기화</button>
-                </div>
+            {loaded && (
+                <section aria-label="투어 목록" style={{ padding: '32px 20px 0', display: 'flex', flexDirection: 'column', gap: 16 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
+                        <h2 style={{ margin: 0, minWidth: 0, display: 'flex', alignItems: 'center', gap: 8, fontSize: 18, fontWeight: 700, color: SD.gray900 }}>
+                            <span style={{ minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{listTitle}</span>
+                            <span style={{ flex: 'none', height: 22, padding: '0 8px', display: 'inline-flex', alignItems: 'center', borderRadius: 9999, background: SD.gray100, color: SD.gray600, fontSize: 12, fontWeight: 700 }}>
+                                {items.length}개
+                            </span>
+                        </h2>
+                        {query && (
+                            <button type="button" onClick={() => setParam('q', '')} aria-label={`검색어 ‘${query}’ 지우기`}
+                                style={{ flex: 'none', display: 'inline-flex', alignItems: 'center', gap: 2, minHeight: 44, padding: 0, border: 0, background: 'transparent', fontFamily: 'inherit', fontSize: 13, color: SD.gray700, cursor: 'pointer' }}>
+                                지우기<SIcon name="close" size={14} />
+                            </button>
+                        )}
+                    </div>
+
+                    {items.length > 0 ? (
+                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: '24px 12px' }}>
+                            {items.map((p) => <GridCard key={p.id} p={p} />)}
+                        </div>
+                    ) : (
+                        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10, padding: '28px 20px', borderRadius: 14, background: SD.gray50, textAlign: 'center' }}>
+                            <span style={{ width: 52, height: 52, borderRadius: 9999, background: SD.white, color: SD.gray700, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                <SIcon name="mapFold" size={24} stroke={1.6} />
+                            </span>
+                            <p style={{ margin: 0, fontSize: 16, fontWeight: 700, color: SD.gray900, wordBreak: 'keep-all' }}>{emptyTitle}</p>
+                            <p style={{ margin: 0, fontSize: 13, lineHeight: 1.6, color: SD.gray600 }}>원하는 일정과 인원을 알려주시면<br />맞춤 일정을 짜 드려요. 견적은 무료예요.</p>
+                            <div style={{ display: 'flex', gap: 8, marginTop: 4 }}>
+                                <button type="button" onClick={() => setParams({}, { replace: true })} style={{ ...SMALL_BUTTON, background: SD.white, color: SD.gray900, border: `1px solid ${SD.gray300}` }}>전체 투어 보기</button>
+                                <a {...linkTo(go, quotePath)} style={{ ...SMALL_BUTTON, background: SD.mint700, color: SD.white }}>맞춤 견적 요청</a>
+                            </div>
+                        </div>
+                    )}
+                </section>
             )}
 
-            {sheet && (
-                <TourFilterSheet
-                    base={base}
-                    count={items.length}
-                    filters={filters}
-                    dayOptions={dayOptions}
-                    perks={perks}
-                    onChange={setFilters}
-                    onClose={() => setSheet(false)}
-                />
-            )}
-        </section>
+            {/* 혜택 배너를 모두 지웠으면 띠가 빠지므로 그 자리의 여백만 둔다 */}
+            {!settingsPending && (settings.bands.length > 0 ? <BenefitBandMobile bands={settings.bands} /> : <div aria-hidden="true" style={{ height: 44 }} />)}
+            <MagazineCardsMobile magazines={magazines} />
+            <ConnectSection compact />
+        </div>
     );
 }
+
+function Price({ p, size }: { p: HomeProduct; size: number }) {
+    const off = discountPct(p);
+    return (
+        <span style={{ fontSize: size, fontWeight: 700, color: SD.gray900 }}>
+            {off > 0 && <span style={{ marginRight: 5, color: SD.red }}>{off}%</span>}
+            {won(p.price)}<span style={{ fontSize: 12, fontWeight: 400, color: SD.gray600 }}> ~</span>
+        </span>
+    );
+}
+
+/** 판매 BEST 한 줄: 128px 정사각 사진(순위 · 상품 구분) + 구분·기간 · 이름 · 숙박 · 가격. */
+function BestRow({ p, rankNo }: { p: HomeProduct; rankNo: number }) {
+    const go = useGo();
+    const img = p.mainImages[0];
+    const days = durationLabel(p.duration);
+    const kind = p.packageType ? (p.packageType === 'full' ? '풀패키지' : '실속형') : p.category;
+    return (
+        <a {...linkTo(go, `/products/${p.id}`)} style={{ display: 'flex', alignItems: 'flex-start', gap: 14, padding: '16px 0', color: SD.gray900, textDecoration: 'none' }}>
+            <span style={{ position: 'relative', flex: 'none', width: 128, height: 128, borderRadius: 10, overflow: 'hidden', background: SD.gray100 }}>
+                <MPhoto src={isUsableImage(img) ? img : undefined} alt={`${p.name} | ${p.category}`} sizes="128px" />
+                <span style={{ position: 'absolute', left: 0, top: 0, width: 26, height: 26, borderRadius: '10px 0 10px 0', background: SD.gray900, color: SD.white, fontSize: 13, fontWeight: 700,
+                    display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    {rankNo}<span style={HIDDEN}>위</span>
+                </span>
+                <TourTypeBadge type={p.packageType} size="sm" style={{ left: 6, bottom: 6 }} />
+            </span>
+            <span style={{ flex: '1 1 auto', minWidth: 0, display: 'flex', flexDirection: 'column', gap: 6 }}>
+                <span style={{ fontSize: 12, color: SD.gray600 }}>{[kind, days].filter(Boolean).join(' · ')}</span>
+                <span style={{ ...CLAMP2, fontSize: 15, fontWeight: 700, lineHeight: 1.4 }}>{p.name}</span>
+                {p.packageType && (
+                    <span style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 12, color: SD.gray700 }}>
+                        <SIcon name="homeRoof" size={14} stroke={1.6} />{TOUR_STAY[p.packageType]}
+                    </span>
+                )}
+                <span style={{ marginTop: 2 }}><Price p={p} size={17} /></span>
+            </span>
+        </a>
+    );
+}
+
+/** 2열 목록 카드: 정사각 사진(상품 구분 · 찜) · 지역 · 기간 · 이름 두 줄 · 가격. */
+function GridCard({ p }: { p: HomeProduct }) {
+    const go = useGo();
+    const img = p.mainImages[0];
+    return (
+        <a {...linkTo(go, `/products/${p.id}`)} style={{ display: 'flex', flexDirection: 'column', gap: 6, minWidth: 0, color: SD.gray900, textDecoration: 'none' }}>
+            <div style={{ position: 'relative', aspectRatio: '1 / 1', borderRadius: 10, overflow: 'hidden', background: SD.gray100 }}>
+                <MPhoto src={isUsableImage(img) ? img : undefined} alt={`${p.name} | ${p.category}`} sizes="50vw" />
+                <TourTypeBadge type={p.packageType} size="md" style={{ left: 8, top: 8 }} />
+                <HeartButton product={p} inset={8} small />
+            </div>
+            <p style={{ margin: '2px 0 0', fontSize: 12, color: SD.gray600 }}>{[p.category, durationLabel(p.duration)].filter(Boolean).join(' · ')}</p>
+            <h3 style={{ ...CLAMP2, margin: 0, minHeight: 39, fontSize: 14, fontWeight: 700, lineHeight: 1.4, wordBreak: 'keep-all' }}>{p.name}</h3>
+            <p style={{ margin: 0 }}><Price p={p} size={16} /></p>
+        </a>
+    );
+}
+
+const CLAMP2: CSSProperties = { display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' };
+const HIDDEN: CSSProperties = { position: 'absolute', width: 1, height: 1, margin: -1, padding: 0, overflow: 'hidden', clip: 'rect(0 0 0 0)', whiteSpace: 'nowrap', border: 0 };
+const SMALL_BUTTON: CSSProperties = { display: 'inline-flex', alignItems: 'center', justifyContent: 'center', height: 40, padding: '0 14px', borderRadius: 8, boxSizing: 'border-box',
+    fontFamily: 'inherit', fontSize: 14, fontWeight: 700, textDecoration: 'none', whiteSpace: 'nowrap', cursor: 'pointer' };
