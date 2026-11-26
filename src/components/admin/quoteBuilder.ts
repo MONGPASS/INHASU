@@ -27,8 +27,10 @@ export interface RequestContext {
     reqId: string; reqToken: string; fromReq: boolean;
     reqSpots: string[]; reqProfile: Json; reqPax0: { adult: number; child: number; infant: number } | null;
     savedEmail: string; anonymousShare: boolean;
+    /** 화면 참고용(견적 문서에는 넣지 않는다): 고객이 고른 차량 · 접수 시각 · 처음 적은 여행지 */
+    reqVehicle?: string; reqReceivedAt?: string; reqDestination?: string;
 }
-export const emptyContext = (): RequestContext => ({ reqId: '', reqToken: '', fromReq: false, reqSpots: [], reqProfile: {}, reqPax0: null, savedEmail: '', anonymousShare: false });
+export const emptyContext = (): RequestContext => ({ reqId: '', reqToken: '', fromReq: false, reqSpots: [], reqProfile: {}, reqPax0: null, savedEmail: '', anonymousShare: false, reqVehicle: '', reqReceivedAt: '', reqDestination: '' });
 
 const clone = <T>(value: T): T => structuredClone(value);
 /** 옛 도구와 같은 저장 값(초안에 들어간다). 낱말은 아이콘 이름 검사(check-icon-subset)에 걸리지 않게 나눠 적는다 */
@@ -237,6 +239,7 @@ export function stateFromRequest(st: QuoteState, item: Json, ctx: RequestContext
             pax: (item.adult || 0) + (item.child || 0) + (item.infant || 0) || 6 },
         ctx: { ...ctx, reqId: String(item.id), reqToken: item.token || '', fromReq: true, savedEmail: item.email || '',
             reqPax0: { adult: item.adult || 0, child: item.child || 0, infant: item.infant || 0 }, reqSpots,
+            reqVehicle: item.vehicle || '', reqReceivedAt: item.receivedAt || '', reqDestination: item.destination || '',
             reqProfile: { tripType: item.tripType || '', travelStyles: Array.isArray(item.travelStyles) ? item.travelStyles : [],
                 cityStay: item.cityStay || '', gerStay: item.gerStay || '', request: item.request || '', preferredSpots: reqSpots } },
         quote: item.quote || null,
