@@ -252,41 +252,112 @@ interface Region {
 
 /** 지역 동그라미(사진 + 이름). 고른 지역은 민트 테두리. 넘칠 때만 양옆 화살표가 움직인다. */
 function RegionCircles({ regions, regionId, onRegion }: { regions: Region[]; regionId: string; onRegion: (id: string) => void }) {
-    const viewport = useRef<HTMLDivElement>(null);
-    const [room, setRoom] = useState(0);
-    const [step, setStep] = useState(0);
-    const n = regions.length;
+    const scroller = useRef<HTMLDivElement>(null);
+    const track = useRef<HTMLDivElement>(null);
+    const row = useRef<HTMLDivElement>(null);
+    // 보이는 비율(0~1)과 지금 위치(0~1). 넘치지 않으면 막대 없이 가운데 정렬.
+    const [view, setView] = useState({ ratio: 1, pos: 0 });
+    const drag = useRef<{ x: number; left: number; moved: boolean } | null>(null);
+    const dragged = useRef(false);
+
+    const sync = () => {
+        const el = scroller.current;
+        if (!el) return;
+        const max = el.scrollWidth - el.clientWidth;
+        const ratio = el.scrollWidth > 0 ? Math.min(1, el.clientWidth / el.scrollWidth) : 1;
+        const pos = max > 1 ? el.scrollLeft / max : 0;
+        setView((v) => (Math.abs(v.ratio - ratio) < 0.001 && Math.abs(v.pos - pos) < 0.001 ? v : { ratio, pos }));
+    };
 
     useEffect(() => {
-        const measure = () => {
-            // 좌우 6px은 고른 동그라미의 바깥 테두리 자리
-            const width = (viewport.current?.clientWidth || 0) - 12;
-            setRoom(Math.max(0, n * CIRCLE + Math.max(0, n - 1) * CIRCLE_GAP - width));
-        };
-        measure();
-        window.addEventListener('resize', measure);
-        return () => window.removeEventListener('resize', measure);
-    }, [n]);
+        const el = scroller.current;
+        if (!el) return;
+        // 처음 관찰을 시작할 때도 한 번 불리므로 따로 재지 않는다.
+        const ro = new ResizeObserver(sync);
+        ro.observe(el);
+        if (row.current) ro.observe(row.current);
+        return () => ro.disconnect();
+    }, [regions.length]);
 
-    const shift = Math.min(step * (CIRCLE + CIRCLE_GAP), room);
-    const maxStep = Math.ceil(room / (CIRCLE + CIRCLE_GAP));
-    const arrows = room > 0;
+    // 고른 지역이 가려져 있으면 보이게 옮긴다.
+    useEffect(() => {
+        const el = scroller.current;
+        const btn = el?.querySelector<HTMLElement>('[aria-checked="true"]');
+        if (!el || !btn) return;
+        const left = btn.offsetLeft - el.offsetLeft;
+        if (left < el.scrollLeft || left + btn.offsetWidth > el.scrollLeft + el.clientWidth) {
+            el.scrollTo({ left: Math.max(0, left - (el.clientWidth - btn.offsetWidth) / 2), behavior: 'smooth' });
+        }
+    }, [regionId]);
+
+    const overflow = view.ratio < 0.999;
+
+    // 마우스로 동그라미 줄을 잡아 끌어 옆으로 옮긴다(조금이라도 끌었으면 그 클릭은 지역 선택으로 치지 않는다).
+    const onPointerDown = (e: React.PointerEvent) => {
+        if (!overflow || e.pointerType === 'touch' || e.button !== 0 || !scroller.current) return;
+        drag.current = { x: e.clientX, left: scroller.current.scrollLeft, moved: false };
+        dragged.current = false;
+    };
+    const onPointerMove = (e: React.PointerEvent) => {
+        const d = drag.current;
+        const el = scroller.current;
+        if (!d || !el) return;
+        const dx = e.clientX - d.x;
+        if (!d.moved && Math.abs(dx) < 6) return;
+        if (!d.moved) {
+            d.moved = true;
+            el.setPointerCapture(e.pointerId);
+        }
+        el.scrollLeft = d.left - dx;
+    };
+    const onPointerUp = () => {
+        if (drag.current?.moved) dragged.current = true;
+        drag.current = null;
+    };
+
+    // 진행 막대: 누른 곳으로 옮기고, 누른 채 끌면 따라간다.
+    const seek = (clientX: number) => {
+        const el = scroller.current;
+        const t = track.current;
+        if (!el || !t) return;
+        const rect = t.getBoundingClientRect();
+        const thumb = rect.width * view.ratio;
+        const p = Math.min(1, Math.max(0, (clientX - rect.left - thumb / 2) / Math.max(1, rect.width - thumb)));
+        el.scrollLeft = p * (el.scrollWidth - el.clientWidth);
+    };
+    const onTrackDown = (e: React.PointerEvent<HTMLDivElement>) => {
+        e.currentTarget.setPointerCapture(e.pointerId);
+        seek(e.clientX);
+    };
+    const onTrackMove = (e: React.PointerEvent<HTMLDivElement>) => {
+        if (e.currentTarget.hasPointerCapture(e.pointerId)) seek(e.clientX);
+    };
+    const onTrackKey = (e: React.KeyboardEvent) => {
+        const el = scroller.current;
+        if (!el) return;
+        const stepPx = CIRCLE + CIRCLE_GAP;
+        if (e.key === 'ArrowRight') { e.preventDefault(); el.scrollBy({ left: stepPx, behavior: 'smooth' }); }
+        if (e.key === 'ArrowLeft') { e.preventDefault(); el.scrollBy({ left: -stepPx, behavior: 'smooth' }); }
+    };
 
     return (
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 20 }}>
-            {arrows && <ArrowButton label="이전 지역" icon="chevronLeft" disabled={shift <= 0} onClick={() => setStep(Math.max(0, Math.min(step, maxStep) - 1))} />}
-            <div ref={viewport} style={{ flex: '1 1 auto', minWidth: 0, overflow: 'hidden', padding: '8px 6px' }}>
-                <div role="radiogroup" aria-label="여행 지역"
-                    style={{ display: 'flex', justifyContent: arrows ? 'flex-start' : 'center', alignItems: 'flex-start', gap: CIRCLE_GAP, transform: `translateX(${-shift}px)`, transition: 'transform 0.35s ease' }}>
+        <div>
+            <div ref={scroller} onScroll={sync} onPointerDown={onPointerDown} onPointerMove={onPointerMove} onPointerUp={onPointerUp} onPointerCancel={onPointerUp}
+                onClickCapture={(e) => { if (dragged.current) { e.preventDefault(); e.stopPropagation(); dragged.current = false; } }}
+                className="tl-region-scroll"
+                style={{ overflowX: 'auto', overflowY: 'hidden', scrollbarWidth: 'none', padding: '8px 6px', cursor: overflow ? 'grab' : 'default', userSelect: 'none' }}>
+                <style>{'.tl-region-scroll::-webkit-scrollbar{display:none}'}</style>
+                <div ref={row} role="radiogroup" aria-label="여행 지역"
+                    style={{ display: 'flex', width: 'max-content', minWidth: '100%', justifyContent: 'center', alignItems: 'flex-start', gap: CIRCLE_GAP }}>
                     {regions.map((r) => {
                         const on = r.id === regionId;
                         return (
-                            <button key={r.id} type="button" role="radio" aria-checked={on} onClick={() => onRegion(r.id)}
+                            <button key={r.id} type="button" role="radio" aria-checked={on} onClick={() => onRegion(r.id)} draggable={false}
                                 style={{ flex: 'none', position: 'relative', width: CIRCLE, height: CIRCLE, padding: 0, border: 'none', borderRadius: 9999, overflow: 'hidden', background: SD.gray200,
                                     fontFamily: 'inherit', cursor: 'pointer', outline: on ? `3px solid ${SD.mint400}` : '0 solid transparent', outlineOffset: 3 }}>
                                 {isUsableImage(r.img) && (
-                                    <ResponsiveProductImage src={r.img} sizes="180px" alt="" loading="lazy" decoding="async"
-                                        style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
+                                    <ResponsiveProductImage src={r.img} sizes="180px" alt="" loading="lazy" decoding="async" draggable={false}
+                                        style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', display: 'block', pointerEvents: 'none' }} />
                                 )}
                                 <span aria-hidden="true" style={{ position: 'absolute', inset: 0, background: `rgba(0,0,0,${on ? 0.28 : 0.4})` }} />
                                 <span style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0 18px', textAlign: 'center', color: SD.white,
@@ -298,18 +369,17 @@ function RegionCircles({ regions, regionId, onRegion }: { regions: Region[]; reg
                     })}
                 </div>
             </div>
-            {arrows && <ArrowButton label="다음 지역" icon="chevronRight" disabled={shift >= room} onClick={() => setStep(Math.min(maxStep, step + 1))} />}
+            {overflow && (
+                <div ref={track} role="scrollbar" aria-label="여행 지역 옆으로 보기" aria-orientation="horizontal"
+                    aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.round(view.pos * 100)} tabIndex={0}
+                    onPointerDown={onTrackDown} onPointerMove={onTrackMove} onKeyDown={onTrackKey}
+                    style={{ position: 'relative', margin: '22px 6px 0', height: 14, cursor: 'pointer', touchAction: 'none' }}>
+                    <span aria-hidden="true" style={{ position: 'absolute', left: 0, right: 0, top: 6, height: 2, borderRadius: 2, background: SD.gray300 }} />
+                    <span aria-hidden="true" style={{ position: 'absolute', top: 5, height: 3, borderRadius: 2, background: SD.gray700,
+                        width: `${view.ratio * 100}%`, left: `${view.pos * (1 - view.ratio) * 100}%` }} />
+                </div>
+            )}
         </div>
-    );
-}
-
-function ArrowButton({ label, icon, disabled, onClick }: { label: string; icon: string; disabled: boolean; onClick: () => void }) {
-    return (
-        <button type="button" aria-label={label} onClick={onClick} disabled={disabled}
-            style={{ flex: 'none', width: 44, height: 44, borderRadius: 9999, border: `1px solid ${SD.gray200}`, background: SD.white, color: SD.gray900, display: 'flex', alignItems: 'center',
-                justifyContent: 'center', padding: 0, cursor: disabled ? 'default' : 'pointer', opacity: disabled ? 0.3 : 1, boxShadow: '0 1px 3px rgba(0,0,0,0.06)' }}>
-            <SIcon name={icon} size={20} stroke={2} />
-        </button>
     );
 }
 
