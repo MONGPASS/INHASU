@@ -75,9 +75,10 @@ export function SlideGroup({ slide, productName, compact, bleed = false }: { sli
  * 상세 정보: the admin-authored detail content (long images, slides, dividers, design templates).
  * A design template draws the day-by-day itinerary inside itself; that slot is the 일정 tab target.
  */
-export function DetailBlocks({ product, compact = false }: { product: TourProduct; compact?: boolean }) {
+/** withItinerary=false: 디자인 틀이 끼워 넣던 일정표를 빼고 그린다(상세 화면은 일정을 따로 ‘일정’ 구역에 둔다). */
+export function DetailBlocks({ product, compact = false, withItinerary = true }: { product: TourProduct; compact?: boolean; withItinerary?: boolean }) {
     const blocks: DetailContentBlock[] = product.detailBlocks ?? [];
-    const { hasItinerary } = detailFlags(product);
+    const hasItinerary = withItinerary && detailFlags(product).hasItinerary;
     const variant = compact ? 'mobile' : 'desktop';
     const imageStyle: CSSProperties = { width: '100%', height: 'auto', display: 'block', borderRadius: compact ? 0 : 16 };
     // Mobile detail content runs edge to edge, like the uploaded long artwork it usually is.

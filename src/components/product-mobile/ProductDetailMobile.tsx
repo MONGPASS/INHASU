@@ -10,7 +10,7 @@ import { DetailBlocks, OverviewBody, PhotoOverlay } from '../product/detail/Deta
 import { DesignItinerary } from '../product/designTemplates/DesignItinerary';
 import {
     detailFlags, detailTabs, summariseReviews, tourFacts, tourGallery, tourImageAlt, usePopularTours, useRelatedTours, useSectionTabs, useTourFaqItems, useTourPricing, useTourReviews,
-    type DetailSectionId, type ShareResult, type TourDetailViewProps, type TourPricing,
+    type ShareResult, type TourDetailViewProps, type TourPricing,
 } from '../product/detail/productDetailData';
 import { CollapsibleDetail, FaqFolds, IncludedFolds, RelatedRow, ReviewList, SectionTitle } from '../product/detail/TourDetailSections';
 import { SD, SIcon } from '../site-seed/seed';
@@ -78,15 +78,6 @@ function TourDetailBody({ product, reviews, pricing }: TourDetailViewProps & { p
     const typeLabel = product.packageType === 'full' ? '풀패키지' : product.packageType === 'value' ? '실속형' : '';
     const chips = [product.category, durationLabel(product.duration)].filter(Boolean);
 
-    // 일정이 상세 정보(디자인 틀) 안에 있으면 접힌 상세 정보를 먼저 편다.
-    const goSection = (id: DetailSectionId) => {
-        if (id === 'td-plan' && flags.itineraryInDesign && !detailOpen) {
-            setDetailOpen(true);
-            window.setTimeout(() => pick(id), 60);
-            return;
-        }
-        pick(id);
-    };
 
     return (
         <div style={{ background: SD.white, color: SD.gray900, paddingBottom: 40 }}>
@@ -120,7 +111,7 @@ function TourDetailBody({ product, reviews, pricing }: TourDetailViewProps & { p
                 {tabs.map((t) => {
                     const on = t.id === active;
                     return (
-                        <a key={t.id} href={`#${t.id}`} aria-current={on ? 'location' : undefined} onClick={(e) => { e.preventDefault(); goSection(t.id); }}
+                        <a key={t.id} href={`#${t.id}`} aria-current={on ? 'location' : undefined} onClick={(e) => { e.preventDefault(); pick(t.id); }}
                             style={{ flex: 'none', height: TAB_ROW_H, padding: '0 10px', display: 'inline-flex', alignItems: 'center', fontSize: 14, fontWeight: on ? 700 : 400, color: on ? SD.gray900 : SD.gray600,
                                 borderBottom: `2px solid ${on ? SD.gray900 : 'transparent'}`, textDecoration: 'none', boxSizing: 'border-box', whiteSpace: 'nowrap' }}>
                             {t.label}
@@ -129,22 +120,22 @@ function TourDetailBody({ product, reviews, pricing }: TourDetailViewProps & { p
                 })}
             </nav>
 
-            <section style={{ padding: '28px 20px 0' }}>
-                <SectionTitle id="td-about" compact marginBottom={14}>투어 소개</SectionTitle>
-                <OverviewBody product={product} compact />
+            <section style={{ padding: '28px 0 0' }}>
+                <div style={{ padding: '0 20px' }}>
+                    <SectionTitle id="td-about" compact marginBottom={14}>투어 소개</SectionTitle>
+                    <OverviewBody product={product} compact />
+                </div>
+                {flags.hasDetail && (
+                    <div style={{ marginTop: 20 }}>
+                        <CollapsibleDetail compact open={detailOpen} onToggle={() => setDetailOpen(!detailOpen)}>
+                            {/* 상세 그림은 화면 끝까지(DetailBlocks compact가 좌우 -16px로 넓히므로 그만큼 되돌린다) */}
+                            <div style={{ padding: '0 16px' }}><DetailBlocks product={product} compact withItinerary={false} /></div>
+                        </CollapsibleDetail>
+                    </div>
+                )}
             </section>
 
-            {flags.hasDetail && (
-                <section style={{ padding: '32px 0 0' }}>
-                    <div style={{ padding: '0 20px' }}><SectionTitle id="td-detail" compact marginBottom={14}>상세 정보</SectionTitle></div>
-                    <CollapsibleDetail compact open={detailOpen} onToggle={() => setDetailOpen(!detailOpen)}>
-                        {/* 상세 그림은 화면 끝까지(DetailBlocks compact가 좌우 -16px로 넓히므로 그만큼 되돌린다) */}
-                        <div style={{ padding: '0 16px' }}><DetailBlocks product={product} compact /></div>
-                    </CollapsibleDetail>
-                </section>
-            )}
-
-            {flags.hasItinerary && !flags.itineraryInDesign && (
+            {flags.hasItinerary && (
                 <section style={{ padding: '36px 20px 0' }}>
                     <SectionTitle id="td-plan" compact marginBottom={14}>일정</SectionTitle>
                     <div data-itinerary-design style={{ margin: '0 -20px' }}><DesignItinerary product={product} variant="mobile" collapsible /></div>

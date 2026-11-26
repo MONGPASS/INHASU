@@ -113,12 +113,11 @@ export function detailFlags(product: TourProduct): DetailFlags {
 }
 
 
-/** Tabs of the sticky row — only sections this tour really has. */
+/** Tabs of the sticky row — 투어 소개 · 일정 · 포함 사항 · 후기 · 유의 사항·FAQ (디자인 순서). 상세 정보는 투어 소개 안에 접혀 있어 따로 칸이 없다. */
 export function detailTabs(product: TourProduct): DetailTab[] {
     const f = detailFlags(product);
     const tabs: (DetailTab | false)[] = [
         { id: 'td-about', label: '투어 소개' },
-        f.hasDetail && { id: 'td-detail', label: '상세 정보' },
         f.hasItinerary && { id: 'td-plan', label: '일정' },
         f.hasIncluded && { id: 'td-incl', label: '포함 사항' },
         { id: 'td-rev', label: '후기' },
