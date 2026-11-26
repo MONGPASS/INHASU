@@ -1,24 +1,20 @@
 import { useState, type CSSProperties, type ReactNode } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { api } from '../../lib/api';
-import { openKakaoConsultation } from '../../lib/consultation';
 import { useNotification, type Notification } from '../../contexts/NotificationContext';
 import { useToast } from '../ui/Toast';
 import { formatRelativeTime } from '../../utils/formatDate';
-import { reservationStatusLabel } from '../../utils/reservationDetail';
 import type { HomeProduct, ReviewStat } from '../home-desktop/homeDesktopData';
-import { MW, MW_FONT_EN, MW_GRADIENT, cleanTitle, isUsableImage, won } from '../desktop-primitives/mwTokens';
+import { MW, MW_FONT_EN, cleanTitle, isUsableImage, won } from '../desktop-primitives/mwTokens';
 import { EmptyBox, FilterPills, Ico, Loading, PanelHead } from './myPageUi';
-import { HAIR, ICON, NOTICE_TYPES, PAPER, QUOTE_STATUS, TONE, cardBox, ghostBtn, ghostHover, hover, mintBtn, mintHover, reservationTone, smallPill, type BadgeTone } from './myPageTheme';
-import { daysUntil, parseDbTime, type MeUser, type MyMatePost, type MyQuote, type MyReservation, type MyReview, type RecentItem } from './useMyPageData';
+import { HAIR, ICON, NOTICE_TYPES, PAPER, QUOTE_STATUS, TONE, cardBox, ghostBtn, ghostHover, hover, mintBtn, mintHover, smallPill, type BadgeTone } from './myPageTheme';
+import { parseDbTime, type MeUser, type MyMatePost, type MyQuote, type MyReservation, type MyReview, type RecentItem } from './useMyPageData';
 
 type Go = (path: string) => void;
 
 /* ---------- shared rows ---------- */
 
 const dateRange = (start: string, end: string) => [start, end].filter(Boolean).join(' ~ ');
-
-const reservationMeta = (r: MyReservation) => [dateRange(r.start, r.end), r.travelers > 0 ? `${r.travelers}명` : ''].filter(Boolean).join(' · ');
 
 function Badge({ label, tone, style }: { label: string; tone: BadgeTone; style?: CSSProperties }) {
     return (
@@ -75,174 +71,9 @@ function QuoteRows({ quotes, go }: { quotes: MyQuote[]; go: Go }) {
     );
 }
 
-function ReservationRows({ reservations, today, go }: { reservations: MyReservation[]; today: string; go: Go }) {
-    return (
-        <>
-            {reservations.map((r) => {
-                const d = r.start && r.status !== 'cancelled' ? daysUntil(r.start, today) : -1;
-                return (
-                    <ListRow
-                        key={r.id}
-                        href={r.href}
-                        title={r.productName}
-                        meta={reservationMeta(r)}
-                        extra={d >= 0 && d <= 90 ? <DayChip days={d} /> : undefined}
-                        badge={<Badge label={reservationStatusLabel(r.status, r.depositReported, r.status || '준비 중')} tone={reservationTone(r.status)} />}
-                        onClick={() => go(r.href)}
-                    />
-                );
-            })}
-        </>
-    );
-}
-
-function DayChip({ days }: { days: number }) {
-    return (
-        <span style={{ fontFamily: MW_FONT_EN, fontSize: 12, fontWeight: 600, color: MW.mintDeep, background: MW.mintTint, padding: '6px 10px', borderRadius: 999, flexShrink: 0 }}>
-            {days === 0 ? 'D-DAY' : `D-${days}`}
-        </span>
-    );
-}
-
 /* ---------- 개요 ---------- */
 
-export function OverviewSection({
-    reservations, quotes, wishCount, today, productById, loading, go,
-}: {
-    reservations: MyReservation[];
-    quotes: MyQuote[];
-    wishCount: number;
-    today: string;
-    productById: Map<string, HomeProduct>;
-    loading: boolean;
-    go: Go;
-}) {
-    const active = reservations.filter((r) => !['cancelled', 'completed'].includes(r.status) && (r.end || r.start) >= today);
-    const next = reservations
-        .filter((r) => r.status !== 'cancelled' && !!r.start && r.start >= today)
-        .sort((a, b) => a.start.localeCompare(b.start))[0];
-    const stats = [
-        { label: '예약', value: reservations.length, d: ICON.bookings, path: '/mypage/reservations' },
-        { label: '진행 중', value: active.length, d: ICON.active, path: '/mypage/reservations' },
-        { label: '견적', value: quotes.length, d: ICON.quotes, path: '/mypage/estimates' },
-        { label: '찜', value: wishCount, d: ICON.wish, path: '/mypage/wishlist' },
-    ];
-
-    return (
-        <>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(min(100%,160px),1fr))', gap: 16 }}>
-                {stats.map((s) => (
-                    <button
-                        key={s.label}
-                        type="button"
-                        onClick={() => go(s.path)}
-                        style={{ display: 'flex', flexDirection: 'column', gap: 6, padding: 20, border: `1px solid ${MW.line}`, borderRadius: 20, background: '#fff', fontFamily: 'inherit', textAlign: 'left', cursor: 'pointer', transition: 'border-color .15s,transform .15s', color: MW.navy }}
-                        {...hover({ borderColor: MW.mint, transform: 'translateY(-2px)' }, { borderColor: MW.line, transform: '' })}
-                    >
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 14, width: '100%' }}>
-                            <span style={{ width: 40, height: 40, borderRadius: 12, background: MW.mintBg, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                                <Ico d={s.d} />
-                            </span>
-                            <span style={{ color: MW.mute2, fontSize: 14 }}>↗</span>
-                        </div>
-                        <span style={{ fontFamily: MW_FONT_EN, fontSize: 24, fontWeight: 600 }}>{loading ? '—' : s.value}</span>
-                        <span style={{ fontSize: 13, color: MW.mute }}>{s.label}</span>
-                    </button>
-                ))}
-            </div>
-
-            <div style={{ ...cardBox, gap: 20 }}>
-                <PanelHead
-                    eyebrow="UPCOMING TRIP"
-                    title="다음 예약"
-                    action={<button type="button" onClick={() => go('/mypage/reservations')} style={{ ...ghostBtn, color: MW.navy }} {...hover({ borderColor: MW.mint }, { borderColor: MW.line })}>전체 보기 →</button>}
-                />
-                {loading ? (
-                    <Loading />
-                ) : next ? (
-                    <a
-                        href={next.href}
-                        onClick={(e) => { e.preventDefault(); go(next.href); }}
-                        style={{ display: 'flex', alignItems: 'center', gap: 16, padding: '18px 20px', borderRadius: 16, background: PAPER, color: MW.navy, textDecoration: 'none' }}
-                        {...hover({ background: MW.mintBg }, { background: PAPER })}
-                    >
-                        <Thumb src={productById.get(next.productId)?.mainImages[0]} size={72} />
-                        <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 6, alignItems: 'flex-start' }}>
-                            <Badge label={reservationStatusLabel(next.status, next.depositReported)} tone={reservationTone(next.status)} style={{ fontSize: 11, padding: '3px 8px', borderRadius: 6 }} />
-                            <span style={{ fontSize: 16, fontWeight: 900 }}>{next.productName}</span>
-                            <span style={{ fontSize: 13, color: MW.mute }}>{reservationMeta(next)}</span>
-                        </div>
-                        <DayChip days={daysUntil(next.start, today)} />
-                        <span style={{ color: MW.mute, fontSize: 18 }}>›</span>
-                    </a>
-                ) : (
-                    <EmptyBox text="예정된 예약이 없습니다." action={{ label: '투어 찾기', onClick: () => go('/products') }} />
-                )}
-            </div>
-
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(min(100%,230px),1fr))', gap: 12 }}>
-                <QuickLink primary title="견적 요청" sub="1분이면 요청 완료" d={ICON.quoteRequest} onClick={() => go('/custom-estimate')} />
-                <QuickLink title="동행 찾기" sub="여행 경비 분담" d={ICON.mateAdd} onClick={() => go('/travel-mates/write')} />
-                <QuickLink title="후기 쓰기" sub="경험 나누기" d={ICON.reviews} onClick={() => go('/reviews/write')} />
-            </div>
-
-            <div style={{ ...cardBox, gap: 12 }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 16, marginBottom: 6 }}>
-                    <h2 style={{ margin: 0, fontSize: 20, fontWeight: 900 }}>최근 견적 요청</h2>
-                    <button type="button" onClick={() => go('/mypage/estimates')} style={{ ...ghostBtn, color: MW.navy }} {...hover({ borderColor: MW.mint }, { borderColor: MW.line })}>전체 보기 →</button>
-                </div>
-                {loading ? <Loading /> : quotes.length > 0 ? (
-                    <QuoteRows quotes={quotes.slice(0, 3)} go={go} />
-                ) : (
-                    <EmptyBox text="아직 견적 요청이 없습니다." action={{ label: '견적 요청하기', onClick: () => go('/custom-estimate') }} />
-                )}
-            </div>
-        </>
-    );
-}
-
-function QuickLink({ title, sub, d, onClick, primary }: { title: string; sub: string; d: string; onClick: () => void; primary?: boolean }) {
-    const base: CSSProperties = primary
-        ? { background: MW_GRADIENT, border: '1px solid transparent' }
-        : { background: '#fff', border: `1px solid ${MW.line}` };
-    return (
-        <a
-            href="#"
-            onClick={(e) => { e.preventDefault(); onClick(); }}
-            style={{ ...base, display: 'flex', alignItems: 'center', gap: 14, padding: '18px 20px', borderRadius: 18, color: MW.navy, textDecoration: 'none', transition: 'transform .15s,border-color .15s' }}
-            {...hover(
-                primary ? { transform: 'translateY(-2px)' } : { transform: 'translateY(-2px)', borderColor: MW.mint },
-                primary ? { transform: '' } : { transform: '', borderColor: MW.line },
-            )}
-        >
-            <span style={{ width: 48, height: 48, borderRadius: 14, background: primary ? 'rgba(255,255,255,0.4)' : MW.mintBg, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                <Ico d={d} size={22} color={primary ? MW.navy : MW.mintDeep} />
-            </span>
-            <span style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 3 }}>
-                <span style={{ fontSize: 15, fontWeight: 900, whiteSpace: 'nowrap' }}>{title}</span>
-                <span style={{ fontSize: 12, color: primary ? MW.navy : MW.mute }}>{sub}</span>
-            </span>
-            <span style={{ width: 32, height: 32, borderRadius: '50%', background: primary ? 'rgba(255,255,255,0.4)' : PAPER, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, fontSize: 14, color: primary ? MW.navy : MW.mintDeep }}>→</span>
-        </a>
-    );
-}
-
 /* ---------- 예약 내역 / 견적 내역 ---------- */
-
-export function ReservationsSection({ reservations, today, loading, go }: { reservations: MyReservation[]; today: string; loading: boolean; go: Go }) {
-    return (
-        <div style={{ ...cardBox, gap: 12 }}>
-            <div style={{ marginBottom: 6 }}>
-                <PanelHead eyebrow="BOOKINGS" title="예약 내역" count={loading ? undefined : reservations.length} sub="예약 상태·결제·여행 서류는 각 예약의 상세 화면에서 확인할 수 있습니다." />
-            </div>
-            {loading ? <Loading /> : reservations.length > 0 ? (
-                <ReservationRows reservations={reservations} today={today} go={go} />
-            ) : (
-                <EmptyBox text="아직 예약이 없습니다." action={{ label: '투어 찾기', onClick: () => go('/products') }} />
-            )}
-        </div>
-    );
-}
 
 export function EstimatesSection({ quotes, loading, go }: { quotes: MyQuote[]; loading: boolean; go: Go }) {
     return (
@@ -689,29 +520,3 @@ export function NoticeSection({ go }: { go: Go }) {
 }
 
 /* ---------- 고객 지원 ---------- */
-
-export function SupportCard({ go }: { go: Go }) {
-    return (
-        <div style={{ borderRadius: 20, padding: 28, background: `linear-gradient(135deg,${MW.mintBg} 0%,#FFFFFF 70%)`, border: `1px solid ${MW.mintTint}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 24, flexWrap: 'wrap' }}>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                <span style={{ fontFamily: MW_FONT_EN, fontSize: 11, fontWeight: 600, letterSpacing: '0.06em', color: MW.mintDeep }}>CUSTOMER SUPPORT</span>
-                <span style={{ fontSize: 18, fontWeight: 900 }}>도움이 필요하신가요?</span>
-                <span style={{ fontSize: 13, color: MW.mute }}>한국어 담당 직원이 24시간 이내에 답변해 드립니다. FAQ도 함께 확인해 주세요.</span>
-            </div>
-            <div style={{ display: 'flex', gap: 10 }}>
-                <a
-                    href="/faq"
-                    onClick={(e) => { e.preventDefault(); go('/faq'); }}
-                    style={{ display: 'flex', alignItems: 'center', height: 48, padding: '0 22px', border: `1px solid ${MW.line}`, borderRadius: 999, background: '#fff', fontSize: 14, fontWeight: 700, color: MW.navy, textDecoration: 'none' }}
-                    {...hover({ borderColor: MW.mint }, { borderColor: MW.line })}
-                >
-                    FAQ 보기
-                </a>
-                <button type="button" onClick={openKakaoConsultation} style={{ ...mintBtn, height: 48, padding: '0 22px', fontSize: 14, gap: 8 }} {...mintHover}>
-                    <Ico d={ICON.chat} size={18} color={MW.navy} />
-                    카카오톡 문의
-                </button>
-            </div>
-        </div>
-    );
-}

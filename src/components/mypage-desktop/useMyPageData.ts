@@ -29,6 +29,8 @@ export interface MyReservation {
     /** Total price (0 when the reservation has no price breakdown) and how much of it is paid. */
     payTotal: number;
     payPercent: number;
+    /** 예약금(가격 내역이 없으면 0). */
+    deposit: number;
     /** The customer reported the deposit and staff have not confirmed it yet (badge reads '입금 확인 중'). */
     depositReported: boolean;
     createdAt: string;
@@ -142,6 +144,7 @@ export function useMyPageData(me: MeUser | null | undefined) {
                 travelers: num(r, 'totalPeople', 'travelers', 'total_people'),
                 reviewed: Array.isArray(r.history) && (r.history as Row[]).some((h) => h && h.type === 'review_submitted'),
                 payTotal: readBreakdown(r)?.total ?? 0,
+                deposit: readBreakdown(r)?.deposit ?? 0,
                 payPercent: paymentSummary(r).percent,
                 depositReported: paymentSummary(r).depositStage === 'reported',
                 createdAt: str(r, 'createdAt', 'created_at'),
@@ -223,7 +226,7 @@ export function useMyPageData(me: MeUser | null | undefined) {
     const bookings = useMemo(() => {
         if (!reservations.data && !quotes.data) return undefined;
         const fromQuotes: MyReservation[] = (quotes.data ?? []).flatMap(quote => quote.booking ? [{
-            ...quote.booking, id: quote.id, href: quote.href, source: 'request', number: '', productId: '', reviewed: false,
+            ...quote.booking, id: quote.id, href: quote.href, source: 'request', number: '', productId: '', reviewed: false, deposit: 0,
         }] : []);
         return [...(reservations.data ?? []), ...fromQuotes].sort(byNewest);
     }, [reservations.data, quotes.data]);

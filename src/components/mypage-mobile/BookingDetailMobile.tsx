@@ -2,39 +2,33 @@ import { useMemo, useState, type CSSProperties, type ReactNode } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { api } from '../../lib/api';
-import { openKakaoConsultation } from '../../lib/consultation';
-import { GuideDetailModal, AccommodationDetailModal } from '../common/DetailModals';
+import { useHomeData } from '../../hooks/useHomeData';
 import { toTourDateKey } from '../../utils/formatDate';
-import {
-    computeDays, formatDateShort, formatDateTime, parseArr, parseImage, paymentSummary, reservationStatusLabel,
-    type Accommodation, type ReservationDetail,
-} from '../../utils/reservationDetail';
-import { BRAND, COMPANY_INFO } from '../../constants/company';
-import { MW, MW_FONT_EN, isUsableImage, won } from '../desktop-primitives/mwTokens';
+import { parseImage, type Accommodation, type ReservationDetail } from '../../utils/reservationDetail';
+import { isUsableImage, won } from '../desktop-primitives/mwTokens';
+import { AccommodationDetailModal, GuideDetailModal } from '../common/DetailModals';
+import { ContactButtons, DocTile, GuideFace, PayRow, Pending, ProgressBar, Timeline } from '../mypage-desktop/BookingDetailDesktop';
 import { DepositReportPanel } from '../mypage-desktop/DepositReportPanel';
-import { ICON, TONE } from '../mypage-desktop/myPageTheme';
-import { daysUntil } from '../mypage-desktop/useMyPageData';
+import { TripThumb } from '../mypage-desktop/MyPageHome.desktop';
+import { DDAY_COLOR, bookingDetailView, boxButton, darkTagStyle } from '../mypage-desktop/myBookingView';
 import { MobileShell } from '../mobile/MobileShell';
-import { D, M_HAIR, M_PAPER } from '../mobile/mobileTheme';
-import { Ico, MLoading, SubPageBar } from '../mobile/mobileUi';
-import { DETAIL_ICON, HISTORY_ICON, softTone } from './tripFormat';
-
-/** Timeline rows shown before "전체 보기". */
-const HISTORY_PREVIEW = 2;
-
-const tile: CSSProperties = { borderRadius: 20, background: '#FFFFFF', border: `1px solid ${MW.line}`, display: 'flex', alignItems: 'center', gap: 14, color: MW.navy, textDecoration: 'none', fontFamily: 'inherit', textAlign: 'left', width: '100%', boxSizing: 'border-box' };
+import { MLoading } from '../mobile/mobileUi';
+import { SD, SIcon } from '../site-seed/seed';
 
 /**
- * 예약 상세 (Claude Design: "M Booking Detail"): ticket card, payment status, documents,
- * guide, stays and timeline. Same query and rules as the PC BookingDetailDesktop.
+ * 휴대폰 예약 상세(Claude Design ‘예약 상세 (예약 확정 후) — 모바일’): ‘← 예약 상세 공유’ 줄 → 예약 번호·상태 · 사진 · 이름 · 날짜 ·
+ * 기간/출발까지/인원 → 결제 현황(입금 전엔 계좌와 ‘입금 완료’ 알리기) → 숙소 → 여행 서류 → 담당 가이드 → 타임라인 → 문의.
+ * PC 예약 상세와 같은 조회·계산(bookingDetailView)과 부품을 쓴다.
  */
 export function BookingDetailMobile() {
     const navigate = useNavigate();
     const { id = '' } = useParams();
     const [showAllHistory, setShowAllHistory] = useState(false);
     const [guideOpen, setGuideOpen] = useState(false);
-    const [accModal, setAccModal] = useState<{ accommodation: Accommodation; day: number } | null>(null);
+    const [accModal, setAccModal] = useState<{ accommodation: Accommodation; day: number; date: string } | null>(null);
+    const [shared, setShared] = useState(false);
     const [today] = useState(() => toTourDateKey(new Date()));
+    const { data: home } = useHomeData();
 
     const { data: reservation, isPending, error } = useQuery<ReservationDetail>({
         queryKey: ['myPage', 'reservation', id],
@@ -42,320 +36,187 @@ export function BookingDetailMobile() {
         retry: false,
         queryFn: () => api.reservations.get(id),
     });
-
-    const history = useMemo(() => [...(reservation?.history || [])].reverse(), [reservation]);
+    const v = useMemo(() => (reservation ? bookingDetailView(reservation, today) : null), [reservation, today]);
     const backToList = () => {
         navigate('/mypage/reservations');
         window.scrollTo(0, 0);
     };
+    const share = async () => {
+        const url = window.location.href;
+        try {
+            if (navigator.share) {
+                await navigator.share({ title: reservation?.productName || '예약 상세', url });
+                return;
+            }
+            await navigator.clipboard?.writeText(url);
+            setShared(true);
+            window.setTimeout(() => setShared(false), 2000);
+        } catch {
+            // 공유를 취소했거나 막혀 있으면 아무것도 하지 않는다.
+        }
+    };
+    const shareBtn = (
+        <button type="button" aria-label={shared ? '주소를 복사했어요' : '공유'} onClick={share}
+            style={{ width: 44, height: 44, border: 'none', background: 'transparent', color: shared ? SD.mint600 : SD.gray900, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', padding: 0 }}>
+            <SIcon name={shared ? 'checkMark' : 'share'} size={22} stroke={1.7} />
+        </button>
+    );
+    const shell = (children: ReactNode) => (
+        <MobileShell title="예약 상세" onBack={backToList} brandHeader={false} titleAction={reservation ? shareBtn : undefined} footer={false}>{children}</MobileShell>
+    );
 
-    if (isPending) {
-        return (
-            <MobileShell>
-                <SubPageBar title="예약 상세" onBack={backToList} />
-                <MLoading pad={120} />
-            </MobileShell>
+    if (isPending) return shell(<MLoading pad={120} />);
+    if (error || !reservation || !v) {
+        return shell(
+            <section style={{ padding: '72px 24px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10, textAlign: 'center', background: SD.white }}>
+                <h1 style={{ margin: 0, fontSize: 20, fontWeight: 700, color: SD.gray900 }}>예약을 찾을 수 없어요</h1>
+                <p style={{ margin: 0, fontSize: 14, color: SD.gray600 }}>예약 내역에서 다시 골라 주세요.</p>
+                <button type="button" onClick={backToList} style={{ ...boxButton('primary', 'medium'), marginTop: 8 }}>예약 내역으로</button>
+            </section>,
         );
     }
-    if (error || !reservation) {
-        return (
-            <MobileShell>
-                <SubPageBar title="예약 상세" onBack={backToList} />
-                <section style={{ padding: '72px 20px 96px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10, textAlign: 'center' }}>
-                    <h2 style={{ margin: 0, fontSize: 18, fontWeight: 900 }}>예약을 찾을 수 없습니다</h2>
-                    <p style={{ margin: 0, fontSize: 13, lineHeight: 1.7, color: MW.mute }}>URL을 확인하시거나 예약 내역에서 선택해 주세요.</p>
-                    <button type="button" onClick={backToList} style={{ marginTop: 10, height: 46, padding: '0 22px', border: 0, borderRadius: 999, background: MW.mint, fontFamily: 'inherit', fontSize: 14, fontWeight: 700, color: MW.navy, cursor: 'pointer' }}>
-                        예약 내역으로 돌아가기
-                    </button>
-                </section>
-            </MobileShell>
-        );
-    }
 
-    const number = reservation.reservationNumber || reservation.id.slice(0, 8).toUpperCase();
-    const tone = softTone(reservation.status);
-    const totalPeople = reservation.totalPeople ?? reservation.travelers ?? 0;
-    const start = toTourDateKey(reservation.startDate);
-    const end = toTourDateKey(reservation.endDate);
-    const duration = computeDays(start, end);
-    const dday = start && reservation.status !== 'cancelled' ? daysUntil(start, today) : -1;
+    const product = home.products.find((p) => p.id === reservation.productId);
+    const image = product?.mainImages.find(isUsableImage) || '';
+    const { pb, stage } = v;
+    const visibleHistory = showAllHistory ? v.history : v.history.slice(0, 3);
+    const stayDate = (day: number) => {
+        if (!v.start) return '';
+        const d = new Date(`${v.start}T00:00:00`);
+        d.setDate(d.getDate() + day - 1);
+        return `${d.getMonth() + 1}월 ${d.getDate()}일(${'일월화수목금토'[d.getDay()]})`;
+    };
 
-    const { pb, depositPaid, balancePaid, paid, percent, depositStage } = paymentSummary(reservation);
-    // 고객이 '입금 완료'를 신고했고 담당자 확인을 기다리는 중 → 상태 라벨이 '입금 확인 중'으로 바뀐다.
-    const depositReported = depositStage === 'reported';
-    const statusLabel = reservationStatusLabel(reservation.status, depositReported);
-
-    // Document links always use the reservation UUID; stored URLs only flag that a document was issued.
-    const itineraryUrl = reservation.itineraryUrl && ['confirmed', 'paid', 'completed'].includes(reservation.status) ? `/documents/itinerary/${reservation.id}` : '';
-    const contractUrl = reservation.contractUrl ? `/documents/contract/${reservation.id}` : '';
-
-    const guide = reservation.assignedGuide;
-    const guideTags = [...parseArr(guide?.languages), ...parseArr(guide?.specialties).slice(0, 2)];
-    const stays = reservation.dailyAccommodations || [];
-    const visibleHistory = showAllHistory ? history : history.slice(0, HISTORY_PREVIEW);
-
-    return (
-        <MobileShell>
-            <SubPageBar
-                title="예약 상세"
-                sub={<span style={{ fontFamily: MW_FONT_EN, fontSize: 10, color: MW.mute2 }}>#{number}</span>}
-                onBack={backToList}
-                right={(
-                    <span style={{ flexShrink: 0, display: 'flex', alignItems: 'center', gap: 6, height: 30, padding: '0 12px', borderRadius: 999, background: tone.bg, boxShadow: tone === TONE.plain ? `inset 0 0 0 1px ${tone.bd}` : undefined, fontSize: 12, fontWeight: 700, color: tone.fg, whiteSpace: 'nowrap' }}>
-                        <span style={{ width: 6, height: 6, borderRadius: '50%', background: tone.fg }} />
-                        {statusLabel}
+    return shell(
+        <div style={{ background: SD.white, color: SD.gray900 }}>
+            <section style={sec('16px 20px 20px')}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
+                    <span style={{ fontSize: 12, color: SD.gray600 }}>예약 번호 {v.number}</span>
+                    <span style={{ flex: 'none', height: 26, padding: '0 10px', borderRadius: 9999, border: `1px solid ${SD.gray200}`, display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 12, fontWeight: 700 }}>
+                        <span style={{ width: 6, height: 6, borderRadius: 9999, background: v.dot }} />{stage.label}
                     </span>
-                )}
-            />
-
-            <section style={{ background: M_PAPER, padding: '16px 16px 36px', display: 'flex', flexDirection: 'column', gap: 26 }}>
-                {/* Ticket */}
-                <div style={{ position: 'relative', overflow: 'hidden', borderRadius: 24, background: `linear-gradient(160deg,${MW.mintDeep} 0%,${MW.navySoft} 100%)`, color: '#FFFFFF', padding: '22px 20px', display: 'flex', flexDirection: 'column', gap: 16 }}>
-                    <span style={{ position: 'absolute', right: -60, top: -60, width: 180, height: 180, borderRadius: '50%', border: '1.5px solid rgba(255,255,255,0.12)', boxShadow: '0 0 0 22px rgba(255,255,255,0.04),0 0 0 44px rgba(255,255,255,0.03)', pointerEvents: 'none' }} />
-                    <span style={{ position: 'relative', display: 'flex', alignItems: 'center', gap: 8, fontFamily: MW_FONT_EN, fontSize: 10, fontWeight: 600, letterSpacing: '0.1em', color: MW.mintTint }}>
-                        <svg width="20" height="12" viewBox="0 0 20 12" aria-hidden="true"><path d={DETAIL_ICON.mountain} fill={MW.mintTint} /></svg>
-                        {BRAND.nameEn.toUpperCase()}
-                    </span>
-                    {/* Two lines instead of the design's single line so real tour names are not cut off. */}
-                    <span style={{ position: 'relative', fontSize: 22, fontWeight: 900, lineHeight: 1.35, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>{reservation.productName}</span>
-                    <div style={{ position: 'relative', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10, fontSize: 13, whiteSpace: 'nowrap' }}>
-                        <span style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0, overflow: 'hidden' }}>
-                            <Ico d={D.calendar} size={18} color="#FFFFFF" style={{ flexShrink: 0 }} />
-                            {start ? `${formatDateShort(start)} ~ ${formatDateShort(end)}` : '일정 미정'}
-                        </span>
-                        {totalPeople > 0 && (
-                            <span style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0, fontWeight: 700 }}>
-                                <Ico d={D.people} size={18} color="#FFFFFF" />
-                                {totalPeople}명
-                            </span>
-                        )}
-                    </div>
-                    <div style={{ position: 'relative', display: 'flex', justifyContent: 'space-between', gap: 10, paddingTop: 14, borderTop: '1px dashed rgba(255,255,255,0.35)' }}>
-                        <TicketStat label="기간" value={duration ? `${duration.nights}박 ${duration.days}일` : '—'} />
-                        {dday >= 0 && <TicketStat label="출발까지" value={dday === 0 ? 'D-DAY' : `D-${dday}`} en align="center" />}
-                        <TicketStat label="예약 번호" value={number} en align="flex-end" />
-                    </div>
                 </div>
-
-                {/* Payment */}
-                {pb && (
-                    <Block d={DETAIL_ICON.wallet} title="결제 현황">
-                        <div style={{ borderRadius: 20, background: '#FFFFFF', border: `1px solid ${MW.line}`, overflow: 'hidden' }}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: 16, padding: 18 }}>
-                                <span style={{ position: 'relative', flexShrink: 0, width: 68, height: 68, borderRadius: '50%', background: `conic-gradient(${MW.mint} 0 ${percent}%,${M_HAIR} ${percent}% 100%)`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                                    <span style={{ width: 54, height: 54, borderRadius: '50%', background: '#FFFFFF', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: MW_FONT_EN, fontSize: 13, fontWeight: 600, color: MW.mintDeep }}>{percent}%</span>
-                                </span>
-                                <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 2 }}>
-                                    <span style={{ fontSize: 12, color: MW.mute }}>결제 완료</span>
-                                    <span style={{ display: 'flex', alignItems: 'baseline', flexWrap: 'wrap', gap: '0 6px', whiteSpace: 'nowrap' }}>
-                                        <strong style={{ fontSize: 24, fontWeight: 900 }}>{won(paid)}</strong>
-                                        <span style={{ fontSize: 12, color: MW.mute2 }}>/ {won(pb.total)}</span>
-                                    </span>
-                                    <span style={{ fontSize: 12, color: MW.mute }}>남은 금액 <strong style={{ color: MW.navy }}>{won(Math.max(0, pb.total - paid))}</strong></span>
-                                </div>
-                            </div>
-                            <div style={{ display: 'flex', flexDirection: 'column', gap: 14, padding: '16px 18px 18px', borderTop: `1px solid ${M_HAIR}` }}>
-                                <PayRow label="예약금" sub="계좌이체 (입금 확인 후 확정)" amount={pb.deposit} paid={depositPaid} checking={depositReported} />
-                                <PayRow label="현지 결제" sub="현지에서 현금 결제" amount={pb.local} paid={balancePaid} />
-                                {depositPaid ? (
-                                    <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: 48, borderRadius: 14, background: MW.chip, fontSize: 13, fontWeight: 700, color: MW.mute2, whiteSpace: 'nowrap' }}>
-                                        {balancePaid ? '결제 완료' : '잔금은 현지에서 결제'}
-                                    </span>
-                                ) : (
-                                    // 계좌이체 + 입금 신고 — PC 예약 상세와 같은 패널(useDepositReport)을 쓴다.
-                                    <DepositReportPanel reservation={reservation} pc={false} />
-                                )}
-                            </div>
-                        </div>
-                    </Block>
-                )}
-
-                {/* Documents */}
-                <Block d={DETAIL_ICON.folder} title="여행 서류" sub="계약서와 일정표를 확인할 수 있습니다">
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                        <DocTile d={DETAIL_ICON.map} title="확정 일정표" ready="일정과 숙소 확인" pending="준비 중 (담당자가 작성하면 표시됩니다)" href={itineraryUrl} />
-                        <DocTile d={D.doc} title="해외여행 계약서" ready="계약 내용과 유의 사항 확인" pending="준비 중 (발행되면 메일로도 알려 드립니다)" href={contractUrl} />
-                    </div>
-                </Block>
-
-                {/* Guide */}
-                <Block d={DETAIL_ICON.guide} title="담당 가이드" sub={guide?.name ? undefined : '출발 2주 전까지 확정됩니다'}>
-                    {guide?.name ? (
-                        <button type="button" onClick={() => setGuideOpen(true)} style={{ ...tile, padding: 16, cursor: 'pointer' }}>
-                            <span style={{ width: 52, height: 52, borderRadius: '50%', overflow: 'hidden', background: `linear-gradient(135deg,${MW.mintDeep} 0%,#3FC2A4 100%)`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: MW_FONT_EN, fontSize: 17, fontWeight: 600, color: '#FFFFFF', flexShrink: 0 }}>
-                                {isUsableImage(guide.image) ? <img src={guide.image} alt={guide.name} loading="lazy" decoding="async" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : guide.name.charAt(0)}
-                            </span>
-                            <span style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 2 }}>
-                                <span style={{ fontSize: 16, fontWeight: 900, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{guide.name}</span>
-                                <span style={{ fontSize: 11, color: MW.mute, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{[...guideTags, '자세히 보기'].join(' · ')}</span>
-                            </span>
-                            <Ico d={D.chevron} size={16} color={MW.mute2} style={{ flexShrink: 0 }} />
-                        </button>
-                    ) : (
-                        <Pending d={DETAIL_ICON.user} title="담당 가이드를 배정 중입니다" sub="확정되는 대로 메일과 사이트 알림으로 알려 드립니다" />
-                    )}
-                </Block>
-
-                {/* Stays */}
-                <Block d={DETAIL_ICON.bed} title="숙소" sub={stays.length > 0 ? `${stays.length}박` : '일정 확정 후 날짜별로 확정됩니다'}>
-                    {stays.length > 0 ? (
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                            {stays.map((s) => {
-                                const acc = s.accommodation;
-                                const img = parseImage(acc?.images);
-                                return (
-                                    <button key={s.day} type="button" onClick={() => acc && setAccModal({ accommodation: acc, day: s.day })} style={{ ...tile, padding: 12, cursor: 'pointer' }}>
-                                        <span style={{ position: 'relative', width: 80, height: 80, borderRadius: 14, overflow: 'hidden', background: MW.chip, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                                            {isUsableImage(img)
-                                                ? <img src={img} alt={acc?.name || ''} loading="lazy" decoding="async" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
-                                                : <Ico d={DETAIL_ICON.bed} size={28} color={MW.mute2} />}
-                                        </span>
-                                        <span style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 6 }}>
-                                            <span style={{ display: 'flex', gap: 6, whiteSpace: 'nowrap', minWidth: 0 }}>
-                                                <span style={{ flexShrink: 0, fontSize: 11, fontWeight: 700, color: '#FFFFFF', background: MW.mintDeep, padding: '2px 8px', borderRadius: 6 }}>{s.day}일차</span>
-                                                {acc?.type && <span style={{ fontSize: 11, fontWeight: 700, color: MW.mintDeep, background: MW.mintBg, border: `1px solid ${MW.mintTint}`, padding: '1px 8px', borderRadius: 6, overflow: 'hidden', textOverflow: 'ellipsis' }}>{acc.type}</span>}
-                                            </span>
-                                            <span style={{ fontSize: 15, fontWeight: 900, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{acc?.name || '—'}</span>
-                                            <span style={{ fontSize: 12, fontWeight: 700, color: MW.mintDeep }}>자세히 보기 →</span>
-                                        </span>
-                                    </button>
-                                );
-                            })}
-                        </div>
-                    ) : (
-                        <Pending d={DETAIL_ICON.bed} title="숙소를 준비 중입니다" sub="일정 확정 후 날짜별로 확정됩니다" />
-                    )}
-                </Block>
-
-                {/* Timeline */}
-                {history.length > 0 && (
-                    <Block d={DETAIL_ICON.history} title="타임라인">
-                        <div style={{ borderRadius: 20, background: '#FFFFFF', border: `1px solid ${MW.line}`, padding: '6px 18px 4px', display: 'flex', flexDirection: 'column' }}>
-                            {visibleHistory.map((h, i) => (
-                                <div key={i} style={{ display: 'grid', gridTemplateColumns: '22px minmax(0,1fr)', gap: 12, padding: '14px 0', borderTop: `1px solid ${i ? M_HAIR : 'transparent'}` }}>
-                                    <Ico d={HISTORY_ICON[h.type] || ICON.bookings} color={MW.mintDeep} style={{ marginTop: 2 }} />
-                                    <div style={{ display: 'flex', flexDirection: 'column', gap: 4, minWidth: 0 }}>
-                                        <p style={{ margin: 0, fontSize: 13, lineHeight: 1.7, color: MW.ink2, overflowWrap: 'anywhere' }}>{h.description}</p>
-                                        <span style={{ fontFamily: MW_FONT_EN, fontSize: 10, color: MW.mute2 }}>{formatDateTime(h.timestamp)}</span>
-                                    </div>
-                                </div>
-                            ))}
-                            {history.length > HISTORY_PREVIEW && (
-                                <button type="button" onClick={() => setShowAllHistory((v) => !v)} style={{ height: 46, border: 0, borderTop: `1px solid ${M_HAIR}`, background: 'transparent', fontFamily: 'inherit', fontSize: 13, fontWeight: 700, color: MW.mute, cursor: 'pointer' }}>
-                                    {showAllHistory ? '접기' : `전체 보기 (${history.length}건)`}
-                                </button>
-                            )}
-                        </div>
-                    </Block>
-                )}
-
-                {/* Help */}
-                <div style={{ borderRadius: 22, background: MW.mintBg, border: `1px solid ${MW.mintTint}`, padding: 18, display: 'flex', flexDirection: 'column', gap: 14 }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                        <span style={{ width: 40, height: 40, borderRadius: 12, background: MW.mintDeep, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                            <Ico d={DETAIL_ICON.headset} color="#FFFFFF" />
-                        </span>
-                        <span style={{ display: 'flex', flexDirection: 'column', gap: 2, minWidth: 0 }}>
-                            <span style={{ fontSize: 14, fontWeight: 900, whiteSpace: 'nowrap' }}>궁금한 점이 있으신가요?</span>
-                            <span style={{ fontSize: 11, color: MW.mute, whiteSpace: 'nowrap' }}>한국어 담당 직원이 24시간 응대</span>
-                        </span>
-                    </div>
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2,minmax(0,1fr))', gap: 8 }}>
-                        <button type="button" onClick={openKakaoConsultation} style={contactBtn}>
-                            <Ico d={DETAIL_ICON.chat} size={18} />
-                            카카오톡 상담
-                        </button>
-                        <a href={`mailto:${COMPANY_INFO.email}`} style={contactBtn}>
-                            <Ico d={D.mail} size={18} />
-                            메일 상담
-                        </a>
-                    </div>
+                {image
+                    ? <img src={image} alt={reservation.productName} style={{ marginTop: 12, width: '100%', height: 180, borderRadius: 14, objectFit: 'cover', display: 'block' }} />
+                    : <span aria-hidden="true" style={{ marginTop: 12, height: 180, borderRadius: 14, background: SD.gray100, color: SD.gray400, display: 'flex', alignItems: 'center', justifyContent: 'center' }}><SIcon name="mapFold" size={40} stroke={1.4} /></span>}
+                <h1 style={{ margin: '14px 0 6px', fontSize: 19, fontWeight: 700, lineHeight: 1.4, wordBreak: 'keep-all' }}>{reservation.productName}</h1>
+                <p style={{ margin: 0, fontSize: 13, color: SD.gray600 }}>{[v.dates, v.people > 0 ? `성인 ${v.people}명` : ''].filter(Boolean).join(' · ')}</p>
+                <div style={{ marginTop: 14, padding: '12px 0', borderRadius: 12, background: SD.gray50, display: 'flex' }}>
+                    <Fact label="기간" value={v.length || '—'} />
+                    <span style={{ width: 1, background: SD.gray200 }} />
+                    <Fact label={v.dd === '여행 중' ? '지금' : '출발까지'} value={v.dd || stage.label} color={v.dd ? DDAY_COLOR : SD.gray500} />
+                    <span style={{ width: 1, background: SD.gray200 }} />
+                    <Fact label="인원" value={v.people > 0 ? `${v.people}명` : '—'} />
                 </div>
             </section>
 
-            <GuideDetailModal guide={guide || null} open={guideOpen} onClose={() => setGuideOpen(false)} />
-            <AccommodationDetailModal accommodation={accModal?.accommodation || null} day={accModal?.day} open={!!accModal} onClose={() => setAccModal(null)} />
-        </MobileShell>
+            {pb && (
+                <section style={sec('20px 20px 24px')}>
+                    <Head title="결제 현황" />
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 8 }}>
+                        <span style={{ fontSize: 13, color: SD.gray600 }}>결제 완료</span>
+                        <span style={{ fontSize: 20, fontWeight: 700 }}>{won(v.paid)} <span style={{ fontSize: 12, fontWeight: 500, color: SD.gray500 }}>/ {won(pb.total)}</span></span>
+                    </div>
+                    <ProgressBar percent={v.percent} height={6} />
+                    <PayRow compact label="예약금" sub={v.depositPaid ? '무통장입금 · 입금 확인 완료' : v.depositReported ? '무통장입금 · 입금 확인 중' : '무통장입금 · 입금 확인 후 예약 확정'}
+                        amount={pb.deposit} tag={v.depositPaid ? '결제 완료' : v.depositReported ? '입금 확인 중' : '미결제'} done={v.depositPaid} />
+                    <PayRow compact label="현지 결제" sub="몽골 도착 후 가이드에게 현금 전달" amount={pb.local}
+                        tag={v.balancePaid ? '결제 완료' : v.depositPaid ? '현지 결제 예정' : '미결제'} done={v.balancePaid} />
+                    {v.depositPaid ? (
+                        <p style={{ margin: '12px 0 0', display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: SD.gray700 }}>
+                            <span style={{ color: SD.mint500, display: 'flex' }}><SIcon name="checkRound" size={16} stroke={1.8} /></span>
+                            {v.balancePaid ? '모든 결제가 끝났어요.' : '예약금 입금이 확인되어 예약이 확정됐어요.'}
+                        </p>
+                    ) : <DepositReportPanel reservation={reservation} pc={false} />}
+                </section>
+            )}
+
+            <section style={sec('20px 20px 24px')}>
+                <Head title={v.stays.length > 0 ? `숙소 · ${v.stays.length}박` : '숙소'} />
+                {v.stays.length > 0 ? (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                        {v.stays.map((s) => {
+                            const acc = s.accommodation;
+                            const img = parseImage(acc?.images);
+                            return (
+                                <button key={s.day} type="button" disabled={!acc} onClick={() => acc && setAccModal({ accommodation: acc, day: s.day, date: stayDate(s.day) })} style={{ ...tile, padding: 12, cursor: acc ? 'pointer' : 'default' }}>
+                                    <TripThumb src={isUsableImage(img) ? img : ''} alt="" size={56} icon="bedStay" />
+                                    <span style={{ flex: '1 1 auto', minWidth: 0, display: 'flex', flexDirection: 'column', gap: 4 }}>
+                                        <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                                            <span style={darkTagStyle}>{s.day}일차</span>
+                                            {acc?.type && <span style={{ fontSize: 12, color: SD.gray600 }}>{acc.type}</span>}
+                                        </span>
+                                        <span style={{ fontSize: 14, fontWeight: 700, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{acc?.name || '숙소 준비 중'}</span>
+                                    </span>
+                                    {acc && <span style={{ flex: 'none', color: SD.gray400, display: 'flex' }}><SIcon name="chevronRight" size={16} stroke={2} /></span>}
+                                </button>
+                            );
+                        })}
+                    </div>
+                ) : <Pending icon="bedStay" title="숙소를 준비 중이에요" sub="일정이 확정되면 날짜별 숙소를 알려 드려요" />}
+            </section>
+
+            <section style={sec('20px 20px 24px')}>
+                <Head title="여행 서류" />
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                    <DocTile compact icon="mapFold" title="확정 일정표" ready="일정과 숙소를 확인해 보세요" pending="담당자가 작성하면 여기에 표시돼요" href={v.itineraryUrl} />
+                    <DocTile compact icon="quoteDoc" title="해외여행 계약서" ready="계약 내용과 유의 사항을 확인해 보세요" pending="발행되면 메일로도 알려 드려요" href={v.contractUrl} />
+                </div>
+            </section>
+
+            <section style={sec('20px 20px 24px')}>
+                <Head title="담당 가이드" />
+                {v.guide ? (
+                    <button type="button" onClick={() => setGuideOpen(true)} style={{ ...tile, padding: 14 }}>
+                        <GuideFace src={v.guide.image} size={48} />
+                        <span style={{ flex: '1 1 auto', display: 'flex', flexDirection: 'column', gap: 2 }}>
+                            <span style={{ fontSize: 15, fontWeight: 700 }}>{v.guide.name}</span>
+                            <span style={{ fontSize: 12, color: SD.gray600 }}>가이드 소개 보기</span>
+                        </span>
+                        <span style={{ flex: 'none', color: SD.gray400, display: 'flex' }}><SIcon name="chevronRight" size={16} stroke={2} /></span>
+                    </button>
+                ) : <Pending icon="user" title="담당 가이드를 배정 중이에요" sub="출발 2주 전까지 확정되면 알림으로 알려 드려요" />}
+            </section>
+
+            {v.history.length > 0 && (
+                <section style={sec('20px 20px 24px')}>
+                    <Head title="타임라인" />
+                    <Timeline items={visibleHistory} compact />
+                    {v.history.length > 3 && (
+                        <button type="button" onClick={() => setShowAllHistory((x) => !x)}
+                            style={{ marginTop: 14, width: '100%', padding: 6, border: 'none', background: 'transparent', fontFamily: 'inherit', fontSize: 12, fontWeight: 700, color: SD.gray700, cursor: 'pointer' }}>
+                            {showAllHistory ? '접기' : `전체 보기 (${v.history.length}건)`}
+                        </button>
+                    )}
+                </section>
+            )}
+
+            <section style={{ padding: 20 }}>
+                <p style={{ margin: '0 0 10px', fontSize: 13, color: SD.gray600 }}>궁금한 점은 한국어 담당 직원이 24시간 안에 답변해 드려요.</p>
+                <ContactButtons />
+            </section>
+
+            <GuideDetailModal guide={v.guide} open={guideOpen} onClose={() => setGuideOpen(false)} />
+            <AccommodationDetailModal accommodation={accModal?.accommodation || null} day={accModal?.day} date={accModal?.date} open={!!accModal} onClose={() => setAccModal(null)} />
+        </div>,
     );
 }
 
-const contactBtn: CSSProperties = { display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, height: 46, border: `1px solid ${MW.line}`, borderRadius: 999, background: '#FFFFFF', fontFamily: 'inherit', fontSize: 13, fontWeight: 700, color: MW.navy, cursor: 'pointer', whiteSpace: 'nowrap', textDecoration: 'none', boxSizing: 'border-box' };
+const sec = (padding: string): CSSProperties => ({ padding, borderBottom: `8px solid ${SD.gray50}` });
+const tile: CSSProperties = {
+    width: '100%', display: 'flex', alignItems: 'center', gap: 12, border: `1px solid ${SD.gray200}`, borderRadius: 12, background: SD.white,
+    fontFamily: 'inherit', textAlign: 'left', cursor: 'pointer', boxSizing: 'border-box', color: SD.gray900,
+};
 
-/** Section with the design's icon heading and optional sub copy. */
-function Block({ d, title, sub, children }: { d: string; title: string; sub?: string; children: ReactNode }) {
+function Head({ title }: { title: string }) {
+    return <h2 style={{ margin: '0 0 12px', fontSize: 17, fontWeight: 700 }}>{title}</h2>;
+}
+
+function Fact({ label, value, color }: { label: string; value: string; color?: string }) {
     return (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 2, padding: '0 4px' }}>
-                <h2 style={{ margin: 0, display: 'flex', alignItems: 'center', gap: 8, fontSize: 16, fontWeight: 900 }}>
-                    <Ico d={d} color={MW.mintDeep} />
-                    {title}
-                </h2>
-                {sub && <span style={{ fontSize: 12, color: MW.mute, paddingLeft: 28 }}>{sub}</span>}
-            </div>
-            {children}
-        </div>
-    );
-}
-
-function TicketStat({ label, value, en, align = 'flex-start' }: { label: string; value: string; en?: boolean; align?: 'flex-start' | 'center' | 'flex-end' }) {
-    return (
-        <span style={{ display: 'flex', flexDirection: 'column', gap: 2, alignItems: align, minWidth: 0 }}>
-            <span style={{ fontSize: 11, color: MW.mintTint }}>{label}</span>
-            <span style={en ? { fontFamily: MW_FONT_EN, fontSize: 14, fontWeight: 600 } : { fontSize: 14, fontWeight: 900 }}>{value}</span>
-        </span>
-    );
-}
-
-/** `checking`: the customer reported the transfer and staff have not confirmed it yet. */
-function PayRow({ label, sub, amount, paid, checking }: { label: string; sub: string; amount: number; paid: boolean; checking?: boolean }) {
-    const fg = paid ? MW.mintDeep : checking ? TONE.warn.fg : MW.red;
-    return (
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10 }}>
-            <span style={{ display: 'flex', flexDirection: 'column', gap: 3, minWidth: 0 }}>
-                <span style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 14, fontWeight: 700, whiteSpace: 'nowrap' }}>
-                    {label}
-                    <span style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 11, color: fg, background: paid ? MW.mintTint : checking ? TONE.warn.bg : '#FDECEA', padding: '2px 8px', borderRadius: 999 }}>
-                        <span style={{ width: 5, height: 5, borderRadius: '50%', background: fg }} />
-                        {paid ? '결제 완료' : checking ? '입금 확인 중' : '미결제'}
-                    </span>
-                </span>
-                <span style={{ fontSize: 11, color: MW.mute, whiteSpace: 'nowrap' }}>{sub}</span>
-            </span>
-            <span style={{ flexShrink: 0, fontSize: 15, fontWeight: 900 }}>{won(amount)}</span>
-        </div>
-    );
-}
-
-/** Document link; a dashed "준비 중" tile until the document has been issued. */
-function DocTile({ d, title, ready, pending, href }: { d: string; title: string; ready: string; pending: string; href: string }) {
-    const inner = (
-        <>
-            <span style={{ width: 44, height: 44, borderRadius: 14, background: href ? MW.mintBg : '#FFFFFF', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                <Ico d={d} size={22} color={href ? MW.mintDeep : MW.mute2} />
-            </span>
-            <span style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 2 }}>
-                <span style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 14, fontWeight: 700, whiteSpace: 'nowrap', color: href ? MW.navy : MW.mute }}>
-                    {title}
-                    {!href && <span style={{ fontSize: 10, fontWeight: 700, color: TONE.warn.fg, background: TONE.warn.bg, padding: '2px 6px', borderRadius: 4 }}>준비 중</span>}
-                </span>
-                <span style={{ fontSize: 11, color: MW.mute, ...(href ? { whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' } : { lineHeight: 1.5 }) }}>{href ? ready : pending}</span>
-            </span>
-            {href && <Ico d={D.chevron} size={16} color={MW.mute2} style={{ flexShrink: 0 }} />}
-        </>
-    );
-    if (!href) return <div style={{ ...tile, padding: '14px 16px', background: 'transparent', borderStyle: 'dashed', borderColor: MW.line2 }}>{inner}</div>;
-    return <a href={href} style={{ ...tile, padding: '14px 16px' }}>{inner}</a>;
-}
-
-/** Placeholder while the guide / stays are still being arranged. */
-function Pending({ d, title, sub }: { d: string; title: string; sub: string }) {
-    return (
-        <div style={{ padding: '26px 20px', border: `1.5px dashed ${MW.line2}`, borderRadius: 20, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6, textAlign: 'center' }}>
-            <span style={{ width: 48, height: 48, borderRadius: 14, background: '#fff', border: `1px solid ${MW.line}`, display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 4 }}>
-                <Ico d={d} size={24} color={MW.mintDeep} />
-            </span>
-            <span style={{ fontSize: 14, fontWeight: 700 }}>{title}</span>
-            <span style={{ fontSize: 12, color: MW.mute, lineHeight: 1.5 }}>{sub}</span>
+        <div style={{ flex: '1 1 0', minWidth: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2 }}>
+            <span style={{ fontSize: 11, color: SD.gray600 }}>{label}</span>
+            <strong style={{ fontSize: 15, color: color || SD.gray900, fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>{value}</strong>
         </div>
     );
 }

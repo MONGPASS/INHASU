@@ -1,293 +1,205 @@
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState, type CSSProperties, type ReactNode } from 'react';
+import { useIsDesktop } from '../../hooks/useIsDesktop';
+import { isUsableImage } from '../desktop-primitives/mwTokens';
+import { SD, SIcon } from '../site-seed/seed';
 
-const parseArr = (v: any): string[] => {
+/**
+ * 예약 상세(PC·휴대폰)의 숙소·가이드 소개 창 — 디자인 ‘마이페이지 — 예약 상세 (예약 확정 후)’.
+ * PC는 가운데 창(520px), 휴대폰은 아래에서 올라오는 시트.
+ */
+
+const parseArr = (v: unknown): string[] => {
     if (!v) return [];
-    if (Array.isArray(v)) return v;
+    if (Array.isArray(v)) return v.map(String);
     if (typeof v === 'string') {
-        try { const p = JSON.parse(v); return Array.isArray(p) ? p : []; } catch { return []; }
+        try {
+            const p = JSON.parse(v);
+            return Array.isArray(p) ? p.map(String) : v.split(',').map((x) => x.trim()).filter(Boolean);
+        } catch {
+            return v.split(',').map((x) => x.trim()).filter(Boolean);
+        }
     }
     return [];
 };
 
-const parseImages = (v: any): string[] => {
-    const arr = parseArr(v);
+const parseImages = (v: unknown): string[] => {
+    const arr = parseArr(v).filter(isUsableImage);
     if (arr.length > 0) return arr;
-    if (typeof v === 'string' && v.startsWith('http')) return [v];
-    return [];
+    return typeof v === 'string' && isUsableImage(v) ? [v] : [];
 };
 
-// Lock body scroll while a modal is open
-const useLockBodyScroll = (open: boolean) => {
+function ModalShell({ open, onClose, label, children }: { open: boolean; onClose: () => void; label: string; children: ReactNode }) {
+    const pc = useIsDesktop();
     useEffect(() => {
         if (!open) return;
         const original = document.body.style.overflow;
         document.body.style.overflow = 'hidden';
-        return () => { document.body.style.overflow = original; };
-    }, [open]);
-};
-
-interface ModalShellProps {
-    open: boolean;
-    onClose: () => void;
-    children: React.ReactNode;
-}
-
-const ModalShell: React.FC<ModalShellProps> = ({ open, onClose, children }) => {
-    useLockBodyScroll(open);
-
-    useEffect(() => {
-        if (!open) return;
         const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
         window.addEventListener('keydown', onKey);
-        return () => window.removeEventListener('keydown', onKey);
+        return () => {
+            document.body.style.overflow = original;
+            window.removeEventListener('keydown', onKey);
+        };
     }, [open, onClose]);
-
     if (!open) return null;
     return (
-        <div className="fixed inset-0 z-[200] flex items-end sm:items-center justify-center">
-            <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" onClick={onClose} />
-            <div className="relative w-full sm:max-w-md max-h-[92vh] bg-white dark:bg-slate-900 rounded-t-3xl sm:rounded-3xl shadow-2xl overflow-hidden flex flex-col animate-in slide-in-from-bottom-4 sm:zoom-in-95 fade-in duration-200">
+        <div role="dialog" aria-modal="true" aria-label={label} data-mw-overlay=""
+            style={{ position: 'fixed', inset: 0, zIndex: 200, display: 'flex', alignItems: pc ? 'center' : 'flex-end', justifyContent: 'center', padding: pc ? 24 : 0 }}>
+            <div aria-hidden="true" onClick={onClose} style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.45)' }} />
+            <div style={{ position: 'relative', width: pc ? 520 : '100%', maxHeight: pc ? 'calc(100vh - 48px)' : '92vh', overflowY: 'auto', background: SD.white,
+                borderRadius: pc ? 20 : '20px 20px 0 0', boxShadow: '0 24px 60px rgba(0,0,0,0.25)', color: SD.gray900 }}>
+                <button type="button" aria-label="닫기" onClick={onClose}
+                    style={{ position: 'absolute', top: 14, right: 14, zIndex: 1, width: 36, height: 36, borderRadius: 9999, border: 'none', background: 'rgba(255,255,255,0.92)', color: SD.gray900,
+                        display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', padding: 0, boxShadow: '0 1px 4px rgba(0,0,0,0.12)' }}>
+                    <SIcon name="close" size={18} stroke={1.8} />
+                </button>
                 {children}
             </div>
         </div>
     );
-};
+}
 
-// ─── Guide ────────────────────────────────────────────────
+const tag: CSSProperties = { height: 22, padding: '0 8px', borderRadius: 6, boxSizing: 'border-box', border: `1px solid ${SD.gray200}`, color: SD.gray700, fontSize: 11, fontWeight: 700, display: 'inline-flex', alignItems: 'center' };
+const label: CSSProperties = { margin: '22px 0 10px', fontSize: 13, fontWeight: 700, color: SD.gray900 };
+
+// ─── 가이드 ────────────────────────────────────────────────
 interface Guide {
-    id?: string;
     name?: string;
     image?: string;
     introduction?: string;
     bio?: string;
+    desc?: string;
     phone?: string;
-    kakaoId?: string;
-    languages?: any;
-    specialties?: any;
-    experienceYears?: number;
+    qr?: string;
 }
 
-interface GuideDetailModalProps {
-    guide: Guide | null;
-    open: boolean;
-    onClose: () => void;
-}
-
-export const GuideDetailModal: React.FC<GuideDetailModalProps> = ({ guide, open, onClose }) => {
+export function GuideDetailModal({ guide, open, onClose }: { guide: Guide | null; open: boolean; onClose: () => void }) {
     if (!guide) return null;
-    const languages = parseArr(guide.languages);
-    const specialties = parseArr(guide.specialties);
-    const intro = guide.introduction || guide.bio || '';
-
+    const intro = guide.introduction || guide.bio || guide.desc || '';
+    const qr = isUsableImage(guide.qr) ? guide.qr : '';
     return (
-        <ModalShell open={open} onClose={onClose}>
-            {/* Header */}
-            <div className="px-5 py-4 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between flex-shrink-0">
-                <p className="text-xs font-bold tracking-widest uppercase text-slate-400">담당 가이드</p>
-                <button onClick={onClose} className="w-9 h-9 flex items-center justify-center rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-500" aria-label="close">
-                    <span className="material-symbols-outlined">close</span>
-                </button>
+        <ModalShell open={open} onClose={onClose} label="가이드 소개">
+            <div style={{ padding: '32px 24px 20px', display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center' }}>
+                <span style={{ width: 88, height: 88, borderRadius: 9999, overflow: 'hidden', background: SD.gray100, color: SD.gray500, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    {isUsableImage(guide.image) ? <img src={guide.image} alt={guide.name || ''} style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : <SIcon name="user" size={40} stroke={1.5} />}
+                </span>
+                <span style={{ marginTop: 12, fontSize: 12, color: SD.gray600 }}>담당 가이드</span>
+                <h2 style={{ margin: '4px 0 0', fontSize: 22, fontWeight: 700 }}>{guide.name}</h2>
             </div>
-
-            {/* Body */}
-            <div className="flex-1 overflow-y-auto p-5">
-                <div className="flex flex-col items-center text-center mb-5">
-                    {guide.image ? (
-                        <img src={guide.image} alt={guide.name} className="w-28 h-28 rounded-full object-cover ring-4 ring-white shadow-lg shadow-teal-500/20 mb-3" loading="lazy" decoding="async" />
-                    ) : (
-                        <div className="w-28 h-28 rounded-full flex items-center justify-center text-white text-3xl font-bold shadow-lg mb-3"
-                            style={{ background: 'linear-gradient(135deg, #0f766e, #14b8a6)' }}>
-                            {guide.name?.[0] || '?'}
-                        </div>
-                    )}
-                    <h2 className="text-xl font-bold text-slate-900 dark:text-white">{guide.name}</h2>
-                    {guide.experienceYears != null && guide.experienceYears > 0 && (
-                        <p className="text-xs text-slate-500 mt-1 inline-flex items-center gap-1">
-                            <span className="material-symbols-outlined text-sm text-amber-500">workspace_premium</span>
-                            가이드 경력 {guide.experienceYears}년
-                        </p>
-                    )}
-                </div>
-
-                {(languages.length > 0 || specialties.length > 0) && (
-                    <div className="flex flex-wrap gap-1.5 justify-center mb-5">
-                        {languages.map((l, i) => (
-                            <span key={`l-${i}`} className="text-xs font-semibold px-2.5 py-1 rounded-full bg-teal-100 text-teal-700">{l}</span>
-                        ))}
-                        {specialties.map((s, i) => (
-                            <span key={`s-${i}`} className="text-xs font-semibold px-2.5 py-1 rounded-full bg-slate-100 text-slate-600">{s}</span>
-                        ))}
-                    </div>
-                )}
-
-                {intro && (
-                    <div className="bg-slate-50 dark:bg-slate-800/50 rounded-2xl p-4 mb-5">
-                        <p className="text-[10px] font-bold tracking-widest uppercase text-slate-400 mb-2">소개</p>
-                        <p className="text-sm text-slate-700 dark:text-slate-200 leading-relaxed whitespace-pre-wrap">{intro}</p>
+            <div style={{ padding: '0 24px 24px', display: 'flex', flexDirection: 'column', gap: 18 }}>
+                {intro && <p style={{ margin: 0, padding: '16px 18px', borderRadius: 12, background: SD.gray50, fontSize: 14, lineHeight: 1.7, color: SD.gray700, whiteSpace: 'pre-wrap' }}>{intro}</p>}
+                {(guide.phone || qr) && (
+                    <div style={{ display: 'flex', gap: 12, alignItems: 'stretch' }}>
+                        {guide.phone && (
+                            <div style={{ flex: '1 1 auto', display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: 6, padding: 16, border: `1px solid ${SD.gray200}`, borderRadius: 14 }}>
+                                <span style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: SD.gray600 }}><SIcon name="phoneCall" size={14} stroke={1.7} />전화번호</span>
+                                <a href={`tel:${guide.phone}`} style={{ fontSize: 18, fontWeight: 700, color: SD.gray900, textDecoration: 'none' }}>{guide.phone}</a>
+                            </div>
+                        )}
+                        {qr && (
+                            <div style={{ flex: 'none', width: 140, padding: 12, boxSizing: 'border-box', border: `1px solid ${SD.gray200}`, borderRadius: 14, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6 }}>
+                                <img src={qr} alt="가이드 카카오톡 QR" style={{ width: 96, height: 96, borderRadius: 8, objectFit: 'contain', display: 'block', background: SD.white }} />
+                                <span style={{ fontSize: 12, fontWeight: 700 }}>카카오톡 QR</span>
+                            </div>
+                        )}
                     </div>
                 )}
             </div>
-
-            {/* Actions */}
-            {(guide.phone || guide.kakaoId) && (
-                <div className="px-5 py-4 border-t border-slate-100 dark:border-slate-800 flex gap-2 flex-shrink-0">
-                    {guide.phone && (
-                        <a href={`tel:${guide.phone}`} className="flex-1 inline-flex items-center justify-center gap-1.5 py-3 bg-teal-500 hover:bg-teal-600 text-white rounded-xl text-sm font-bold transition-colors">
-                            <span className="material-symbols-outlined text-base">call</span>
-                            전화하기
-                        </a>
-                    )}
-                    {guide.kakaoId && (
-                        <button className="flex-1 inline-flex items-center justify-center gap-1.5 py-3 bg-yellow-400 hover:bg-yellow-500 text-yellow-900 rounded-xl text-sm font-bold transition-colors">
-                            <span className="material-symbols-outlined text-base">chat</span>
-                            {guide.kakaoId}
-                        </button>
-                    )}
-                </div>
-            )}
         </ModalShell>
     );
-};
+}
 
-// ─── Accommodation ────────────────────────────────────────
+// ─── 숙소 ────────────────────────────────────────
 interface Accommodation {
     id?: string;
     name?: string;
     type?: string;
     location?: string;
-    images?: any;
+    images?: unknown;
     description?: string;
-    facilities?: any;
-    rating?: number;
+    facilities?: unknown;
 }
 
-interface AccommodationDetailModalProps {
-    accommodation: Accommodation | null;
-    day?: number;
-    open: boolean;
-    onClose: () => void;
-}
+/** "전기 O, 샤워 O, 인터넷 X" 같은 시설 값 → 이름 + 있음/없음. */
+const facilityItems = (v: unknown) => parseArr(v).map((x) => {
+    const no = /\s[xX]$/.test(x);
+    return { label: x.replace(/\s[oOxX]$/, '').trim(), ok: !no };
+}).filter((x) => x.label);
 
-export const AccommodationDetailModal: React.FC<AccommodationDetailModalProps> = ({ accommodation, day, open, onClose }) => {
-    const [imageIdx, setImageIdx] = useState(0);
-
-    useEffect(() => {
-        if (open) setImageIdx(0);
-    }, [open, accommodation?.id]);
-
+export function AccommodationDetailModal({ accommodation, day, date, open, onClose }: { accommodation: Accommodation | null; day?: number; date?: string; open: boolean; onClose: () => void }) {
+    const [idx, setIdx] = useState(0);
+    const [shownFor, setShownFor] = useState<string | undefined>(undefined);
+    const key = `${accommodation?.id || accommodation?.name || ''}:${day ?? ''}`;
+    // 다른 숙소를 열면 첫 사진부터.
+    if (open && shownFor !== key) {
+        setShownFor(key);
+        setIdx(0);
+    }
     if (!accommodation) return null;
     const images = parseImages(accommodation.images);
-    const facilities = parseArr(accommodation.facilities);
-    const mapsUrl = accommodation.location
-        ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(accommodation.location)}`
-        : null;
-
-    const next = () => setImageIdx(i => (i + 1) % Math.max(images.length, 1));
-    const prev = () => setImageIdx(i => (i - 1 + Math.max(images.length, 1)) % Math.max(images.length, 1));
+    const facilities = facilityItems(accommodation.facilities);
+    const mapsUrl = accommodation.location ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(accommodation.location)}` : '';
+    const n = images.length;
+    const nav: CSSProperties = { position: 'absolute', top: '50%', transform: 'translateY(-50%)', width: 34, height: 34, borderRadius: 9999, border: 'none', background: 'rgba(255,255,255,0.9)', color: SD.gray900,
+        display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', padding: 0 };
 
     return (
-        <ModalShell open={open} onClose={onClose}>
-            {/* Header */}
-            <div className="px-5 py-4 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between flex-shrink-0">
-                <p className="text-xs font-bold tracking-widest uppercase text-slate-400">
-                    {day ? `${day}일차 숙박` : '숙소'}
-                </p>
-                <button onClick={onClose} className="w-9 h-9 flex items-center justify-center rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-500" aria-label="close">
-                    <span className="material-symbols-outlined">close</span>
-                </button>
+        <ModalShell open={open} onClose={onClose} label="숙소 소개">
+            <div style={{ position: 'relative', height: 240, background: SD.gray100, color: SD.gray500, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                {n > 0 ? <img src={images[idx % n]} alt={accommodation.name || ''} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} /> : <SIcon name="bedStay" size={40} stroke={1.4} />}
+                {n > 1 && (
+                    <>
+                        <button type="button" aria-label="이전 사진" onClick={() => setIdx((i) => (i - 1 + n) % n)} style={{ ...nav, left: 12 }}><SIcon name="chevronLeft" size={18} stroke={2} /></button>
+                        <button type="button" aria-label="다음 사진" onClick={() => setIdx((i) => (i + 1) % n)} style={{ ...nav, right: 12 }}><SIcon name="chevronRight" size={18} stroke={2} /></button>
+                        <span style={{ position: 'absolute', right: 12, bottom: 12, height: 24, padding: '0 10px', borderRadius: 9999, background: 'rgba(0,0,0,0.55)', color: SD.white, fontSize: 12, display: 'inline-flex', alignItems: 'center' }}>
+                            {(idx % n) + 1} / {n}
+                        </span>
+                    </>
+                )}
             </div>
+            <div style={{ padding: '22px 24px 24px' }}>
+                <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                    {day ? <span style={{ ...tag, border: 'none', background: SD.gray900, color: SD.white }}>{day}일차</span> : null}
+                    {accommodation.type && <span style={tag}>{accommodation.type}</span>}
+                </span>
+                <h2 style={{ margin: '10px 0 4px', fontSize: 22, fontWeight: 700 }}>{accommodation.name}</h2>
+                {date && <p style={{ margin: 0, fontSize: 13, color: SD.gray600 }}>{date} 숙박</p>}
 
-            {/* Body */}
-            <div className="flex-1 overflow-y-auto">
-                {/* Image carousel */}
-                {images.length > 0 ? (
-                    <div className="relative aspect-video bg-slate-100 dark:bg-slate-800">
-                        <img src={images[imageIdx]} alt={accommodation.name} className="w-full h-full object-cover" loading="lazy" decoding="async" />
-                        {images.length > 1 && (
-                            <>
-                                <button onClick={prev} className="absolute left-3 top-1/2 -translate-y-1/2 w-9 h-9 bg-white/80 hover:bg-white rounded-full flex items-center justify-center shadow-md text-slate-700">
-                                    <span className="material-symbols-outlined">chevron_left</span>
-                                </button>
-                                <button onClick={next} className="absolute right-3 top-1/2 -translate-y-1/2 w-9 h-9 bg-white/80 hover:bg-white rounded-full flex items-center justify-center shadow-md text-slate-700">
-                                    <span className="material-symbols-outlined">chevron_right</span>
-                                </button>
-                                <div className="absolute bottom-3 right-3 bg-slate-900/70 text-white text-xs font-mono px-2 py-1 rounded-full">
-                                    {imageIdx + 1} / {images.length}
+                {facilities.length > 0 && (
+                    <>
+                        <p style={label}>시설</p>
+                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8 }}>
+                            {facilities.map((f) => (
+                                <div key={f.label} style={{ minHeight: 64, padding: '8px 4px', boxSizing: 'border-box', borderRadius: 12, border: `1px solid ${SD.gray200}`, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 4, opacity: f.ok ? 1 : 0.5, textAlign: 'center' }}>
+                                    <span style={{ color: f.ok ? SD.gray900 : SD.gray500, display: 'flex' }}><SIcon name={f.ok ? 'checkMark' : 'crossMark'} size={18} stroke={2} /></span>
+                                    <span style={{ fontSize: 13, fontWeight: 700 }}>{f.label}</span>
                                 </div>
-                                <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex gap-1">
-                                    {images.map((_, i) => (
-                                        <button
-                                            key={i}
-                                            onClick={() => setImageIdx(i)}
-                                            className={`w-1.5 h-1.5 rounded-full transition-all ${i === imageIdx ? 'bg-white w-4' : 'bg-white/50'}`}
-                                            aria-label={`Image ${i + 1}`}
-                                        />
-                                    ))}
-                                </div>
-                            </>
-                        )}
-                    </div>
-                ) : (
-                    <div className="aspect-video bg-slate-100 dark:bg-slate-800 flex items-center justify-center">
-                        <span className="material-symbols-outlined text-5xl text-slate-300">hotel</span>
-                    </div>
+                            ))}
+                        </div>
+                    </>
                 )}
 
-                <div className="p-5">
-                    {/* Name + type */}
-                    <div className="flex items-start justify-between gap-3 mb-3">
-                        <div className="min-w-0">
-                            <h2 className="text-lg font-bold text-slate-900 dark:text-white">{accommodation.name}</h2>
-                            {accommodation.type && (
-                                <span className="inline-block mt-1 text-[10px] font-bold uppercase tracking-widest px-2 py-0.5 rounded-full bg-teal-100 text-teal-700">{accommodation.type}</span>
-                            )}
-                        </div>
-                        {accommodation.rating != null && accommodation.rating > 0 && (
-                            <div className="inline-flex items-center gap-0.5 text-amber-500 flex-shrink-0">
-                                <span className="material-symbols-outlined text-base">star</span>
-                                <span className="text-sm font-bold">{accommodation.rating.toFixed(1)}</span>
-                            </div>
-                        )}
-                    </div>
+                {accommodation.description && (
+                    <>
+                        <p style={label}>안내</p>
+                        <p style={{ margin: 0, fontSize: 14, lineHeight: 1.7, color: SD.gray700, whiteSpace: 'pre-wrap' }}>{accommodation.description}</p>
+                    </>
+                )}
 
-                    {/* Location */}
-                    {accommodation.location && (
-                        <a
-                            href={mapsUrl || '#'}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="flex items-start gap-2 mb-4 text-xs text-slate-600 dark:text-slate-300 leading-relaxed hover:text-teal-600"
-                        >
-                            <span className="material-symbols-outlined text-base text-slate-400 mt-0.5 flex-shrink-0">location_on</span>
-                            <span className="flex-1">{accommodation.location}</span>
-                            <span className="material-symbols-outlined text-sm text-slate-400">open_in_new</span>
+                {accommodation.location && (
+                    <>
+                        <p style={label}>주소</p>
+                        <div style={{ padding: '14px 16px', borderRadius: 12, background: SD.gray50, display: 'flex', gap: 10, alignItems: 'flex-start' }}>
+                            <span style={{ flex: 'none', color: SD.gray700, display: 'flex', paddingTop: 1 }}><SIcon name="pinPlace" size={18} stroke={1.7} /></span>
+                            <span style={{ flex: '1 1 auto', fontSize: 14, lineHeight: 1.6 }}>{accommodation.location}</span>
+                        </div>
+                        <a href={mapsUrl} target="_blank" rel="noopener noreferrer"
+                            style={{ marginTop: 10, height: 44, border: `1px solid ${SD.gray200}`, borderRadius: 12, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, fontSize: 14, fontWeight: 700, color: SD.gray900, textDecoration: 'none' }}>
+                            <SIcon name="mapFold" size={16} stroke={1.7} />지도에서 보기
                         </a>
-                    )}
-
-                    {/* Facilities */}
-                    {facilities.length > 0 && (
-                        <div className="mb-4">
-                            <p className="text-[10px] font-bold tracking-widest uppercase text-slate-400 mb-2">시설</p>
-                            <div className="flex flex-wrap gap-1.5">
-                                {facilities.map((f, i) => (
-                                    <span key={i} className="inline-flex items-center gap-1 text-xs font-semibold px-2.5 py-1 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300">
-                                        <span className="material-symbols-outlined text-sm text-teal-600">check</span>
-                                        {f}
-                                    </span>
-                                ))}
-                            </div>
-                        </div>
-                    )}
-
-                    {/* Description */}
-                    {accommodation.description && (
-                        <div>
-                            <p className="text-[10px] font-bold tracking-widest uppercase text-slate-400 mb-2">안내</p>
-                            <p className="text-sm text-slate-700 dark:text-slate-200 leading-relaxed whitespace-pre-wrap">{accommodation.description}</p>
-                        </div>
-                    )}
-                </div>
+                    </>
+                )}
             </div>
         </ModalShell>
     );
-};
+}
