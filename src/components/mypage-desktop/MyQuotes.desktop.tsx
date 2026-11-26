@@ -108,7 +108,13 @@ export function QuoteListPanel({ quotes, loading, go, onOpen, compact = false }:
                         </div>
                     )}
                 </div>
-                {stage.step >= 0 && <Steps step={stage.step} style={{ margin: compact ? '14px 0 0' : '16px 0 0 106px' }} />}
+                {compact && sideLabel && (
+                    <div style={{ marginTop: 12, padding: '12px 14px', borderRadius: 12, background: SD.gray50, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10 }}>
+                        <span style={{ fontSize: 12, color: SD.gray600 }}>{sideLabel}</span>
+                        <strong style={{ fontSize: 15, color: stage.tab === 'arrived' || stage.tab === 'booked' ? SD.mint600 : SD.gray900 }}>{sideValue}</strong>
+                    </div>
+                )}
+                {stage.step >= 0 && <Steps step={stage.step} style={{ margin: compact ? '12px 0 0' : '16px 0 0 106px' }} />}
             </article>
         );
     });

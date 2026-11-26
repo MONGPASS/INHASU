@@ -12,7 +12,7 @@ import { toTourDateKey } from '../../utils/formatDate';
 import { won } from '../desktop-primitives/mwTokens';
 import { Avatar, CountPill, TripThumb } from '../mypage-desktop/MyPageHome.desktop';
 import { DDAY_COLOR, MY_MENU_GROUPS, bookingStage, boxButton, chipStyle, dateRangeText, ddayText, pickNextTrip, productImageOf } from '../mypage-desktop/myBookingView';
-import { QUOTE_STATUS } from '../mypage-desktop/myPageTheme';
+import { quoteStage } from '../mypage-desktop/myQuoteView';
 import { useMe, useMyPageData, type MyReservation } from '../mypage-desktop/useMyPageData';
 import { MobileShell } from '../mobile/MobileShell';
 import { MLoading } from '../mobile/mobileUi';
@@ -147,14 +147,14 @@ export function MyPageMobile() {
                 {quotes.isPending ? <MLoading pad={24} /> : quoteList.length > 0 ? (
                     <div style={{ display: 'flex', flexDirection: 'column' }}>
                         {quoteList.slice(0, 2).map((q, i) => {
-                            const st = QUOTE_STATUS[q.status] || QUOTE_STATUS.new;
+                            const st = quoteStage(q);
                             return (
                                 <a key={q.id} {...link(q.href)} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 0', borderTop: i ? `1px solid ${SD.gray100}` : 'none', textDecoration: 'none', color: SD.gray900 }}>
                                     <span style={{ flex: '1 1 auto', minWidth: 0, display: 'flex', flexDirection: 'column', gap: 3 }}>
                                         <span style={{ fontSize: 14, fontWeight: 700, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{q.destination ? `맞춤 견적 (${q.destination})` : '맞춤 견적'}</span>
                                         <span style={{ fontSize: 12, color: SD.gray600 }}>{[q.period, q.headcount].filter(Boolean).join(' · ') || (q.createdAt ? `요청일 ${q.createdAt.slice(0, 10)}` : '')}</span>
                                     </span>
-                                    <span style={chipStyle(q.status === 'converted' ? 'solid' : q.status === 'cancelled' || q.status === 'completed' ? 'muted' : 'line', 'sm')}>{st.label}</span>
+                                    <span style={chipStyle(st.chip, 'sm')}>{st.label}</span>
                                 </a>
                             );
                         })}

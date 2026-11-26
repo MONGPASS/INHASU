@@ -1,4 +1,4 @@
-import { useMemo, useState, type ReactNode } from 'react';
+import { useMemo, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
 import { api } from '../../lib/api';
@@ -8,16 +8,13 @@ import { useHomeData } from '../../hooks/useHomeData';
 import { useWishlist } from '../../hooks/useWishlist';
 import { useNotification } from '../../contexts/NotificationContext';
 import { toTourDateKey } from '../../utils/formatDate';
-import { useHomeReviews, type HomeProduct } from '../home-desktop/homeDesktopData';
+import type { HomeProduct } from '../home-desktop/homeDesktopData';
 import { SD, SD_CONTAINER, SIcon } from '../site-seed/seed';
 import { BookingListPanel, MyMenuNav, MyProfileBand, OverviewPanel } from './MyPageHome.desktop';
 import { QuoteDetailPanel, QuoteListPanel } from './MyQuotes.desktop';
 import { MY_MENU_GROUPS, bookingStage, boxButton } from './myBookingView';
-import { useMe, useMyPageData, useRecentActions } from './useMyPageData';
-import {
-    MatesSection, NoticeSection, RecentSection, ReviewsSection, WishlistSection,
-    type TripCardData,
-} from './MyPageSections';
+import { useMe, useMyPageData, useRecentActions, type RecentItem } from './useMyPageData';
+import { MatesPanel, NoticePanel, RecentPanel, ReviewsPanel, WishlistPanel } from './MyLists.desktop';
 
 export type MyTab = 'overview' | 'reservations' | 'estimates' | 'travel-mates' | 'wishlist' | 'recently-viewed' | 'my-reviews' | 'notifications';
 
@@ -39,7 +36,6 @@ export function MyPageDesktop({ tab = 'overview' }: { tab?: MyTab }) {
     const { unreadCount } = useNotification();
     const wishlist = useWishlist();
     const { data: home } = useHomeData();
-    const { stats } = useHomeReviews();
     // Captured once so render stays pure.
     const [now] = useState(() => Date.now());
     const today = useMemo(() => toTourDateKey(new Date(now)), [now]);
@@ -75,12 +71,8 @@ export function MyPageDesktop({ tab = 'overview' }: { tab?: MyTab }) {
     };
 
     const removeWish = (p: HomeProduct) => wishlist.toggle(p);
-    const clearWish = async () => {
-        if (!window.confirm('찜 목록을 모두 삭제하시겠습니까?')) return;
-        for (const p of wishItems) await wishlist.toggle(p);
-    };
-    const toggleRecentFav = (t: TripCardData) =>
-        wishlist.toggle(productById.get(t.productId) ?? { id: t.productId, name: t.title, price: t.price, category: t.category || '', mainImages: t.image ? [t.image] : [] });
+    const toggleRecentFav = (it: RecentItem) =>
+        wishlist.toggle(productById.get(it.productId) ?? { id: it.productId, name: it.title, price: it.price, category: it.category || '', mainImages: it.image ? [it.image] : [] });
 
     // A cached "logged out" answer is re-checked before showing the login prompt.
     if (meQuery.isPending || (!me && meQuery.isFetching)) {
@@ -97,9 +89,6 @@ export function MyPageDesktop({ tab = 'overview' }: { tab?: MyTab }) {
         quotes: quoteList.length,
         wish: wishItems.length,
     };
-    const old = (node: ReactNode) => (
-        <div style={{ background: SD.white, border: `1px solid ${SD.gray200}`, borderRadius: 16, padding: 24, display: 'flex', flexDirection: 'column', gap: 20 }}>{node}</div>
-    );
 
     return (
         <div style={{ background: SD.gray50, color: SD.gray900 }}>
@@ -115,26 +104,16 @@ export function MyPageDesktop({ tab = 'overview' }: { tab?: MyTab }) {
                         ? <QuoteDetailPanel q={openQuote} onBack={() => go('/mypage/estimates')} />
                         : <QuoteListPanel quotes={quoteList} loading={quotes.isPending} go={go}
                             onOpen={(q) => (q.source === 'request' ? go(`/mypage/estimates?id=${encodeURIComponent(q.id)}`) : go(q.href))} />)}
-                    {tab === 'travel-mates' && old(<MatesSection me={me} posts={mates.data ?? []} loading={mates.isPending} go={go} />)}
-                    {tab === 'wishlist' && old(<WishlistSection items={wishItems} stats={stats} onRemove={removeWish} onClearAll={clearWish} go={go} />)}
-                    {tab === 'recently-viewed' && old(
-                        <RecentSection
-                            items={recent.data ?? []}
-                            now={now}
-                            productById={productById}
-                            stats={stats}
-                            isFav={wishlist.has}
-                            onFav={toggleRecentFav}
-                            onRemove={recentActions.remove}
-                            onClearAll={recentActions.clear}
-                            loading={recent.isPending}
-                            go={go}
-                        />,
+                    {tab === 'travel-mates' && <MatesPanel me={me} posts={mates.data ?? []} loading={mates.isPending} go={go} />}
+                    {tab === 'wishlist' && <WishlistPanel items={wishItems} onRemove={removeWish} go={go} />}
+                    {tab === 'recently-viewed' && (
+                        <RecentPanel items={recent.data ?? []} now={now} productById={productById} isFav={wishlist.has} onFav={toggleRecentFav}
+                            onRemove={recentActions.remove} onClearAll={recentActions.clear} loading={recent.isPending} go={go} />
                     )}
-                    {tab === 'my-reviews' && old(
-                        <ReviewsSection me={me} reviews={reviews.data ?? []} pending={pendingReviews} productById={productById} loading={reviews.isPending || reservations.isPending} go={go} />,
+                    {tab === 'my-reviews' && (
+                        <ReviewsPanel me={me} reviews={reviews.data ?? []} pending={pendingReviews} productById={productById} loading={reviews.isPending || reservations.isPending} go={go} />
                     )}
-                    {tab === 'notifications' && old(<NoticeSection go={go} />)}
+                    {tab === 'notifications' && <NoticePanel go={go} />}
                 </div>
             </div>
         </div>
