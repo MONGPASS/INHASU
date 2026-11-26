@@ -2,14 +2,14 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Navigate, useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import { useUser } from '../contexts/UserContext';
 import {
-    AdminBadge, AdminButton, AdminCard, AdminChipGroup, AdminDataTable, AdminEmpty, AdminError, AdminLoading, AdminMessage,
-    AdminPagination, AdminSearch, AdminSelect, AdminStat, AdminStatRow, IconPencil, type AdminColumn, type AdminTone,
+    AdminBadge, AdminButton, AdminChipGroup, AdminDataTable, AdminEmpty, AdminError, AdminLoading, AdminMessage,
+    AdminPagination, AdminSearch, AdminSelect, AdminStat, AdminStatRow, IconChevronRight, IconPencil, type AdminColumn, type AdminTone,
 } from '../components/admin/ui';
 import { AdminFilterBar, ListPage } from '../components/admin/ui/AdminPage';
 import { adminNotify } from '../components/admin/ui/adminFeedback';
 import { connectQuoteDesk, findQuoteDeskTool, quoteDeskHref, quoteDeskPageId } from '../components/admin/quoteDesk';
 import {
-    INBOX_SORTS, INQUIRY_STATUSES, actionTone, arrivalMessage, budgetText, dDay, dateOnly, inboxArrivals, inboxSeen, inboxSummary,
+    INBOX_SORTS, INQUIRY_STATUSES, arrivalMessage, budgetText, dDay, dateOnly, inboxArrivals, inboxSeen, inboxSummary,
     isUrgent, nextAction, nightText, paxSum, readInquiryList, requestSnippet, statusOf, visibleInquiries,
     type InboxFilter, type InboxSeen, type InboxSort, type InquiryRecord,
 } from '../components/admin/quoteInbox';
@@ -18,17 +18,20 @@ import './AdminQuoteInbox.css';
 
 /**
  * 견적 문의(`/admin/quote-desk/inbox`) — 옛 도구 public/견적관리.html의 목록 화면을 React로 옮겼다(iframe 대신).
- * 요약 숫자 → 고객·예약 행동 알림 → 검색·상태 칩·정렬 → 표. 줄을 누르면 고객 통합 작업 화면으로 간다(고치는 일은 거기서).
+ * 화면은 2026-11-26 Claude Design ‘견적 문의 · 목록 (기존 화면 개선)’: 현황 카드 5칸(누르면 목록이 걸러짐) → 흰 목록 카드(검색·정렬 → 상태 칩 → 표 → 건수·페이지).
+ * 고객·예약 행동은 ‘할 일 있음’ 카드와 상태 칸의 다음 할 일로 보여 준다. 줄이나 ‘상세’를 누르면 고객 통합 작업 화면으로 간다(고치는 일은 거기서).
  * 예전 주소 `?id=`(문의 상세)·`?qe=`(옛 휴대폰 견적 편집)는 그 고객의 고객 통합 작업 화면으로 넘긴다(견적 편집도 거기서 React로).
  * 자료는 같은 `GET /api/requests`(x-admin-token)이고 30초마다 다시 읽어 새 문의·고객 행동을 알린다.
  */
-const PAGE_SIZE = 50;
+const PAGE_SIZE = 20;
 const REFRESH_MS = 30000;
 const INBOX_PATH = quoteDeskHref('inbox');
 const tool = findQuoteDeskTool('inbox');
 
-const STATUS_TONE: Record<string, AdminTone> = { 신규: 'info', 진행중: 'warn', 예약확정: 'success', 완료: 'neutral', 보류: 'danger' };
-const ACTION_TONE: Record<ReturnType<typeof actionTone>, AdminTone> = { urgent: 'danger', waiting: 'warn', next: 'info' };
+// 디자인: 신규는 옅은 민트, 진행중·완료·보류는 회색, 예약확정은 검정 채움
+const STATUS_TONE: Record<string, { tone: AdminTone; strong?: boolean }> = { 신규: { tone: 'info' }, 진행중: { tone: 'neutral' }, 예약확정: { tone: 'neutral', strong: true }, 완료: { tone: 'neutral' }, 보류: { tone: 'neutral' } };
+/** 연락처 “010-5717-7901” */
+const phoneText = (phone: string) => { const d = String(phone || '').replace(/\D/g, ''); return d.length === 11 ? `${d.slice(0, 3)}-${d.slice(3, 7)}-${d.slice(7)}` : d.length === 10 ? `${d.slice(0, 3)}-${d.slice(3, 6)}-${d.slice(6)}` : String(phone || ''); };
 const isFilter = (value: string | null): value is InboxFilter => value === 'all' || value === 'action' || (INQUIRY_STATUSES as readonly string[]).includes(value || '');
 const isSort = (value: string | null): value is InboxSort => INBOX_SORTS.some(item => item.value === value);
 
@@ -132,20 +135,25 @@ const InboxList: React.FC = () => {
     const openCustomer = (record: InquiryRecord) => navigate(quoteCustomerHref(String(record.id), returnTo));
 
     const columns: AdminColumn<InquiryRecord>[] = [
-        { key: 'who', header: '신청자', render: r => <span className="qi-name"><b>{r.name || '-'}</b>{r.phone && <small>{r.phone}</small>}</span> },
-        { key: 'want', header: '요청 내용', className: 'qi-c-want', render: r => (
-            <span className="qi-want"><b>{r.destination || '-'}</b>{r.tripType && <> · {r.tripType}</>} {requestSnippet(r) && <small>{requestSnippet(r)}</small>}</span>
-        ) },
-        { key: 'state', header: '상태', nowrap: true, render: r => {
-            const action = nextAction(r);
-            return <span className="qi-state"><AdminBadge tone={STATUS_TONE[statusOf(r)] || 'neutral'}>{statusOf(r)}</AdminBadge>{action && <small className="qi-next">{action.label}</small>}</span>;
+        { key: 'who', header: '신청자', className: 'qi-c-who', render: r => <span className="qi-name"><b>{r.name || '-'}</b>{r.phone && <small>{phoneText(r.phone)}</small>}</span> },
+        { key: 'want', header: '요청 내용', className: 'qi-c-want', render: r => {
+            const extra = [r.tripType, requestSnippet(r)].filter(Boolean).map(x => ` · ${x}`).join('');
+            return <span className="qi-want" title={[r.destination, r.tripType, requestSnippet(r)].filter(Boolean).join(' · ')}><b>{r.destination || '-'}</b>{extra && <span>{extra}</span>}</span>;
         } },
-        { key: 'pax', header: '인원', align: 'right', nowrap: true, render: r => `${paxSum(r)}명` },
-        { key: 'period', header: '일정', align: 'right', nowrap: true, render: r => (
-            <span className="qi-trip">{nightText(r)}{isUrgent(r, now) && <AdminBadge tone="danger" title="출발이 임박한 미처리 문의">D-{dDay(r, now)}</AdminBadge>}</span>
+        { key: 'state', header: '상태', className: 'qi-c-state', nowrap: true, render: r => {
+            const action = nextAction(r), tone = STATUS_TONE[statusOf(r)] || { tone: 'neutral' as AdminTone };
+            return <span className="qi-state"><AdminBadge tone={tone.tone} strong={tone.strong}>{statusOf(r)}</AdminBadge>{action && <small className="qi-next">{action.label}</small>}</span>;
+        } },
+        { key: 'pax', header: '인원', className: 'qi-c-pax', align: 'right', nowrap: true, render: r => `${paxSum(r)}명` },
+        { key: 'period', header: '일정', className: 'qi-c-period', align: 'right', nowrap: true, render: r => (
+            <span className="qi-trip">{nightText(r)}{isUrgent(r, now) && <span className="qi-dday" title={`출발까지 D-${dDay(r, now)} · 출발이 임박한 미처리 문의`}>D-{dDay(r, now)}</span>}</span>
         ) },
-        { key: 'budget', header: '예산', align: 'right', nowrap: true, render: r => <span className="qi-muted">{budgetText(r)}</span> },
-        { key: 'received', header: '접수일', align: 'right', nowrap: true, render: r => <span className="qi-muted">{dateOnly(r.receivedAt)}</span> },
+        { key: 'budget', header: '예산', className: 'qi-c-budget', align: 'right', nowrap: true, render: r => <span className="qi-muted">{budgetText(r)}</span> },
+        { key: 'received', header: '접수일', className: 'qi-c-date', align: 'right', nowrap: true, render: r => <span className="qi-muted">{dateOnly(r.receivedAt)}</span> },
+        { key: 'open', header: '관리', className: 'qi-c-open', align: 'right', nowrap: true, render: r => (
+            <AdminButton variant="secondary" size="sm" trailing={<IconChevronRight />} aria-label={`${r.name || '고객'} 문의 상세 보기`}
+                onClick={e => { e.stopPropagation(); openCustomer(r); }}>상세</AdminButton>
+        ) },
     ];
 
     const ready = phase === 'ready';
@@ -170,43 +178,24 @@ const InboxList: React.FC = () => {
             description={tool.description}
             actions={<AdminButton variant="primary" leading={<IconPencil />} onClick={() => navigate(quoteDeskHref('builder'))}>견적 작성</AdminButton>}
             notice={refreshError ? <AdminMessage tone="cautionary" role="alert">{refreshError} 마지막으로 불러온 목록을 보여 주고 있어요.</AdminMessage> : undefined}
-            summary={ready ? <>
-                <AdminStatRow label="견적 문의 요약">
+            summary={ready ? (
+                <AdminStatRow label="견적 문의 현황" className="qi-stats">
                     <AdminStat label="전체 문의" value={summary.total} unit="건" hint={`오늘 +${summary.today}`} active={filter === 'all'} onClick={() => setListState({ status: 'all' })} />
+                    <AdminStat label="신규 견적 요청" value={summary.byStatus['신규']} unit="건" hint="아직 답하지 않은 요청" attention={summary.byStatus['신규'] > 0}
+                        active={filter === '신규'} onClick={() => setListState({ status: '신규' })} />
                     <AdminStat label="할 일 있음" value={actions.length} unit="건" hint={actions.length ? '확인 필요' : '없음'} attention={actions.length > 0}
                         active={filter === 'action'} onClick={() => setListState({ status: 'action' })} />
-                    <AdminStat label="진행중(상담 중)" value={summary.byStatus['진행중']} unit="건" hint="상담 중" active={filter === '진행중'} onClick={() => setListState({ status: '진행중' })} />
+                    <AdminStat label="진행중 (상담 중)" value={summary.byStatus['진행중']} unit="건" hint="상담 중" active={filter === '진행중'} onClick={() => setListState({ status: '진행중' })} />
                     <AdminStat label="완료" value={summary.byStatus['완료']} unit="건" hint={`이번 달 ${summary.doneThisMonth}`} active={filter === '완료'} onClick={() => setListState({ status: '완료' })} />
                 </AdminStatRow>
-                {actions.length > 0 && (
-                    <AdminCard title={<span className="qi-action-title">고객·예약 행동 알림<AdminBadge tone="info">{actions.length}건</AdminBadge></span>}
-                        description="고객이 기다리거나 관리자가 처리할 다음 단계입니다. 누르면 그 고객 화면이 열립니다." flush className="qi-actions">
-                        <ul className="qi-action-list">
-                            {actions.slice(0, 6).map(({ record, action }) => {
-                                const tone = actionTone(action.label);
-                                return (
-                                    <li key={String(record.id)} className={`qi-action is-${tone}`}>
-                                        <span className="qi-action-dot" aria-hidden="true" />
-                                        <span className="qi-action-body">
-                                            <span className="qi-action-head"><b>{record.name || '고객'}</b><AdminBadge tone={ACTION_TONE[tone]}>{action.label}</AdminBadge></span>
-                                            <small>{action.detail}</small>
-                                        </span>
-                                        <AdminButton variant="secondary" size="sm" aria-label={`${record.name || '고객'} 고객 화면 열기`} onClick={() => openCustomer(record)}>확인</AdminButton>
-                                    </li>
-                                );
-                            })}
-                        </ul>
-                        {actions.length > 6 && <p className="qi-action-more">외 {actions.length - 6}건은 ‘할 일 있음’을 눌러 목록에서 확인하세요.</p>}
-                    </AdminCard>
-                )}
-            </> : undefined}
-            filters={ready ? <AdminFilterBar
-                search={<AdminSearch value={search} onChange={q => setListState({ q })} placeholder="이름·연락처·요청내용·메모로 검색" aria-label="견적 문의 검색" />}
+            ) : undefined}
+            filters={ready ? <AdminFilterBar className="qi-filterbar"
+                search={<AdminSearch value={search} onChange={q => setListState({ q })} placeholder="이름 · 연락처 · 요청 내용 · 메모 검색" aria-label="견적 문의 검색" />}
                 filters={<AdminChipGroup label="상태" items={chipItems} value={filter} onChange={status => setListState({ status })} />}
                 end={<AdminSelect aria-label="정렬" value={sort} options={INBOX_SORTS} onChange={value => setListState({ sort: isSort(value) ? value : 'receivedDesc' })} />}
             /> : undefined}
-            pagination={ready && totalPages > 1 ? <AdminPagination page={currentPage} totalPages={totalPages} onChange={next => setListState({ page: next })}
-                summary={`${rows.length}건 중 ${(currentPage - 1) * PAGE_SIZE + 1}–${Math.min(rows.length, currentPage * PAGE_SIZE)}`} /> : undefined}
+            pagination={ready && rows.length > 0 ? <AdminPagination page={currentPage} totalPages={totalPages} onChange={next => setListState({ page: next })}
+                summary={`${(currentPage - 1) * PAGE_SIZE + 1}–${Math.min(rows.length, currentPage * PAGE_SIZE)} / ${rows.length}건`} /> : undefined}
         >
             {body}
         </ListPage>
