@@ -7,7 +7,7 @@ import React from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { build } from 'esbuild';
 
-const result = await build({ entryPoints: [fileURLToPath(new URL('../src/components/product/detail/ItineraryAccordion.tsx', import.meta.url))], bundle: true, platform: 'node', format: 'cjs', jsx: 'automatic', write: false, external: ['react', 'react/jsx-runtime'], define: { 'import.meta.env.DEV': 'false' },
+const result = await build({ entryPoints: [fileURLToPath(new URL('../src/components/product/detail/ItineraryAccordion.tsx', import.meta.url))], bundle: true, platform: 'node', format: 'cjs', jsx: 'automatic', write: false, external: ['react', 'react/jsx-runtime', 'react-dom'], define: { 'import.meta.env.DEV': 'false' },
     loader: { '.jpg': 'empty', '.png': 'empty', '.webp': 'empty', '.css': 'empty' },
     plugins: [{ name: 'product-snapshot-query', setup(builder) {
         builder.onResolve({ filter: /^@tanstack\/react-query$/ }, () => ({ path: 'query', namespace: 'product-snapshot-test' }));

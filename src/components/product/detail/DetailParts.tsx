@@ -1,4 +1,6 @@
 import { useEffect, useState, type CSSProperties } from 'react';
+import { createPortal } from 'react-dom';
+import { lockBodyScroll } from '../../../utils/bodyScrollLock';
 import type { DesignBlockContent, DetailContentBlock, DetailSlide, DividerContent, TourProduct } from '../../../types/product';
 import { ImageLightbox } from '../../common/ImageLightbox';
 import { ResponsiveProductImage } from '../../common/ResponsiveProductImage';
@@ -149,20 +151,19 @@ export function DetailBlocks({ product, compact = false, withItinerary = true, p
 export function PhotoOverlay({ title, images, onClose }: { title: string; images: string[]; onClose: () => void }) {
     const [zoom, setZoom] = useState<number | null>(null);
 
+    // 스크롤 잠금은 열려 있는 동안 한 번만 — 사진 크게 보기와 겹쳐도 세어서 푼다(utils/bodyScrollLock)
+    useEffect(() => lockBodyScroll(), []);
+
     useEffect(() => {
-        const prev = document.body.style.overflow;
-        document.body.style.overflow = 'hidden';
         const onKey = (e: KeyboardEvent) => {
             if (e.key === 'Escape' && zoom === null) onClose();
         };
         window.addEventListener('keydown', onKey);
-        return () => {
-            document.body.style.overflow = prev;
-            window.removeEventListener('keydown', onKey);
-        };
+        return () => window.removeEventListener('keydown', onKey);
     }, [onClose, zoom]);
 
-    return (
+    // document.body에 그린다(바깥 틀의 transform에 갇히지 않게 — ImageLightbox와 같은 이유)
+    return createPortal(
         <div role="dialog" aria-modal="true" aria-label="전체 사진" data-mw-overlay="" style={{ position: 'fixed', inset: 0, zIndex: 200, background: 'rgba(10,31,46,0.92)', display: 'flex', flexDirection: 'column' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, padding: '16px 24px', color: '#FFFFFF' }}>
                 <span style={{ fontSize: 15, fontWeight: 700, minWidth: 0, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{title} · 사진 {images.length}장</span>
@@ -178,6 +179,7 @@ export function PhotoOverlay({ title, images, onClose }: { title: string; images
                 </div>
             </div>
             {zoom !== null && <ImageLightbox images={images} startIndex={zoom} onClose={() => setZoom(null)} />}
-        </div>
+        </div>,
+        document.body,
     );
 }
