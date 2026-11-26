@@ -126,9 +126,12 @@ export function useMyPageData(me: MeUser | null | undefined) {
     const uid = me?.id;
     const enabled = !!uid;
 
+    // 예약·견적은 다른 화면(예약하기·견적 요청·관리자)에서 바뀌므로 마이페이지를 열 때마다 새로 읽는다
+    // (전역 5분 신선도 때문에 방금 접수한 견적이 안 보이던 문제, 2026-11-26).
     const reservations = useQuery<MyReservation[]>({
         queryKey: ['myPage', 'reservations', uid],
         enabled,
+        refetchOnMount: 'always',
         queryFn: async () => rows(await api.reservations.list())
             .filter((r) => str(r, 'userId', 'user_id') === uid)
             .map((r) => ({
@@ -155,6 +158,7 @@ export function useMyPageData(me: MeUser | null | undefined) {
     const quotes = useQuery<MyQuote[]>({
         queryKey: ['myPage', 'quotes', uid],
         enabled,
+        refetchOnMount: 'always',
         queryFn: async () => (await api.customerAccess.history()).items
             .map((q): MyQuote => ({
                 ...q,

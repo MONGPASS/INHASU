@@ -122,6 +122,20 @@ test('새 맞춤 견적은 Google 고객만 요청하고 전달된 소유자·ID
   assert.equal((await quote({request:new Request('https://customer.invalid/api/my/'+saved.token,{headers:owner}),env:{DB},params:{token:saved.token}})).status,200);
 });
 
+test('관리자 역할의 Google 계정이 고객 견적 양식으로 요청하면 고객 접수로 받아 그 계정에 연결한다',async t=>{
+  const DB=requestSQLite(t,null,{skipInsert:true}),staff=customerIdentity(DB,{user:'google-admin',role:'admin'});
+  const body={name:'합성 관리자',phone:'01055556666',email:'google-admin@example.invalid',depart:'2026-11-01',return_:'2026-11-03',adult:2,agree:true,
+    tripType:'맞춤',destination:'고비',cityStay:'호텔',gerStay:'게르',vehicle:'전용 차량(4인)',flightIssued:'미발권',status:'예약확정',quote:{price:{total:0}}};
+  const original=globalThis.fetch;globalThis.fetch=async()=>{throw Error('외부 발송 금지');};t.after(()=>{globalThis.fetch=original;});
+  const response=await createRequest({request:new Request('https://customer.invalid/api/requests',{method:'POST',headers:{'Content-Type':'application/json',Origin:'https://customer.invalid',...staff},body:JSON.stringify(body)}),env:{DB}});
+  assert.equal(response.status,200);const saved=await response.json();
+  assert.equal(DB.records.length,1);assert.equal(DB.records[0].userId,'google-admin');
+  // 고객 접수이므로 직원만 정하는 값(상태·견적)은 버린다.
+  assert.equal(DB.records[0].status,'신규');assert.equal(DB.records[0].quote,undefined);
+  const link=DB.raw.prepare('SELECT * FROM customer_resource_links WHERE source=? AND resource_id=?').get('request',saved.id);
+  assert.equal(link.user_id,'google-admin');
+});
+
 test('관리자 대리 접수는 고객을 임의 계정에 연결하지 않으며 연결 저장 실패 때 새 문의도 롤백한다',async t=>{
   const DB=requestSQLite(t,null,{skipInsert:true}),owner=customerIdentity(DB);
   const payload={id:'admin-created',name:'합성 대리 고객',phone:'01011112222',source:'walkin',quote:{customer:'합성 대리 고객'},silentQuote:true,userId:'another-user'};

@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useQueryClient } from '@tanstack/react-query';
 import { api } from '../../lib/api';
 import {
     buildQuoteDone, canSubmitQuote, checkQuoteFile, clearQuoteDraft, loadQuoteDraft, phoneDigits, quoteMissingText, quoteSteps,
@@ -15,6 +16,7 @@ import { latestQuoteLink, saveQuoteLink } from './quoteLinks';
  */
 export function useQuoteForm() {
     const navigate = useNavigate();
+    const queryClient = useQueryClient();
     const [searchParams] = useSearchParams();
     const [draft] = useState(loadQuoteDraft);
     // 투어 목록의 여행 타입 카드는 ?stay=4성급 호텔,디럭스 게르 로 넘어온다(임시저장 값보다 우선).
@@ -116,6 +118,8 @@ export function useQuoteForm() {
         saveQuoteLink({ token: done.token, name: done.name, createdAt: done.createdAt });
         sent.current = true;
         clearQuoteDraft();
+        // 마이페이지 견적 내역·개요가 방금 접수한 견적을 바로 보여 주도록 저장해 둔 목록을 버린다.
+        void queryClient.invalidateQueries({ queryKey: ['myPage'] });
         navigate('/estimate-complete', { state: done, replace: true });
         window.scrollTo(0, 0);
     };
