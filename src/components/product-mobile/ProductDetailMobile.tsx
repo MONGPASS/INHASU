@@ -219,14 +219,14 @@ function PhotoCarousel({ images, name, onOpen }: { images: string[]; name: strin
 }
 
 /**
- * 아래 예약 줄: 조금 내리면 올라온다. ‘n명 투어 시 1인 가격’ · 인원별 요금 → 찜 · 합계 · 예약하기.
- * 합계·인원별 요금·예약하기를 누르면 인원·결제 금액 시트가 펼쳐지고, 시트 안의 예약하기로 예약 화면에 간다.
+ * 아래 예약 줄(한 줄, 약 64px): 조금 내리면 올라온다. 찜 · ‘n명 · 1인 가격 / 합계’ · 예약하기.
+ * 합계나 예약하기를 누르면 인원별 요금·예약금/잔금 시트가 펼쳐지고, 시트 안의 예약하기로 예약 화면에 간다.
+ * (디자인의 위쪽 ‘1인 가격·예약금 안내’ 카드는 화면을 많이 가려 빼고, 그 내용은 시트에 둔다 — 2026-11-26 오너 요청)
  */
 function BookingBarMobile({ pricing, fav, onFav, onBook }: { pricing: TourPricing; fav: boolean; onFav: () => void; onBook: () => void }) {
     const { options, people, unit, total, depositPer, localPer } = pricing;
     const [show, setShow] = useState(false);
     const [sheet, setSheet] = useState(false);
-    const [tipSeen, setTipSeen] = useState(false);
     const deposit = depositPer * people;
     const balance = localPer > 0 ? localPer * people : Math.max(0, total - deposit);
     const top = options[0]?.pricePerPerson || 0;
@@ -246,13 +246,12 @@ function BookingBarMobile({ pricing, fav, onFav, onBook }: { pricing: TourPricin
         return () => window.removeEventListener('keydown', onKey);
     }, [sheet]);
 
-    const openSheet = () => { setSheet(true); setTipSeen(true); };
+    const openSheet = () => setSheet(true);
 
     return (
         <div aria-hidden={!visible} style={{ position: 'sticky', bottom: 0, zIndex: 30, transform: visible ? 'translateY(0)' : 'translateY(110%)', opacity: visible ? 1 : 0, pointerEvents: visible ? 'auto' : 'none',
             visibility: visible ? 'visible' : 'hidden', transition: 'transform 0.3s ease, opacity 0.3s ease, visibility 0.3s' }}>
-            <style>{BAR_CSS}</style>
-            {sheet ? (
+            {sheet && (
                 <div role="dialog" aria-label="인원 선택 및 결제 금액"
                     style={{ background: SD.white, borderRadius: '20px 20px 0 0', boxShadow: '0 -8px 28px rgba(0,0,0,0.14)', padding: '10px 20px 16px', display: 'flex', flexDirection: 'column', gap: 14 }}>
                     <span aria-hidden="true" style={{ alignSelf: 'center', width: 36, height: 4, borderRadius: 9999, background: SD.gray200 }} />
@@ -323,30 +322,9 @@ function BookingBarMobile({ pricing, fav, onFav, onBook }: { pricing: TourPricin
                         <span>예약금은 숙박 시설 선결제에 쓰여 취소 시에도 환불되지 않아요.</span>
                     </p>
                 </div>
-            ) : (
-                <div style={{ background: SD.white, borderTop: `1px solid ${SD.gray200}`, borderRadius: '16px 16px 0 0', boxShadow: '0 -6px 20px rgba(0,0,0,0.06)', padding: '14px 16px 10px' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
-                        <span style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-                            <span style={{ fontSize: 12, color: SD.gray600 }}><strong style={{ color: SD.gray900 }}>{people}명</strong> 투어 시 1인 가격</span>
-                            <span style={{ fontSize: 18, fontWeight: 700, color: SD.gray900, letterSpacing: '-0.3px' }}>{won(unit)}</span>
-                        </span>
-                        {options.length > 1 && (
-                            <button type="button" className={tipSeen ? undefined : 'm-tip-hint'} onClick={openSheet}
-                                style={{ position: 'relative', flex: 'none', height: 32, padding: '0 12px', border: `1px solid ${SD.gray200}`, borderRadius: 9999, background: SD.white, color: SD.gray700, fontFamily: 'inherit',
-                                    fontSize: 12, fontWeight: 500, display: 'inline-flex', alignItems: 'center', gap: 4, cursor: 'pointer' }}>
-                                {!tipSeen && [4, 30, 56].map((left, i) => (
-                                    <span key={left} aria-hidden="true" className="m-tip-coin" style={{ left, animationDelay: `${i * 0.6}s` }}><Coin /></span>
-                                ))}
-                                <SIcon name="info" size={13} stroke={2} />인원별 요금
-                            </button>
-                        )}
-                    </div>
-                    {depositPer > 0 && (
-                        <p style={{ margin: '6px 0 0', fontSize: 12, color: SD.gray600 }}>예약금 <strong style={{ color: SD.mint700 }}>1인 {won(depositPer)}</strong>만 지금 결제하고, 잔금은 현지에서 내요</p>
-                    )}
-                </div>
             )}
-            <div style={{ background: SD.white, borderTop: `1px solid ${SD.gray100}`, padding: '10px 16px calc(14px + env(safe-area-inset-bottom))', display: 'flex', alignItems: 'center', gap: 12 }}>
+            <div style={{ background: SD.white, borderTop: `1px solid ${sheet ? SD.gray100 : SD.gray200}`, boxShadow: sheet ? 'none' : '0 -4px 16px rgba(0,0,0,0.06)',
+                padding: sheet ? '10px 16px calc(14px + env(safe-area-inset-bottom))' : '8px 16px calc(8px + env(safe-area-inset-bottom))', display: 'flex', alignItems: 'center', gap: 12 }}>
                 {sheet ? (
                     <>
                         <button type="button" onClick={onFav} aria-pressed={fav} style={{ ...BAR_BUTTON, flex: '0 0 110px', background: SD.white, color: SD.gray900, border: `1px solid ${SD.gray300}` }}>
@@ -360,12 +338,15 @@ function BookingBarMobile({ pricing, fav, onFav, onBook }: { pricing: TourPricin
                             style={{ flex: 'none', width: 44, height: 44, borderRadius: 9999, border: `1px solid ${SD.gray200}`, background: SD.white, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 0, cursor: 'pointer' }}>
                             <HeartIcon on={fav} />
                         </button>
-                        <button type="button" onClick={openSheet}
+                        <button type="button" onClick={openSheet} aria-haspopup="dialog" aria-label={`${people}명 · 1인 ${won(unit)} · 합계 ${won(total)} — 인원·결제 금액 보기`}
                             style={{ flex: '1 1 auto', minWidth: 0, padding: 0, border: 'none', background: 'transparent', fontFamily: 'inherit', textAlign: 'left', display: 'flex', flexDirection: 'column', gap: 1, cursor: 'pointer' }}>
-                            <span style={{ fontSize: 11, color: SD.gray600 }}>성인 {people}명 · 합계</span>
-                            <span style={{ fontSize: 18, fontWeight: 700, color: SD.gray900, fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>{won(total)}</span>
+                            <span style={{ display: 'flex', alignItems: 'center', gap: 2, fontSize: 12, color: SD.gray600, whiteSpace: 'nowrap' }}>
+                                <strong style={{ color: SD.gray900 }}>{people}명</strong>&nbsp;· 1인 {won(unit)}
+                                <SIcon name="chevronUp" size={14} stroke={2} />
+                            </span>
+                            <span style={{ fontSize: 17, fontWeight: 700, color: SD.gray900, fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>합계 {won(total)}</span>
                         </button>
-                        <button type="button" onClick={openSheet} style={{ ...BAR_BUTTON, flex: '0 0 120px', borderRadius: 9999, background: SD.mint700, color: SD.white }}>예약하기</button>
+                        <button type="button" onClick={openSheet} style={{ ...BAR_BUTTON, height: 44, flex: '0 0 112px', borderRadius: 9999, fontSize: 15, background: SD.mint700, color: SD.white }}>예약하기</button>
                     </>
                 )}
             </div>
@@ -383,27 +364,8 @@ function HeartIcon({ on }: { on: boolean }) {
     );
 }
 
-function Coin() {
-    return (
-        <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true">
-            <circle cx="12" cy="12" r="11" fill={SD.mint400} />
-            <circle cx="12" cy="12" r="8" fill="none" stroke="#ffffff" strokeOpacity="0.55" strokeWidth="1.2" />
-            <text x="12" y="16.2" textAnchor="middle" fontSize="11" fontWeight="700" fill="#ffffff" fontFamily="Arial, sans-serif">₩</text>
-        </svg>
-    );
-}
-
 const STEP: CSSProperties = { width: 40, height: 40, border: 'none', background: 'transparent', fontFamily: 'inherit', fontSize: 20, color: SD.gray900, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 0, cursor: 'pointer' };
 const BAR_BUTTON: CSSProperties = { height: 48, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, border: 'none', borderRadius: 10, fontFamily: 'inherit', fontSize: 16, fontWeight: 700, cursor: 'pointer', whiteSpace: 'nowrap' };
-
-/** ‘인원별 요금’ 단추가 처음에 살짝 맥박치고 동전이 떠오른다(시트를 한 번 열면 멈춤, 움직임 줄이기 설정이면 안 움직임). */
-const BAR_CSS = `
-.m-tip-hint { animation: mTipPulse 1.8s ease-out infinite; }
-@keyframes mTipPulse { 0% { box-shadow: 0 0 0 0 rgba(54,209,167,0.55); } 70% { box-shadow: 0 0 0 7px rgba(54,209,167,0); } 100% { box-shadow: 0 0 0 0 rgba(54,209,167,0); } }
-.m-tip-coin { position: absolute; bottom: 100%; pointer-events: none; opacity: 0; animation: mCoinFloat 1.8s ease-out infinite; }
-@keyframes mCoinFloat { 0% { transform: translateY(8px) scale(0.7); opacity: 0; } 25% { opacity: 1; } 100% { transform: translateY(-14px) scale(1); opacity: 0; } }
-@media (prefers-reduced-motion: reduce) { .m-tip-hint { animation: none; } .m-tip-coin { display: none; } }
-`;
 
 /** 불러오는 동안 화면 모양대로 보이는 자리. */
 export function ProductDetailMobileSkeleton() {
