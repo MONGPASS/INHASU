@@ -243,6 +243,9 @@ export interface TourPricing {
     minPeople: number | undefined;
     /** Larger groups pay less per person (drives the "인원이 많을수록 이득" hint). */
     groupSaves: boolean;
+    /** 고른 인원 단계의 1인 예약금(계좌이체)·1인 현지 잔금. 관리자가 넣지 않았으면 0. 예약 화면(Reservation)과 같은 값. */
+    depositPer: number;
+    localPer: number;
 }
 
 /**
@@ -284,6 +287,8 @@ export function useTourPricing(product: TourProduct): TourPricing {
         total: unit * people,
         minPeople: first?.people,
         groupSaves: !!first && !!last && last.pricePerPerson < first.pricePerPerson,
+        depositPer: Number(tier?.depositPerPerson) || 0,
+        localPer: Number(tier?.localPaymentPerPerson) || 0,
     };
 }
 
@@ -374,7 +379,7 @@ interface RawProduct {
 }
 
 /** Other published tours of the same category, popular / most booked first. */
-export function useRelatedTours(productId: string, category: string, limit: number): HomeProduct[] {
+function useTourCatalog() {
     const { data = [] } = useQuery({
         queryKey: ['tourDetail', 'products'],
         staleTime: 1000 * 60 * 5,
@@ -399,6 +404,12 @@ export function useRelatedTours(productId: string, category: string, limit: numb
             }));
         },
     });
+    return data;
+}
+
+/** 같은 분류의 다른 판매 중 투어(인기 표시 → 예약 수 순). */
+export function useRelatedTours(productId: string, category: string, limit: number): HomeProduct[] {
+    const data = useTourCatalog();
     return useMemo(
         () =>
             data
@@ -407,6 +418,20 @@ export function useRelatedTours(productId: string, category: string, limit: numb
                 .slice(0, limit)
                 .map((x) => x.product),
         [data, productId, category, limit],
+    );
+}
+
+/** 다른 여행자가 많이 예약한 판매 중 투어(분류 무관, 예약 수 → 인기 표시 순). 지금 보는 투어는 뺀다. */
+export function usePopularTours(productId: string, limit: number): HomeProduct[] {
+    const data = useTourCatalog();
+    return useMemo(
+        () =>
+            data
+                .filter((x) => x.product.id !== productId && isPublished(x.product))
+                .sort((a, b) => b.booked - a.booked || Number(b.product.isPopular) - Number(a.product.isPopular))
+                .slice(0, limit)
+                .map((x) => x.product),
+        [data, productId, limit],
     );
 }
 
