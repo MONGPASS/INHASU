@@ -39,7 +39,9 @@ export async function onRequestPost(context) {
     const invalidOrigin = customerWriteOrigin(request);
     if (invalidOrigin) return invalidOrigin;
     const user = await customerSession(request, env);
-    const admin = customerAdminToken(request, env) || user?.role === 'admin';
+    // 관리자 도구는 늘 x-admin-token을 보낸다. 관리자 역할 계정이라도 Google로 로그인해 고객 견적 양식으로
+    // 요청하면(토큰 없음) 고객 접수로 받아 그 계정에 연결한다 — 그래야 마이페이지 견적 내역에 나온다(2026-11-26).
+    const admin = customerAdminToken(request, env) || (user?.role === 'admin' && !user?.googleId);
     if (!admin && !user?.googleId) return json({ ok:false, code:'login_required', error:'Google 로그인 후 견적을 요청해 주세요.' }, 401);
     const contentLength = Number(request.headers.get("content-length") || 0);
     if (contentLength > 256_000) return json({ ok: false, error: "request too large" }, 413);
