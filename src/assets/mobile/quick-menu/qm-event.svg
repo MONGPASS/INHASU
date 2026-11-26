@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg id="_레이어_1" data-name="레이어 1" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256">
+  <defs>
+    <style>
+      .cls-1 {
+        fill: #b8c7e9;
+      }
+
+      .cls-2 {
+        fill: #06c4a0;
+      }
+
+      .cls-3 {
+        stroke: #f3f5fa;
+        stroke-width: 8px;
+      }
+
+      .cls-3, .cls-4, .cls-5, .cls-6 {
+        fill: none;
+        stroke-linecap: round;
+        stroke-linejoin: round;
+      }
+
+      .cls-4 {
+        stroke: #bdece5;
+        stroke-width: 6px;
+      }
+
+      .cls-7 {
+        fill: #dce3fa;
+      }
+
+      .cls-8 {
+        fill: #f3f5fa;
+      }
+
+      .cls-5 {
+        stroke: #009f91;
+        stroke-width: 9px;
+      }
+
+      .cls-9 {
+        fill: #009f91;
+      }
+
+      .cls-6 {
+        stroke: #06c4a0;
+        stroke-width: 7px;
+      }
+    </style>
+  </defs>
+  <g>
+    <path class="cls-2" d="M18.95,80.8l162.28-43.48c7.73-2.07,12.63.76,14.7,8.49l5.18,19.32c-9.07,2.43-14.45,11.75-12.02,20.82s11.75,14.45,20.82,12.02l5.18,19.32c2.07,7.73-.76,12.63-8.49,14.7l-162.28,43.48c-7.73,2.07-12.63-.76-14.7-8.49l-5.18-19.32c9.07-2.43,14.45-11.75,12.02-20.82s-11.75-14.45-20.82-12.02l-5.18-19.32c-2.07-7.73.76-12.63,8.49-14.7Z"/>
+    <path class="cls-4" d="M55.16,84.55l2.85,10.63M61.63,108.7l2.85,10.63M68.1,132.85l3.62,13.52"/>
+    <circle class="cls-8" cx="101.09" cy="89.84" r="13"/>
+    <circle class="cls-2" cx="101.09" cy="89.84" r="6"/>
+    <circle class="cls-8" cx="158.97" cy="112.64" r="13"/>
+    <circle class="cls-2" cx="158.97" cy="112.64" r="6"/>
+    <path class="cls-3" d="M122.47,134.85l15.83-68.43"/>
+  </g>
+  <rect class="cls-1" x="151.19" y="156.75" width="89" height="75" rx="9" ry="9"/>
+  <rect class="cls-7" x="143.19" y="147.75" width="103" height="25" rx="8" ry="8"/>
+  <rect class="cls-9" x="186.19" y="147.75" width="17" height="85" rx="2" ry="2"/>
+  <path class="cls-5" d="M194.19,147.75c-37-2-38-30-21-25,10,2,17,10.33,21,25M194.19,147.75c37-2,38-30,21-25-10,2-17,10.33-21,25"/>
+  <path class="cls-6" d="M214.19,26.75l3,15M239.19,33.75l-9,14"/>
+</svg>

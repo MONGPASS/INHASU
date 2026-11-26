@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg id="_레이어_1" data-name="레이어 1" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256">
+  <defs>
+    <style>
+      .cls-1 {
+        fill: #93aed8;
+      }
+
+      .cls-2 {
+        fill: #06c4a0;
+      }
+
+      .cls-3 {
+        fill: #fff;
+      }
+
+      .cls-4 {
+        fill: #dce3fa;
+      }
+    </style>
+  </defs>
+  <rect class="cls-4" x="94" y="31" width="140" height="121" rx="24" ry="24"/>
+  <path class="cls-4" d="M194,140l24,30v-30h-24Z"/>
+  <path class="cls-1" d="M122,56h82c2.76,0,5,2.24,5,5h0c0,2.76-2.24,5-5,5h-82c-2.76,0-5-2.24-5-5h0c0-2.76,2.24-5,5-5Z"/>
+  <path class="cls-1" d="M155,80h49c2.76,0,5,2.24,5,5h0c0,2.76-2.24,5-5,5h-49c-2.76,0-5-2.24-5-5h0c0-2.76,2.24-5,5-5Z"/>
+  <rect class="cls-2" x="22" y="94" width="157" height="110" rx="25" ry="25"/>
+  <path class="cls-2" d="M43,192v33l39-28-39-5Z"/>
+  <path class="cls-3" d="M59,134l4,8,9,1-7,6,2,9-8-5-8,5,2-9-7-6,9-1,4-8Z"/>
+  <path class="cls-3" d="M101,134l4,8,9,1-7,6,2,9-8-5-8,5,2-9-7-6,9-1,4-8Z"/>
+  <path class="cls-3" d="M143,134l4,8,9,1-7,6,2,9-8-5-8,5,2-9-7-6,9-1,4-8Z"/>
+</svg>
