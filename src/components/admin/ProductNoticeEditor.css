@@ -1,0 +1,22 @@
+/* 상품 수정 ‘유의사항’ 탭(ProductNoticeEditor) — 배치만 둔다. 모양은 우리 관리자 부품, 값은 --adm-* 변수만 쓴다. */
+.pne { display: flex; flex-direction: column; gap: var(--adm-space-4); min-width: 0; }
+.pne-fields { display: flex; flex-direction: column; gap: var(--adm-space-4); }
+.pne-label { color: var(--adm-ink); font-size: var(--adm-fs-small); font-weight: var(--adm-fw-bold); }
+.pne-head { display: flex; flex-direction: column; gap: var(--adm-space-2); }
+.pne-head-row { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--adm-space-2); }
+.pne-rows { display: flex; flex-direction: column; border: var(--adm-border-width) solid var(--adm-line); border-radius: var(--adm-radius-mid); }
+.pne-row { display: grid; grid-template-columns: var(--adm-space-6) calc(var(--adm-space-8) * 5) minmax(0, 1fr); align-items: start; gap: var(--adm-space-4); padding: var(--adm-space-4); }
+.pne-row + .pne-row { border-top: var(--adm-border-width) solid var(--adm-line-subtle); }
+.pne-row-no { display: inline-flex; align-items: center; justify-content: center; width: var(--adm-space-6); height: var(--adm-space-6); border-radius: var(--adm-radius-pill); background: var(--adm-fill-subtle); color: var(--adm-ink); font-size: var(--adm-fs-small); font-weight: var(--adm-fw-bold); }
+.pne-photo { display: flex; flex-direction: column; align-items: flex-start; gap: var(--adm-space-2); }
+.pne-photo small { color: var(--adm-text-3); font-size: var(--adm-fs-caption); }
+.pne-thumb { display: flex; align-items: center; justify-content: center; overflow: hidden; width: 100%; aspect-ratio: 4 / 3; border-radius: var(--adm-radius-mid); background: var(--adm-sunken); color: var(--adm-text-3); font-size: var(--adm-fs-caption); }
+.pne-thumb img { width: 100%; height: 100%; object-fit: cover; }
+.pne-row-fields { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.4fr); gap: var(--adm-space-3); }
+
+@media (max-width: 760px) {
+  .pne-row { grid-template-columns: var(--adm-space-6) minmax(0, 1fr); }
+  .pne-row-fields { grid-column: 1 / -1; grid-template-columns: minmax(0, 1fr); }
+  .pne-head-row { grid-template-columns: minmax(0, 1fr); }
+}
+.pne-foot { display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: var(--adm-space-3); color: var(--adm-text-2); font-size: var(--adm-fs-small); }

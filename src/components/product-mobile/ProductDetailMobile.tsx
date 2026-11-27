@@ -11,8 +11,9 @@ import { DesignItinerary } from '../product/designTemplates/DesignItinerary';
 import {
     detailFlags, detailTabs, summariseReviews, tourFacts, tourGallery, tourImageAlt, usePopularTours, useRelatedTours, useSectionTabs, useTourFaqItems, useTourPricing, useTourReviews,
     type ShareResult, type TourDetailViewProps, type TourPricing,
+    hasIncludedLists,
 } from '../product/detail/productDetailData';
-import { CollapsibleDetail, FaqFolds, IncludedFolds, RelatedRow, ReviewList, SectionTitle } from '../product/detail/TourDetailSections';
+import { CollapsibleDetail, DesignFaqFolds, DesignIncludedFolds, DesignNoticeFold, FaqFolds, IncludedFolds, RelatedRow, ReviewList, SectionTitle } from '../product/detail/TourDetailSections';
 import { SD, SIcon } from '../site-seed/seed';
 import { durationLabel } from '../tours-mobile/tourListFilters';
 
@@ -145,9 +146,8 @@ function TourDetailBody({ product, reviews, pricing }: TourDetailViewProps & { p
             {flags.hasIncluded && (
                 <section style={{ padding: '32px 20px 0' }}>
                     <SectionTitle id="td-incl" compact marginBottom={0}>포함 사항</SectionTitle>
-                    {flags.designIncluded
-                        ? <div style={{ margin: '16px -20px 0', padding: '0 16px' }}><DetailBlocks product={product} compact withItinerary={false} part="included" /></div>
-                        : <IncludedFolds product={product} compact />}
+                    {/* 상품 수정 ‘포함/불포함’ 탭의 목록이 있으면 그것을, 없을 때만 디자인 틀의 17 포함/불포함 값을 같은 접기 모양으로 */}
+                    {flags.designIncluded && !hasIncludedLists(product) ? <DesignIncludedFolds product={product} compact /> : <IncludedFolds product={product} compact />}
                 </section>
             )}
 
@@ -161,11 +161,9 @@ function TourDetailBody({ product, reviews, pricing }: TourDetailViewProps & { p
 
             <section style={{ padding: '36px 20px 0' }}>
                 <SectionTitle id="td-faq" compact marginBottom={4}>유의 사항·FAQ</SectionTitle>
-                {/* 디자인 틀의 예약 전 확인사항·FAQ가 있으면 그것을, FAQ가 없으면 상품 FAQ 목록을 보여 준다 */}
-                {flags.designNotice && <div style={{ margin: '16px -20px 0', padding: '0 16px' }}><DetailBlocks product={product} compact withItinerary={false} part="notice" /></div>}
-                {flags.designFaq
-                    ? <div style={{ margin: '16px -20px 0', padding: '0 16px' }}><DetailBlocks product={product} compact withItinerary={false} part="faq" /></div>
-                    : <FaqFolds items={faq} compact />}
+                {/* 디자인 틀의 예약 전 확인사항은 유의사항 접기로, 틀의 FAQ가 있으면 그것을(없으면 상품 FAQ 목록) 같은 접기 모양으로 */}
+                {flags.designNotice && <DesignNoticeFold product={product} compact />}
+                {flags.designFaq ? <DesignFaqFolds product={product} compact /> : <FaqFolds items={faq} compact />}
             </section>
 
             {popular.length > 0 && <div style={{ paddingTop: 40 }}><RelatedRow title="다른 여행자가 함께 본 상품" tours={popular} compact /></div>}

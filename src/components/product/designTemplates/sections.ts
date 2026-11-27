@@ -80,6 +80,16 @@ export function baseKey(key: string): string {
     return at > 0 && /^\d+$/.test(key.slice(at + 1)) ? key.slice(0, at) : key;
 }
 
+/** 모든 상품 공통 섹션(sharedSections)의 칸인지 — 그 칸은 사이트 공통값이 상품 값보다 먼저다 */
+export function isSharedField(def: DesignTemplateDef | undefined, key: string): boolean {
+    if (!def?.sharedSections?.length) return false;
+    const base = baseKey(key);
+    const field = def.fields.find(f => f.key === base);
+    if (!field) return false;
+    const sections = new Set(def.sharedSections.flatMap(id => def.sectionDefs.find(s => s.id === id)?.fieldSections ?? [id]));
+    return sections.has(field.section);
+}
+
 /** key가 속한 복제 접미사 ('' 또는 '@2') */
 export function scopeOf(key: string): string {
     const at = key.lastIndexOf('@');

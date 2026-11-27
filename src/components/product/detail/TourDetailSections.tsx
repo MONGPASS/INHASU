@@ -1,4 +1,4 @@
-import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState, type AriaRole, type CSSProperties, type ReactNode } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { api } from '../../../lib/api';
 import { useWishlist } from '../../../hooks/useWishlist';
@@ -12,7 +12,7 @@ import { SD, SIcon, SStar } from '../../site-seed/seed';
 import { durationLabel } from '../../tours-mobile/tourListFilters';
 import { TourTypeBadge } from '../../tours-desktop/TourTypeBadge';
 import { useToast } from '../../ui/Toast';
-import { tourImageAlt } from './productDetailData';
+import { designFaqItems, designLines, tourImageAlt, useDesignPartValues } from './productDetailData';
 
 /**
  * 새 투어 상세(디자인 ‘투어 상품 상세’ · ‘… — 모바일’, 2026-11-26)의 본문 부품. PC(product-desktop)와 휴대폰(product-mobile)이 함께 쓰고,
@@ -131,7 +131,8 @@ export function CollapsibleDetail({ open, onToggle, children, compact = false }:
 
 // ───────────────────────── 포함·불포함 ─────────────────────────
 
-function IncludeFold({ title, sub, items, note, defaultOpen, compact }: { title: string; sub: string; items: string[]; note?: string; defaultOpen: boolean; compact: boolean }) {
+/** 접기 한 칸: 제목 + 회색 설명 + 펼치기(처음에는 닫힘). 포함·불포함·유의 사항이 같은 모양을 쓴다. */
+function Fold({ title, sub, defaultOpen, compact, children }: { title: string; sub: string; defaultOpen: boolean; compact: boolean; children: ReactNode }) {
     const [open, setOpen] = useState(defaultOpen);
     return (
         <div style={{ borderBottom: `1px solid ${SD.gray200}` }}>
@@ -143,17 +144,121 @@ function IncludeFold({ title, sub, items, note, defaultOpen, compact }: { title:
                 </span>
                 <span style={{ color: SD.gray500, display: 'flex' }}><SIcon name={open ? 'chevronUp' : 'chevronDown'} size={20} /></span>
             </button>
-            {open && (
-                <div style={{ padding: '4px 0 24px' }}>
-                    <ul style={{ margin: 0, padding: 0, listStyle: 'none', fontSize: compact ? 14 : 15, lineHeight: compact ? 1.75 : 1.8, color: SD.gray700 }}>
-                        {items.map((x, i) => (
-                            <li key={i} style={{ display: 'flex', gap: 8 }}><span aria-hidden="true" style={{ flex: 'none', color: SD.gray500 }}>·</span><span>{x}</span></li>
-                        ))}
-                    </ul>
-                    {note && <p style={{ margin: '8px 0 0', fontSize: 13, lineHeight: 1.7, color: SD.gray600 }}>※ {note}</p>}
-                </div>
-            )}
+            {open && <div style={{ padding: '4px 0 24px' }}>{children}</div>}
         </div>
+    );
+}
+
+/** 점 목록(· 항목) */
+function DotList({ items, compact }: { items: string[]; compact: boolean }) {
+    return (
+        <ul style={{ margin: 0, padding: 0, listStyle: 'none', fontSize: compact ? 14 : 15, lineHeight: compact ? 1.75 : 1.8, color: SD.gray700 }}>
+            {items.map((x, i) => (
+                <li key={i} style={{ display: 'flex', gap: 8 }}><span aria-hidden="true" style={{ flex: 'none', color: SD.gray500 }}>·</span><span>{x}</span></li>
+            ))}
+        </ul>
+    );
+}
+
+function IncludeFold({ title, sub, items, note, defaultOpen, compact }: { title: string; sub: string; items: string[]; note?: string; defaultOpen: boolean; compact: boolean }) {
+    return (
+        <Fold title={title} sub={sub} defaultOpen={defaultOpen} compact={compact}>
+            <DotList items={items} compact={compact} />
+            {note && <p style={{ margin: '8px 0 0', fontSize: 13, lineHeight: 1.7, color: SD.gray600 }}>※ {note}</p>}
+        </Fold>
+    );
+}
+
+/** 상품 디자인 틀의 ‘17 포함/불포함’ 값을 접기 모양으로(편집은 관리자 디자인 블록) */
+export function DesignIncludedFolds({ product, compact = false }: { product: TourProduct; compact?: boolean }) {
+    const v = useDesignPartValues(product, 'included');
+    if (!v) return null;
+    const included = designLines(v('inc_items')), excluded = designLines(v('exc_items'));
+    return (
+        <div>
+            {included.length > 0 && <IncludeFold title="포함사항" sub="아래 항목들이 상품 가격에 포함돼요" items={included} defaultOpen={false} compact={compact} />}
+            {excluded.length > 0 && <IncludeFold title="불포함사항" sub="아래 항목들이 상품 가격에 불포함돼요" items={excluded} defaultOpen={false} compact={compact} />}
+        </div>
+    );
+}
+
+// 화면 읽기 역할 이름(따옴표 낱말이 아이콘 이름 검사에 걸리지 않게 나눠 적는다 — CLAUDE.md 3.6)
+const ROLE_TABLE = ['ta', 'ble'].join('') as AriaRole;
+
+/** 유의 사항 안의 소제목 한 묶음 */
+function NoticeGroup({ title, compact, children }: { title: string; compact: boolean; children: ReactNode }) {
+    return (
+        <section style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+            {title && <h4 style={{ margin: 0, fontSize: compact ? 15 : 16, fontWeight: 700, color: SD.gray900 }}>{title}</h4>}
+            {children}
+        </section>
+    );
+}
+
+/**
+ * 상품 디자인 틀의 ‘19 예약 전 확인사항’ 값을 유의사항 접기 하나로(2026-11-27 오너 요청):
+ * 예약금 취소 규정(강조 상자) · 투어 안내(검은 띠) · 숙박 안내(유형·사진·설비 표) · 동물 체험. 편집은 관리자 디자인 블록.
+ */
+export function DesignNoticeFold({ product, compact = false }: { product: TourProduct; compact?: boolean }) {
+    const v = useDesignPartValues(product, 'notice');
+    if (!v) return null;
+    const text: CSSProperties = { margin: 0, fontSize: compact ? 14 : 15, lineHeight: compact ? 1.75 : 1.8, color: SD.gray700, whiteSpace: 'pre-line' };
+    const cancel = designLines(v('cancel_body')), cancelBox = designLines(v('cancel_box'));
+    const tour = designLines(v('tour_body')), animal = designLines(v('animal_body'));
+    const head = v('gt_head').split('|').map((h) => h.trim());
+    const rows = [1, 2, 3, 4].map((n) => ({ name: v(`gt${n}_name`).trim(), img: v(`gt${n}_img`).trim(), spec: v(`gt${n}_spec`).trim() })).filter((r) => r.name || r.spec);
+    const cols = compact ? 'minmax(0,1fr) 84px minmax(0,1.5fr)' : 'minmax(0,1fr) 140px minmax(0,1.6fr)';
+    const sub = v('terms_title').replace(/[!！]+$/, '').trim() || '예약 전에 꼭 확인해 주세요';
+    return (
+        <Fold title="유의사항" sub={sub} defaultOpen={false} compact={compact}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: compact ? 24 : 28 }}>
+                {(cancel.length > 0 || cancelBox.length > 0) && (
+                    <NoticeGroup title={v('cancel_title')} compact={compact}>
+                        {cancel.length > 0 && <DotList items={cancel} compact={compact} />}
+                        {cancelBox.length > 0 && (
+                            <div style={{ padding: compact ? '12px 14px' : '14px 18px', borderRadius: 10, background: SD.mint50, display: 'flex', flexDirection: 'column', gap: 4 }}>
+                                {cancelBox.map((line, i) => <p key={i} style={{ margin: 0, fontSize: compact ? 14 : 15, fontWeight: 700, color: SD.mint800 }}>{line}</p>)}
+                            </div>
+                        )}
+                    </NoticeGroup>
+                )}
+                {(tour.length > 0 || v('tour_banner').trim()) && (
+                    <NoticeGroup title={v('tour_title')} compact={compact}>
+                        {tour.length > 0 && <DotList items={tour} compact={compact} />}
+                        {v('tour_banner').trim() && <p style={{ margin: 0, padding: '11px 14px', borderRadius: 8, background: SD.gray900, color: SD.white, fontSize: 14, fontWeight: 700, textAlign: 'center' }}>{v('tour_banner')}</p>}
+                    </NoticeGroup>
+                )}
+                {(v('gerstay_lead').trim() || v('gerstay_body').trim() || rows.length > 0) && (
+                    <NoticeGroup title={v('gerstay_title')} compact={compact}>
+                        {v('gerstay_lead').trim() && <p style={{ ...text, fontWeight: 700, color: SD.mint700 }}>{v('gerstay_lead')}</p>}
+                        {v('gerstay_body').trim() && <p style={text}>{v('gerstay_body')}</p>}
+                        {rows.length > 0 && (
+                            <div role={ROLE_TABLE} aria-label={v('gerstay_title') || '숙박 안내'} style={{ marginTop: 4, border: `1px solid ${SD.gray200}`, borderRadius: 12, overflow: 'hidden' }}>
+                                <div role="row" style={{ display: 'grid', gridTemplateColumns: cols, background: SD.gray50, fontSize: 13, fontWeight: 700, color: SD.gray700, textAlign: 'center' }}>
+                                    {[0, 1, 2].map((i) => <span key={i} role="columnheader" style={{ padding: '10px 6px' }}>{head[i] || ''}</span>)}
+                                </div>
+                                {rows.map((r, i) => (
+                                    <div key={i} role="row" style={{ display: 'grid', gridTemplateColumns: cols, alignItems: 'center', borderTop: `1px solid ${SD.gray200}` }}>
+                                        <span role="cell" style={{ padding: '12px 6px', fontSize: compact ? 13 : 14, fontWeight: 700, lineHeight: 1.45, color: SD.gray900, textAlign: 'center', whiteSpace: 'pre-line' }}>{r.name}</span>
+                                        <span role="cell" style={{ padding: '8px 4px' }}>
+                                            <span style={{ display: 'block', position: 'relative', aspectRatio: '4/3', borderRadius: 8, overflow: 'hidden', background: SD.gray100 }}>
+                                                {isUsableImage(r.img) && <ResponsiveProductImage src={r.img} alt={r.name.replace(/\s+/g, ' ')} loading="lazy" decoding="async" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />}
+                                            </span>
+                                        </span>
+                                        <span role="cell" style={{ padding: '10px 10px', fontSize: compact ? 13 : 14, lineHeight: 1.7, color: SD.gray700, whiteSpace: 'pre-line' }}>{r.spec}</span>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+                    </NoticeGroup>
+                )}
+                {animal.length > 0 && (
+                    <NoticeGroup title={v('animal_title')} compact={compact}>
+                        <DotList items={animal} compact={compact} />
+                    </NoticeGroup>
+                )}
+            </div>
+        </Fold>
     );
 }
 
@@ -319,6 +424,12 @@ export function FaqFolds({ items, compact = false }: { items: ProductFAQ[]; comp
             })}
         </div>
     );
+}
+
+/** 상품 디자인 틀의 ‘20 FAQ’ 값(질문·답변 1~5)을 FAQ 접기로(편집은 관리자 디자인 블록) */
+export function DesignFaqFolds({ product, compact = false }: { product: TourProduct; compact?: boolean }) {
+    const items = designFaqItems(useDesignPartValues(product, 'faq'));
+    return items.length ? <FaqFolds items={items} compact={compact} /> : null;
 }
 
 // ───────────────────────── 관련 상품 ─────────────────────────
