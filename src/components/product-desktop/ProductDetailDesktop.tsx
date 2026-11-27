@@ -8,11 +8,12 @@ import { DesignItinerary } from '../product/designTemplates/DesignItinerary';
 import {
     detailFlags, detailTabs, summariseReviews, useTourReviews, tourFacts, tourGallery, usePopularTours, useRelatedTours, useSectionTabs, useTourFaqItems, useTourPricing,
     type ShareResult, type TourDetailViewProps,
+    hasIncludedLists,
 } from '../product/detail/productDetailData';
 import { SD, SD_CONTAINER, SIcon } from '../site-seed/seed';
 import { durationLabel } from '../tours-mobile/tourListFilters';
 import { BookingCardDesktop } from './BookingCardDesktop';
-import { CollapsibleDetail, FaqFolds, GalleryStrip, IncludedFolds, RelatedRow, ReviewList, SectionTitle } from '../product/detail/TourDetailSections';
+import { CollapsibleDetail, DesignFaqFolds, DesignIncludedFolds, DesignNoticeFold, FaqFolds, GalleryStrip, IncludedFolds, RelatedRow, ReviewList, SectionTitle } from '../product/detail/TourDetailSections';
 
 const TAB_ROW_H = 52;
 /** 목차를 눌렀을 때 구역 제목이 멈추는 자리(붙는 메뉴 줄 + 목차 줄 아래). */
@@ -172,9 +173,8 @@ export function ProductDetailDesktop({ product, reviews, onBook, onShare, previe
                     {flags.hasIncluded && (
                         <section>
                             <SectionTitle id="td-incl" marginBottom={0}>포함 사항</SectionTitle>
-                            {flags.designIncluded
-                                ? <div style={{ marginTop: 16 }}><DetailBlocks product={product} withItinerary={false} part="included" /></div>
-                                : <IncludedFolds product={product} />}
+                            {/* 상품 수정 ‘포함/불포함’ 탭의 목록이 있으면 그것을, 없을 때만 디자인 틀의 17 포함/불포함 값을 같은 접기 모양으로 */}
+                    {flags.designIncluded && !hasIncludedLists(product) ? <DesignIncludedFolds product={product} /> : <IncludedFolds product={product} />}
                         </section>
                     )}
 
@@ -188,11 +188,9 @@ export function ProductDetailDesktop({ product, reviews, onBook, onShare, previe
 
                     <section>
                         <SectionTitle id="td-faq" marginBottom={8}>유의 사항·FAQ</SectionTitle>
-                        {/* 디자인 틀의 예약 전 확인사항·FAQ가 있으면 그것을, FAQ가 없으면 상품 FAQ 목록을 보여 준다 */}
-                        {flags.designNotice && <div style={{ marginTop: 16 }}><DetailBlocks product={product} withItinerary={false} part="notice" /></div>}
-                        {flags.designFaq
-                            ? <div style={{ marginTop: 16 }}><DetailBlocks product={product} withItinerary={false} part="faq" /></div>
-                            : <FaqFolds items={faq} />}
+                        {/* 디자인 틀의 예약 전 확인사항은 유의사항 접기로, 틀의 FAQ가 있으면 그것을(없으면 상품 FAQ 목록) 같은 접기 모양으로 */}
+                        {flags.designNotice && <DesignNoticeFold product={product} />}
+                        {flags.designFaq ? <DesignFaqFolds product={product} /> : <FaqFolds items={faq} />}
                     </section>
                 </div>
 

@@ -6,7 +6,8 @@ import { isPublished, type HomeProduct } from '../../home-desktop/homeDesktopDat
 import { durationLabel } from '../../tours-mobile/tourListFilters';
 import { mapReview, parseJsonArray, useDesktopReviews, type DesktopReview, type RawReview } from '../../reviews-desktop/reviewsData';
 import { getDesignTemplate } from '../designTemplates/registry';
-import { visibleInstances } from '../designTemplates/sections';
+import { suffixOf, visibleInstances } from '../designTemplates/sections';
+import { useDesignGlobalDefaults } from '../designTemplates/globalDefaults';
 
 /**
  * Data helpers shared by the redesigned tour detail (PC + mobile).
@@ -113,6 +114,52 @@ export function designBlockHasPart(content: DesignBlockContent | undefined, part
 /** 디자인 틀(들)에 그 칸에 보일 섹션이 있는지. */
 export const designHasPart = (product: TourProduct, part: DesignPart) =>
     (product.detailBlocks ?? []).some((b) => b.type === 'design' && designBlockHasPart(b.content as DesignBlockContent, part));
+
+/**
+ * 디자인 틀의 한 칸(포함 사항·유의 사항·FAQ) 값을 읽는다 — 상품 상세는 이 값을 틀 그림 대신 접기 모양으로 그린다(2026-11-27 오너 요청).
+ * 값 순서는 DesignBlockView와 같다: 상품에 적은 값 → 사이트 공통값 → 원본 디자인 기본값. 편집은 지금처럼 관리자 디자인 블록에서 한다.
+ * 그 칸 섹션이 없거나 뺐으면 null.
+ */
+export function useDesignPartValues(product: TourProduct, part: DesignPart): ((key: string) => string) | null {
+    const block = (product.detailBlocks ?? []).find((b) => b.type === 'design' && designBlockHasPart(b.content as DesignBlockContent, part));
+    const content = block?.content as DesignBlockContent | undefined;
+    const shared = useDesignGlobalDefaults(content?.templateId);
+    const def = content ? getDesignTemplate(content.templateId) : undefined;
+    if (!content || !def) return null;
+    const instance = visibleInstances(def, content.sections).find((i) => designPartOf(content.templateId, i.def) === part);
+    if (!instance) return null;
+    // 복제한 섹션이면 그 섹션의 값(@2 접미사)을 읽는다
+    const suffix = suffixOf(instance.id);
+    const values = content.values || {};
+    const defaults: Record<string, string> = {};
+    for (const field of def.fields) defaults[field.key] = field.default ?? '';
+    return (key: string) => {
+        const own = values[key + suffix];
+        if (own !== undefined && own !== '') return own;
+        const common = shared[key];
+        if (common !== undefined && common !== '') return common;
+        return defaults[key] ?? '';
+    };
+}
+
+/** 틀의 여러 줄 칸 → 목록 줄(앞의 ‘- · • *’ 표시는 떼고, 빈 줄은 뺀다) */
+export const designLines = (text: string): string[] =>
+    String(text || '').split('\n').map((line) => line.trim().replace(/^[-·•*]\s*/, '').trim()).filter(Boolean);
+
+/** 상품 수정 ‘포함/불포함’ 탭에 목록이 있는지 — 있으면 상세 포함 사항은 그 목록을 보여 준다(디자인 틀 값보다 우선) */
+export const hasIncludedLists = (product: TourProduct): boolean =>
+    (product.included ?? []).some(Boolean) || (product.excluded ?? []).some(Boolean);
+
+/** 틀의 FAQ 칸(질문·답변 1~5) → 상세 FAQ 목록 */
+export function designFaqItems(v: ((key: string) => string) | null): ProductFAQ[] {
+    if (!v) return [];
+    const items: ProductFAQ[] = [];
+    for (let n = 1; n <= 5; n++) {
+        const q = v(`faq${n}_q`).trim(), a = v(`faq${n}_a`).trim();
+        if (q) items.push({ q, a } as ProductFAQ);
+    }
+    return items;
+}
 
 export interface DetailFlags {
     hasDetail: boolean;

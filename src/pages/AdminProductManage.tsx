@@ -28,6 +28,7 @@ import { cloneItineraryBlocks, renumberDayLabels, type ItinerarySource } from '.
 import { stripDayLabelReading } from '../utils/dayLabel';
 import { ProductRepresentativeSpots } from '../components/admin/QuoteSpotSelector';
 import { ProductTermsChecklist } from '../components/admin/ProductTermsChecklist';
+import { ProductNoticeEditor } from '../components/admin/ProductNoticeEditor';
 import { bookableAccommodationOptions, normalizeAccommodationOptions } from '../utils/productAccommodationOptions';
 import { adminConfirm, adminNotify } from '../components/admin/ui/adminFeedback';
 import { adminConfirmLeave } from '../components/admin/ui/adminLeaveConfirm';
@@ -598,7 +599,7 @@ interface ProductModalProps {
 }
 
 /** 상품 편집기 구역(탭) — 순서가 화면의 탭 순서다 */
-type EditorTab = 'basic' | 'details' | 'itinerary' | 'spots' | 'options' | 'includes';
+type EditorTab = 'basic' | 'details' | 'itinerary' | 'spots' | 'options' | 'includes' | 'notice';
 const EDITOR_TABS: Array<{ value: EditorTab; label: string }> = [
     { value: 'basic', label: '기본 정보' },
     { value: 'details', label: '상세 정보' },
@@ -606,6 +607,8 @@ const EDITOR_TABS: Array<{ value: EditorTab; label: string }> = [
     { value: 'options', label: '가격/옵션' },
     { value: 'spots', label: '대표 명소' },
     { value: 'includes', label: '포함/불포함' },
+    // 상품 페이지 ‘유의 사항·FAQ’의 유의사항 접기 — 디자인 블록 ‘19 예약 전 확인사항’ 값을 고친다(2026-11-27)
+    { value: 'notice', label: '유의사항' },
 ];
 
 /** 예전 골격이 저장한 후리가나 붙은 라벨('1日目（いちにちめ）')에서 괄호를 뗀다 — 폼에 올릴 때 한 번 정리 */
@@ -2883,6 +2886,11 @@ export const ProductModal: React.FC<ProductModalProps> = ({ product, categories,
                                         onChange={items => setFormData(current => ({ ...current, [kind]: items }))} />
                                 ))}
                             </div>
+                        )}
+
+                        {currentTab === 'notice' && (
+                            <ProductNoticeEditor blocks={formData.detailBlocks || []} onChange={(index, content) => updateBlockContent(index, content)}
+                                onBusyChange={busy => reportDesignBusy('notice-tab', busy)} />
                         )}
                     </div>
 
