@@ -376,6 +376,13 @@ img {
     display: none;
 }
 
+/* Quill Snow is loaded by the admin editor, not by public articles.
+   Honor saved paragraph alignment and inline sizes in both public layouts. */
+.mw-article .ql-align-center { text-align: center; }
+.mw-article :is(h2, h3).ql-align-center { justify-content: center; }
+.mw-article .ql-size-small { font-size: 0.875em; }
+.mw-article .ql-size-large { font-size: 1.1875em; }
+
 /* Mobile magazine article body: the PC .mw-article typography scaled for phone widths. */
 .mw-article.mw-article-m { gap: 20px; font-size: 15px; line-height: 1.95; }
 .mw-article.mw-article-m > div { gap: 20px; }
