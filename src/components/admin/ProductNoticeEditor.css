@@ -19,3 +19,4 @@
   .pne-row-fields { grid-column: 1 / -1; grid-template-columns: minmax(0, 1fr); }
   .pne-head-row { grid-template-columns: minmax(0, 1fr); }
 }
+.pne-foot { display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: var(--adm-space-3); color: var(--adm-text-2); font-size: var(--adm-fs-small); }

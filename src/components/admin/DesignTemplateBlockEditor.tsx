@@ -6,7 +6,7 @@ import DesignBlockView from '../product/designTemplates/DesignBlockView';
 import { commitTextSize } from '../product/designTemplates/textStyles';
 import { priceRowsFromOptions } from '../product/designTemplates/pricing';
 import { MAP_DESTINATIONS } from '../product/designTemplates/mapDestinations';
-import { baseKey, fieldKeysOfSection, nextCopyId, resolveInstances, scopeOf, scopedKey } from '../product/designTemplates/sections';
+import { baseKey, fieldKeysOfSection, isSharedField, nextCopyId, resolveInstances, scopeOf, scopedKey } from '../product/designTemplates/sections';
 import { saveDesignDefaults, useAllDesignDefaults, useDesignGlobalDefaults } from '../product/designTemplates/globalDefaults';
 import { uploadImage } from '../../utils/upload';
 import { Icon } from './console/Icon';
@@ -366,6 +366,8 @@ export function DesignTemplateBlockEditor({
     const handlePreviewFieldClick = (key: string) => {
         const entry = lookupField(key);
         if (!entry) return;
+        // 모든 상품 공통 섹션(유의사항)은 여기서 상품마다 고치지 않는다 — 상품 수정 ‘유의사항’ 탭에서 한 번에 고친다
+        if (isSharedField(def, entry.key)) { adminNotify('이 칸은 모든 상품 공통이에요. 상품 수정의 ‘유의사항’ 탭에서 고쳐 주세요.', 'info'); return; }
         setSelectedField(entry.key);
         setActiveInst(entry.instId);
         if (entry.field.type === 'map-stops' || entry.field.type === 'spot-cards') { setInline(null); openInPanel(entry.key, entry.instId); return; }

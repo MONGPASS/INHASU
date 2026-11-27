@@ -95,6 +95,11 @@ export interface DesignTemplateDef {
      * included = 포함 사항, notice = 유의 사항, faq = FAQ, hidden = 상세에 보이지 않음(예약 상자와 겹치는 가격 등).
      */
     pageParts?: Record<string, 'included' | 'notice' | 'faq' | 'hidden'>;
+    /**
+     * 모든 상품이 같은 내용을 쓰는 섹션(섹션 def id). 이 섹션의 칸은 사이트 공통값이 있으면 상품에 따로 적은 값보다 먼저 쓴다
+     * (상품마다 같은 사진·문구를 다시 올리지 않게 — 2026-11-27 오너 요청). 고치는 곳은 상품 수정 ‘유의사항’ 탭(공통 저장).
+     */
+    sharedSections?: string[];
     /** 관리자에서 복제·삭제할 수 있는 섹션 목록 (표시 순서) */
     sectionDefs: DesignSectionDef[];
     Component: React.ComponentType<DesignTemplateProps>;

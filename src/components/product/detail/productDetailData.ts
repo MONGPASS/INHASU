@@ -6,7 +6,7 @@ import { isPublished, type HomeProduct } from '../../home-desktop/homeDesktopDat
 import { durationLabel } from '../../tours-mobile/tourListFilters';
 import { mapReview, parseJsonArray, useDesktopReviews, type DesktopReview, type RawReview } from '../../reviews-desktop/reviewsData';
 import { getDesignTemplate } from '../designTemplates/registry';
-import { suffixOf, visibleInstances } from '../designTemplates/sections';
+import { isSharedField, suffixOf, visibleInstances } from '../designTemplates/sections';
 import { useDesignGlobalDefaults } from '../designTemplates/globalDefaults';
 
 /**
@@ -134,6 +134,8 @@ export function useDesignPartValues(product: TourProduct, part: DesignPart): ((k
     const defaults: Record<string, string> = {};
     for (const field of def.fields) defaults[field.key] = field.default ?? '';
     return (key: string) => {
+        // 모든 상품 공통 섹션(유의사항)은 사이트 공통값이 상품 값보다 먼저(DesignBlockView와 같다)
+        if (isSharedField(def, key) && shared[key]) return shared[key];
         const own = values[key + suffix];
         if (own !== undefined && own !== '') return own;
         const common = shared[key];

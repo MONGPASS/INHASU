@@ -607,7 +607,7 @@ const EDITOR_TABS: Array<{ value: EditorTab; label: string }> = [
     { value: 'options', label: '가격/옵션' },
     { value: 'spots', label: '대표 명소' },
     { value: 'includes', label: '포함/불포함' },
-    // 상품 페이지 ‘유의 사항·FAQ’의 유의사항 접기 — 디자인 블록 ‘19 예약 전 확인사항’ 값을 고친다(2026-11-27)
+    // 상품 페이지 ‘유의 사항·FAQ’의 유의사항 접기 — 모든 상품 공통(사이트 공통값)으로 고친다(2026-11-27)
     { value: 'notice', label: '유의사항' },
 ];
 
@@ -2889,8 +2889,7 @@ export const ProductModal: React.FC<ProductModalProps> = ({ product, categories,
                         )}
 
                         {currentTab === 'notice' && (
-                            <ProductNoticeEditor blocks={formData.detailBlocks || []} onChange={(index, content) => updateBlockContent(index, content)}
-                                onBusyChange={busy => reportDesignBusy('notice-tab', busy)} />
+                            <ProductNoticeEditor blocks={formData.detailBlocks || []} />
                         )}
                     </div>
 

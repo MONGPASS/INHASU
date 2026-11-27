@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useId, useRef, useState } from 'react';
 import type { DesignBlockContent } from '../../../types/product';
 import { getDesignTemplate } from './registry';
-import { baseKey, scopeOf, visibleInstances } from './sections';
+import { baseKey, isSharedField, scopeOf, visibleInstances } from './sections';
 import { useDesignGlobalDefaults } from './globalDefaults';
 import { textStyleCss } from './textStyles';
 
@@ -109,6 +109,11 @@ export default function DesignBlockView({ content, editing, variant = 'desktop',
     const v = (key: string) => {
         const auto = valueOverrides?.[baseKey(key)];
         if (auto !== undefined && auto !== '') return auto;
+        // 모든 상품 공통 섹션(유의사항)은 사이트 공통값이 있으면 그것을 먼저 쓴다
+        if (isSharedField(def, key)) {
+            const common = globalDefaults[baseKey(key)];
+            if (common !== undefined && common !== '') return common;
+        }
         const raw = values[key];
         if (raw !== undefined && raw !== '') return raw;
         // 복제 섹션의 key는 '@2' 접미사가 붙으므로 원본 key로 되돌려 찾는다
