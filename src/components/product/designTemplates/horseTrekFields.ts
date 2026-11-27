@@ -1,4 +1,14 @@
-import type { DesignSectionDef, DesignTemplateField } from './types';
+import type { DesignItemGroup, DesignSectionDef, DesignTemplateField } from './types';
+
+/** 이용자 특전 카드: 원본은 6장, 편집기에서 1~12장으로 늘리고 줄인다(2026-11-27 오너 요청) */
+export const PERKS_GROUP: DesignItemGroup = { countKey: 'perks_count', prefix: 'perk', label: '특전', min: 1, max: 12, fallback: 6 };
+const PERKS_SECTION = '04 이용자 특전';
+/** 추가한 특전(7~12번) 칸 — 문구·사진 기본값 없음 */
+const extraPerkFields: DesignTemplateField[] = [7, 8, 9, 10, 11, 12].flatMap((n): DesignTemplateField[] => [
+    { key: `perk${n}_img`, label: `특전 ${n} 사진`, type: 'image', section: PERKS_SECTION },
+    { key: `perk${n}_title`, label: `특전 ${n} 제목`, type: 'text', section: PERKS_SECTION },
+    { key: `perk${n}_sub`, label: `특전 ${n} 설명`, type: 'text', section: PERKS_SECTION },
+]);
 
 /**
  * 「몽골 승마 트레킹 상세페이지」 디자인의 편집 가능 필드 목록.
@@ -47,6 +57,8 @@ export const horseTrekFields: DesignTemplateField[] = [
     { key: 'perk6_img', label: '특전 6 사진', type: 'image', section: '04 이용자 특전' },
     { key: 'perk6_title', label: '특전 6 제목', type: 'text', section: '04 이용자 특전', default: '새벽 은하수 헌팅' },
     { key: 'perk6_sub', label: '특전 6 설명', type: 'text', section: '04 이용자 특전', default: '6명 이하 그룹 한정' },
+    ...extraPerkFields,
+    { key: 'perks_count', label: '특전 개수', type: 'text', section: '04 이용자 특전', default: String(PERKS_GROUP.fallback), hidden: true },
     { key: 'perk_air_img', label: '공항 배너 사진', type: 'image', section: '04 이용자 특전' },
     { key: 'perk_air_title', label: '공항 배너 제목', type: 'text', section: '04 이용자 특전', default: '투어 진행 날에 속하는 공항 이동 무료' },
     { key: 'perk_air_note', label: '공항 배너 설명', type: 'textarea', section: '04 이용자 특전', default: '* 본 투어 일정 외 이용 시 *\n공항 - 시내 편도 80,000원/6명' },

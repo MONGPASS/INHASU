@@ -6,7 +6,7 @@ import DesignBlockView from '../product/designTemplates/DesignBlockView';
 import { commitTextSize } from '../product/designTemplates/textStyles';
 import { priceRowsFromOptions } from '../product/designTemplates/pricing';
 import { MAP_DESTINATIONS } from '../product/designTemplates/mapDestinations';
-import { baseKey, fieldKeysOfSection, isSharedField, nextCopyId, resolveInstances, scopeOf, scopedKey } from '../product/designTemplates/sections';
+import { baseKey, fieldKeysOfSection, isSharedField, itemCountOf, itemIndexOf, nextCopyId, resolveInstances, scopeOf, scopedKey } from '../product/designTemplates/sections';
 import { saveDesignDefaults, useAllDesignDefaults, useDesignGlobalDefaults } from '../product/designTemplates/globalDefaults';
 import { uploadImage } from '../../utils/upload';
 import { Icon } from './console/Icon';
@@ -328,18 +328,23 @@ export function DesignTemplateBlockEditor({
     const values = useMemo(() => content.values || {}, [content.values]);
 
     const sections = useMemo(() => {
-        if (!def) return [] as { instId: string; defId: string; name: string; copyNo: number; fields: { field: DesignTemplateField; key: string }[] }[];
+        if (!def) return [] as { instId: string; defId: string; name: string; copyNo: number; items: { label: string; count: number; min: number; max: number } | null; fields: { field: DesignTemplateField; key: string }[] }[];
         return instances.filter(inst => !inst.hidden).map(inst => {
             const sec = def.sectionDefs.find(s => s.id === inst.def)!;
             const names = new Set(sec.fieldSections);
             const hash = inst.id.indexOf('#');
+            // 늘리고 줄이는 항목(이용자 특전 카드): 지금 개수까지만 입력칸을 보인다
+            const group = def.itemGroups?.[inst.def];
+            const count = group ? itemCountOf(values[scopedKey(group.countKey, inst.id)], group) : 0;
             return {
+                items: group ? { label: group.label, count, min: group.min, max: group.max } : null,
                 instId: inst.id,
                 defId: inst.def,
                 name: hash === -1 ? inst.id : `${inst.def} (복제 ${inst.id.slice(hash + 1)})`,
                 copyNo: hash === -1 ? 1 : Number(inst.id.slice(hash + 1)),
                 fields: def.fields
-                    .filter(f => names.has(f.section))
+                    .filter(f => names.has(f.section) && !f.hidden)
+                    .filter(f => !group || itemIndexOf(group, f.key) <= count)
                     // 복제본과 공유하는 값은 원본 섹션에서만 편집한다
                     .filter(f => !f.shared || inst.id === inst.def)
                     .map(f => ({
@@ -349,7 +354,7 @@ export function DesignTemplateBlockEditor({
                     })),
             };
         });
-    }, [def, instances]);
+    }, [def, instances, values]);
 
     /** 오른쪽 목록 패널을 열고 그 칸으로 스크롤 + 포커스 (전용 편집기가 필요한 칸용) */
     const openInPanel = (key: string, instId: string) => {
@@ -429,6 +434,55 @@ export function DesignTemplateBlockEditor({
             })();
         onChange({ ...content, sections: next });
         setOpenSection(hiddenOne ? hiddenOne.id : defId);
+    };
+
+    /** 항목(이용자 특전 카드) 하나 추가 — 개수만 늘린다. 새 카드는 빈 사진·문구로 시작한다 */
+    const addItem = (instId: string, defId: string) => {
+        const group = def?.itemGroups?.[defId];
+        if (!group) return;
+        const countKey = scopedKey(group.countKey, instId);
+        const count = itemCountOf(values[countKey], group);
+        if (count >= group.max) { adminNotify(`${group.label}은 ${group.max}개까지 넣을 수 있어요.`); return; }
+        const nextValues = { ...values, [countKey]: String(count + 1) };
+        if (count + 1 === group.fallback) delete nextValues[countKey];
+        onChange({ ...content, values: nextValues });
+    };
+
+    /**
+     * 항목 하나 삭제 — 뒤 항목들을 한 칸씩 당기고 개수를 줄인다.
+     * 값이 없으면 공통값·원본 문구가 나오는 구조라, 당겨 온 값이 그 자리의 원본과 같으면 키를 지우고,
+     * 당겨 온 문구가 비었는데 그 자리 원본 문구가 있으면 공백 한 칸을 넣어 원본 문구가 되살아나지 않게 한다.
+     * (사진은 비울 수 없어, 빈 사진을 당겨 온 자리에 공통 사진이 있으면 그 공통 사진이 보인다.)
+     */
+    const removeItem = async (instId: string, defId: string, n: number) => {
+        const group = def?.itemGroups?.[defId];
+        if (!def || !group) return;
+        const countKey = scopedKey(group.countKey, instId);
+        const count = itemCountOf(values[countKey], group);
+        if (count <= group.min) { adminNotify(`${group.label}은 ${group.min}개 이상 있어야 해요.`); return; }
+        if (!await adminConfirm(`${group.label} ${n}번을 삭제할까요? 뒤에 있는 ${group.label}은 한 칸씩 앞으로 옵니다.`)) return;
+        const first = group.prefix + '1';
+        const tails = def.fields.filter(f => itemIndexOf(group, f.key) === 1).map(f => ({ tail: f.key.slice(first.length), type: f.type }));
+        const fallback = (base: string) => sharedAssets[base] || def.fields.find(f => f.key === base)?.default || '';
+        const nextValues = { ...values };
+        const nextStyles = { ...(content.textStyles || {}) };
+        for (let i = n; i < count; i++) {
+            for (const { tail, type } of tails) {
+                const toBase = `${group.prefix}${i}${tail}`, fromBase = `${group.prefix}${i + 1}${tail}`;
+                const to = scopedKey(toBase, instId), from = scopedKey(fromBase, instId);
+                const incoming = values[from] || fallback(fromBase);
+                if (incoming.trim() && incoming !== fallback(toBase)) nextValues[to] = incoming;
+                else if (!incoming.trim() && fallback(toBase) && type !== 'image') nextValues[to] = ' ';
+                else delete nextValues[to];
+                if (nextStyles[from]) nextStyles[to] = nextStyles[from]; else delete nextStyles[to];
+            }
+        }
+        for (const { tail } of tails) { const last = scopedKey(`${group.prefix}${count}${tail}`, instId); delete nextValues[last]; delete nextStyles[last]; }
+        if (count - 1 === group.fallback) delete nextValues[countKey]; else nextValues[countKey] = String(count - 1);
+        setInline(null);
+        const { textStyles: _old, ...rest } = content;
+        void _old;
+        onChange({ ...rest, values: nextValues, ...(Object.keys(nextStyles).length ? { textStyles: nextStyles } : {}) });
     };
 
     const removedDefs = useMemo(
@@ -704,8 +758,26 @@ export function DesignTemplateBlockEditor({
                             </div>
                             {open && (
                                 <div className="de-sec-body">
-                                    {sec.fields.map(({ field: f, key: fk }) => (
+                                    {sec.items && (
+                                        <div className="de-items-bar">
+                                            <span>{sec.items.label} <b>{sec.items.count}</b>개 · 최대 {sec.items.max}개</span>
+                                            <AdminButton size="sm" leading={<Ico name="lc-plus" size={14} />} disabled={sec.items.count >= sec.items.max}
+                                                onClick={() => addItem(sec.instId, sec.defId)}>{sec.items.label} 추가</AdminButton>
+                                        </div>
+                                    )}
+                                    {sec.fields.map(({ field: f, key: fk }, fieldIndex) => {
+                                        const group = def.itemGroups?.[sec.defId];
+                                        const itemNo = group ? itemIndexOf(group, f.key) : 0;
+                                        const itemStart = itemNo > 0 && (fieldIndex === 0 || itemIndexOf(group!, sec.fields[fieldIndex - 1].field.key) !== itemNo);
+                                        return (
                                         <div key={fk}>
+                                            {itemStart && sec.items && (
+                                                <div className="de-item-head">
+                                                    <b>{sec.items.label} {itemNo}</b>
+                                                    <AdminButton size="sm" variant="weak" disabled={sec.items.count <= sec.items.min}
+                                                        aria-label={`${sec.items.label} ${itemNo} 삭제`} onClick={() => void removeItem(sec.instId, sec.defId, itemNo)}>삭제</AdminButton>
+                                                </div>
+                                            )}
                                             <label className="de-field-label">
                                                 {f.label}
                                             </label>
@@ -844,7 +916,8 @@ export function DesignTemplateBlockEditor({
                                                 <div className="de-help">{f.help}</div>
                                             )}
                                         </div>
-                                    ))}
+                                        );
+                                    })}
                                 </div>
                             )}
                         </div>
@@ -888,6 +961,16 @@ export function DesignTemplateBlockEditor({
                     onRemove={() => { setInline(null); setActiveInst(null); setHoverInst(null); removeSection(toolbarSection.instId); }}
                     onPickImage={key => { setSelectedField(key); setActiveInst(toolbarSection.instId); setInline({ kind: 'image-field', key }); }}
                     onOpenPanel={() => { setPanelOpen(true); setOpenSection(toolbarSection.instId); }}
+                    items={toolbarSection.items ? {
+                        ...toolbarSection.items,
+                        names: Array.from({ length: toolbarSection.items.count }, (_, i) => {
+                            const group = def.itemGroups![toolbarSection.defId];
+                            const base = `${group.prefix}${i + 1}_title`;
+                            return (values[scopedKey(base, toolbarSection.instId)] || def.fields.find(f => f.key === base)?.default || '').trim();
+                        }),
+                        onAdd: () => addItem(toolbarSection.instId, toolbarSection.defId),
+                        onRemove: n => void removeItem(toolbarSection.instId, toolbarSection.defId, n),
+                    } : undefined}
                     onPointerEnter={keepHover} onPointerLeave={scheduleHoverClear} />
             )}
         </div>
