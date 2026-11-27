@@ -3,8 +3,8 @@ import React from 'react';
 import { toJaDestinationName } from './mapDestinations';
 import type { DesignTemplateProps } from './types';
 import type { DesignSectionInstance } from '../../../types/product';
-import { horseTrekSectionDefs } from './horseTrekFields';
-import { scopedKey, suffixOf } from './sections';
+import { PERKS_GROUP, horseTrekSectionDefs } from './horseTrekFields';
+import { itemCountOf, scopedKey, suffixOf } from './sections';
 
 /**
  * 「몽골 승마 트레킹 상세페이지」 — Claude Design(몽골 승마 트레킹 상세페이지.dc.html)을
@@ -199,12 +199,13 @@ export default function HorseTrekTemplate({ v, editing, instances }: DesignTempl
                     <div style={{ margin: '22px 0 0', textAlign: 'center', fontSize: 24, fontWeight: 600, color: '#5a5a5a', letterSpacing: '-0.02em' }}><span data-df="perks_sub">{v('perks_sub')}</span></div>
     
                     <div style={{ marginTop: 56, display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 18 }}>
-                        {[1, 2, 3, 4, 5, 6].map(n => (
+                        {/* 카드 수는 편집기에서 늘리고 줄인다(perks_count, 1~12) */}
+                        {Array.from({ length: itemCountOf(v('perks_count'), PERKS_GROUP) }, (_, i) => i + 1).map(n => (
                             <div key={n} style={{ position: 'relative', height: 250, borderRadius: 20, overflow: 'hidden', background: '#EFFEF9' }}>
                                 <Slot k={`perk${n}_img`} src={v(`perk${n}_img`)} label={`특전 ${n} 사진`} editing={editing} alt={v(`perk${n}_title`)} />
                                 <div style={{ position: 'absolute', inset: 'auto 0 0 0', pointerEvents: 'none', padding: '26px 16px 22px', background: 'linear-gradient(180deg, rgba(0,51,46,0) 0%, rgba(0,51,46,0.72) 100%)', textAlign: 'center', color: '#fff' }}>
-                                    <div style={{ fontSize: 17, fontWeight: 800, letterSpacing: '-0.03em' }}><span data-df={`perk${n}_title`}>{v(`perk${n}_title`)}</span></div>
-                                    <div style={{ marginTop: 6, fontSize: 19, fontWeight: 600, letterSpacing: '-0.02em' }}><span data-df={`perk${n}_sub`}>{v(`perk${n}_sub`)}</span></div>
+                                    <div style={{ fontSize: 17, fontWeight: 800, letterSpacing: '-0.03em' }}><span data-df={`perk${n}_title`}>{v(`perk${n}_title`).trim() ? v(`perk${n}_title`) : (editing ? '제목 입력' : '')}</span></div>
+                                    <div style={{ marginTop: 6, fontSize: 19, fontWeight: 600, letterSpacing: '-0.02em' }}><span data-df={`perk${n}_sub`}>{v(`perk${n}_sub`).trim() ? v(`perk${n}_sub`) : (editing ? '설명 입력' : '')}</span></div>
                                 </div>
                             </div>
                         ))}

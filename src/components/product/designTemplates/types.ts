@@ -41,6 +41,23 @@ export interface DesignTemplateField {
     presetLines?: DesignPreset[];
     /** presetLines를 이어붙일 구분자 (기본: 줄바꿈) */
     presetSeparator?: string;
+    /** 편집기 입력칸 목록에 보이지 않는 값(예: 늘리고 줄이는 항목의 개수) */
+    hidden?: boolean;
+}
+
+/**
+ * 한 섹션 안에서 늘리고 줄일 수 있는 항목 묶음(예: 이용자 특전 카드).
+ * 항목 n의 칸 key는 `${prefix}${n}_…`(perk3_title)이고, 지금 개수는 countKey 값에 둔다(비면 fallback).
+ */
+export interface DesignItemGroup {
+    countKey: string;
+    prefix: string;
+    /** 편집기에 보이는 항목 이름(‘특전’) */
+    label: string;
+    min: number;
+    max: number;
+    /** 개수를 정한 적 없을 때의 개수(원본 디자인) */
+    fallback: number;
 }
 
 /**
@@ -100,6 +117,8 @@ export interface DesignTemplateDef {
      * (상품마다 같은 사진·문구를 다시 올리지 않게 — 2026-11-27 오너 요청). 고치는 곳은 상품 수정 ‘유의사항’ 탭(공통 저장).
      */
     sharedSections?: string[];
+    /** 섹션(def id)별로 늘리고 줄일 수 있는 항목 묶음 — 편집기의 ‘추가/삭제’가 쓴다 */
+    itemGroups?: Record<string, DesignItemGroup>;
     /** 관리자에서 복제·삭제할 수 있는 섹션 목록 (표시 순서) */
     sectionDefs: DesignSectionDef[];
     Component: React.ComponentType<DesignTemplateProps>;

@@ -179,3 +179,8 @@ label.adm-ui-btn.is-primary.adm-on-primary.de-upload.is-locked, label.adm-ui-btn
 .adm-de-tool:focus-visible { outline: 0; box-shadow: var(--adm-ring); }
 .adm-de-tool:disabled { color: var(--adm-text-disabled); cursor: not-allowed; }
 .adm-de-tool.is-danger:not(:disabled) { color: var(--adm-danger); }
+
+/* 늘리고 줄이는 항목(이용자 특전): 섹션 맨 위 ‘추가’ 줄, 항목마다 머리 줄(이름 · 삭제) */
+.de-items-bar { display: flex; align-items: center; justify-content: space-between; gap: var(--adm-space-2); padding: var(--adm-space-2) var(--adm-space-3); border-radius: var(--adm-radius-mid); background: var(--adm-sunken); color: var(--adm-text-2); font-size: var(--adm-fs-small); }
+.de-items-bar b { color: var(--adm-ink); }
+.de-item-head { display: flex; align-items: center; justify-content: space-between; gap: var(--adm-space-2); margin: var(--adm-space-2) 0; padding-top: var(--adm-space-3); border-top: var(--adm-border-width) solid var(--adm-line); color: var(--adm-ink); font-size: var(--adm-fs-body); }

@@ -1,5 +1,5 @@
 import type { DesignTemplateDef } from './types';
-import { horseTrekFields, horseTrekSectionDefs } from './horseTrekFields';
+import { PERKS_GROUP, horseTrekFields, horseTrekSectionDefs } from './horseTrekFields';
 import HorseTrekTemplate from './HorseTrekTemplate';
 import HorseTrekMobileTemplate from './HorseTrekMobileTemplate';
 
@@ -20,6 +20,8 @@ export const designTemplates: DesignTemplateDef[] = [
         pageParts: { '17 포함/불포함': 'included', '18 투어 가격': 'hidden', '19 예약 전 확인사항': 'notice', '20 FAQ': 'faq' },
         // 예약 전 확인사항(유의사항)은 모든 상품 공통 — 사이트 공통값이 상품 값보다 먼저(상품 수정 ‘유의사항’ 탭에서 공통 저장)
         sharedSections: ['19 예약 전 확인사항'],
+        // 이용자 특전 카드는 편집기에서 추가·삭제한다
+        itemGroups: { '04 이용자 특전': PERKS_GROUP },
         Component: HorseTrekTemplate,
         mobile: {
             canvasWidth: 430,

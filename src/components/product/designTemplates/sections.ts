@@ -1,5 +1,5 @@
 import type { DesignSectionInstance } from '../../../types/product';
-import type { DesignTemplateDef } from './types';
+import type { DesignItemGroup, DesignTemplateDef } from './types';
 
 /**
  * 디자인 템플릿의 섹션 인스턴스 유틸.
@@ -88,6 +88,20 @@ export function isSharedField(def: DesignTemplateDef | undefined, key: string): 
     if (!field) return false;
     const sections = new Set(def.sharedSections.flatMap(id => def.sectionDefs.find(s => s.id === id)?.fieldSections ?? [id]));
     return sections.has(field.section);
+}
+
+/** 늘리고 줄이는 항목의 지금 개수(값이 없거나 이상하면 원본 개수, 최소·최대 안으로) */
+export function itemCountOf(raw: string | undefined, group: DesignItemGroup): number {
+    const n = Math.round(Number(raw));
+    return Math.min(group.max, Math.max(group.min, Number.isFinite(n) && n > 0 ? n : group.fallback));
+}
+
+/** 그 칸이 몇 번째 항목의 칸인지(항목 칸이 아니면 0) — perk3_title → 3 */
+export function itemIndexOf(group: DesignItemGroup, key: string): number {
+    const base = baseKey(key);
+    if (!base.startsWith(group.prefix)) return 0;
+    const m = base.slice(group.prefix.length).match(/^(\d+)_/);
+    return m ? Number(m[1]) : 0;
 }
 
 /** key가 속한 복제 접미사 ('' 또는 '@2') */
